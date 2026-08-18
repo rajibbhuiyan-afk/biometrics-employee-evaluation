@@ -104,9 +104,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Employee can create evaluations
     Route::middleware('role:Employee')->group(function () {
 
-        Route::post(
+       Route::post(
             '/evaluations',
             [EvaluationController::class, 'store']
+        );
+
+        Route::post(
+            '/evaluations/{evaluation}/submit',
+            [EvaluationController::class, 'submit']
         );
 
     });
@@ -139,6 +144,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put(
             '/evaluation-answers/{evaluationAnswer}',
             [EvaluationAnswerController::class, 'update']
+        );
+        Route::post(
+            '/evaluations/{evaluation}/submit',
+            [EvaluationController::class, 'submit']
         );
 
     });
