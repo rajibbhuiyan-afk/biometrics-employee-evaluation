@@ -39,7 +39,7 @@ class PositionController extends Controller
                 'exists:departments,id',
             ],
 
-            'name' => [
+            'title' => [
                 'required',
                 'string',
                 'max:100',
@@ -102,7 +102,7 @@ class PositionController extends Controller
                 'exists:departments,id',
             ],
 
-            'name' => [
+            'title' => [
                 'required',
                 'string',
                 'max:100',

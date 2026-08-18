@@ -35,6 +35,12 @@ class UserController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
+             'employee_id' => [
+                'required',
+                'string',
+                'max:50',
+                'unique:users,employee_id',
+            ],
             'name' => [
                 'required',
                 'string',
@@ -123,6 +129,13 @@ class UserController extends Controller
         User $user
     ): JsonResponse {
         $validated = $request->validate([
+            'employee_id' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('users', 'employee_id')
+                    ->ignore($user->id),
+            ],
             'name' => [
                 'required',
                 'string',

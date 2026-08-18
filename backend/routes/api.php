@@ -1,3 +1,5 @@
+<?php
+
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DepartmentController;
@@ -21,71 +23,166 @@ Route::post('/login', [AuthController::class, 'login']);
 
 
 // ==========================================
-// PROTECTED ROUTES
+// AUTHENTICATED ROUTES
 // ==========================================
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Authentication
+    // ======================================
+    // AUTHENTICATION
+    // ======================================
+
     Route::post('/logout', [AuthController::class, 'logout']);
+
     Route::get('/me', [AuthController::class, 'me']);
 
 
-    // Roles
-    Route::apiResource('roles', RoleController::class);
+    // ======================================
+    // ADMIN ONLY
+    // ======================================
+
+    Route::middleware('role:Admin')->group(function () {
+
+        // Roles
+        Route::apiResource(
+            'roles',
+            RoleController::class
+        );
+
+        // Users
+        Route::apiResource(
+            'users',
+            UserController::class
+        );
+
+    });
 
 
-    // Departments
-    Route::apiResource('departments', DepartmentController::class);
+    // ======================================
+    // ADMIN + HR
+    // ======================================
+
+    Route::middleware('role:Admin,HR')->group(function () {
+
+        // Departments
+        Route::apiResource(
+            'departments',
+            DepartmentController::class
+        );
+
+        // Positions
+        Route::apiResource(
+            'positions',
+            PositionController::class
+        );
+
+        // Evaluation Periods
+        Route::apiResource(
+            'evaluation-periods',
+            EvaluationPeriodController::class
+        );
+
+        // Evaluation Categories
+        Route::apiResource(
+            'evaluation-categories',
+            EvaluationCategoryController::class
+        );
+
+        // Evaluation Questions
+        Route::apiResource(
+            'evaluation-questions',
+            EvaluationQuestionController::class
+        );
+
+    });
 
 
-    // Positions
-    Route::apiResource('positions', PositionController::class);
+    // ======================================
+    // EVALUATIONS
+    // ======================================
+
+    // Employee can create evaluations
+    Route::middleware('role:Employee')->group(function () {
+
+        Route::post(
+            '/evaluations',
+            [EvaluationController::class, 'store']
+        );
+
+    });
 
 
-    // Users
-    Route::apiResource('users', UserController::class);
+    // Authenticated users can view evaluations
+    Route::get(
+        '/evaluations',
+        [EvaluationController::class, 'index']
+    );
 
-
-    // Evaluation Periods
-    Route::apiResource(
-        'evaluation-periods',
-        EvaluationPeriodController::class
+    Route::get(
+        '/evaluations/{evaluation}',
+        [EvaluationController::class, 'show']
     );
 
 
-    // Evaluation Categories
-    Route::apiResource(
-        'evaluation-categories',
-        EvaluationCategoryController::class
+    // ======================================
+    // EVALUATION ANSWERS
+    // ======================================
+
+    // Employee can create/update answers
+    Route::middleware('role:Employee')->group(function () {
+
+        Route::post(
+            '/evaluation-answers',
+            [EvaluationAnswerController::class, 'store']
+        );
+
+        Route::put(
+            '/evaluation-answers/{evaluationAnswer}',
+            [EvaluationAnswerController::class, 'update']
+        );
+
+    });
+
+
+    // Authenticated users can view answers
+    Route::get(
+        '/evaluation-answers',
+        [EvaluationAnswerController::class, 'index']
+    );
+
+    Route::get(
+        '/evaluation-answers/{evaluationAnswer}',
+        [EvaluationAnswerController::class, 'show']
     );
 
 
-    // Evaluation Questions
-    Route::apiResource(
-        'evaluation-questions',
-        EvaluationQuestionController::class
-    );
+    // ======================================
+    // EVALUATION REVIEWS
+    // ======================================
 
+    // Manager + HR can review evaluations
+    Route::middleware('role:Manager,HR')->group(function () {
 
-    // Evaluations
-    Route::apiResource(
-        'evaluations',
-        EvaluationController::class
-    );
+        Route::get(
+            '/evaluation-reviews',
+            [EvaluationReviewController::class, 'index']
+        );
 
+        Route::get(
+            '/evaluation-reviews/{evaluationReview}',
+            [EvaluationReviewController::class, 'show']
+        );
 
-    // Evaluation Answers
-    Route::apiResource(
-        'evaluation-answers',
-        EvaluationAnswerController::class
-    );
+        Route::post(
+            '/evaluation-reviews',
+            [EvaluationReviewController::class, 'store']
+        );
 
+        Route::put(
+            '/evaluation-reviews/{evaluationReview}',
+            [EvaluationReviewController::class, 'update']
+        );
 
-    // Evaluation Reviews
-    Route::apiResource(
-        'evaluation-reviews',
-        EvaluationReviewController::class
-    );
+    });
 
 });
