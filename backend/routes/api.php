@@ -36,7 +36,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/me', [AuthController::class, 'me']);
 
-
+    Route::get(
+        '/evaluation-periods/active',
+        [EvaluationPeriodController::class, 'active']
+    );
     // ======================================
     // ADMIN ONLY
     // ======================================

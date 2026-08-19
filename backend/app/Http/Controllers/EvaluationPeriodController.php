@@ -62,4 +62,16 @@ class EvaluationPeriodController extends Controller
             'message' => 'Evaluation period deleted successfully.',
         ]);
     }
+    public function active(): JsonResponse
+    {
+        $periods = EvaluationPeriod::where('status', 'active')
+            ->whereDate('submission_start_date', '<=', now())
+            ->whereDate('submission_end_date', '>=', now())
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $periods,
+        ]);
+    }
 }

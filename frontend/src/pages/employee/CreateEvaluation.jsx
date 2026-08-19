@@ -7,7 +7,6 @@ const CreateEvaluation = () => {
 
     const [periods, setPeriods] = useState([]);
     const [selectedPeriod, setSelectedPeriod] = useState("");
-
     const [comment, setComment] = useState("");
 
     const [loading, setLoading] = useState(true);
@@ -21,11 +20,12 @@ const CreateEvaluation = () => {
 
     const fetchEvaluationPeriods = async () => {
         try {
-            const response = await api.get("/evaluation-periods");
+            const response = await api.get("/evaluation-periods/active");
 
-            console.log("Evaluation Periods:", response.data);
+            console.log("Active Evaluation Periods:", response.data);
 
             setPeriods(response.data.data || []);
+
         } catch (error) {
             console.error(error);
 
@@ -33,6 +33,7 @@ const CreateEvaluation = () => {
                 error.response?.data?.message ||
                 "Failed to load evaluation periods."
             );
+
         } finally {
             setLoading(false);
         }
@@ -52,7 +53,6 @@ const CreateEvaluation = () => {
 
             const response = await api.post("/evaluations", {
                 evaluation_period_id: Number(selectedPeriod),
-                status: "draft",
                 employee_comment: comment,
             });
 
@@ -69,6 +69,7 @@ const CreateEvaluation = () => {
                 error.response?.data?.message ||
                 "Failed to create evaluation."
             );
+
         } finally {
             setSubmitting(false);
         }

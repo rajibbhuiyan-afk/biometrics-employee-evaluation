@@ -14,21 +14,10 @@ class StoreEvaluationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'employee_id' => [
-                'required',
-                'integer',
-                'exists:users,id',
-            ],
-
             'evaluation_period_id' => [
                 'required',
                 'integer',
                 'exists:evaluation_periods,id',
-            ],
-
-            'status' => [
-                'nullable',
-                'in:draft,submitted,under_review,reviewed,approved,rejected',
             ],
 
             'employee_comment' => [

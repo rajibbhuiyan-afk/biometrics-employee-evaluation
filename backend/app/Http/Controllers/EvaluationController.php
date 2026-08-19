@@ -32,21 +32,13 @@ class EvaluationController extends Controller
 
         try {
 
-            // Employee can only create evaluation for himself
-            if (
-                auth()->user()->role->name === 'Employee'
-                && (int) $request->employee_id !== (int) auth()->id()
-            ) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You can only create your own evaluation.',
-                ], 403);
-            }
+            // Logged-in employee
+            $employeeId = auth()->id();
 
             // Check if evaluation already exists
             $existingEvaluation = Evaluation::where(
                 'employee_id',
-                $request->employee_id
+                $employeeId
             )
             ->where(
                 'evaluation_period_id',
@@ -57,12 +49,13 @@ class EvaluationController extends Controller
             if ($existingEvaluation) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'This employee already has an evaluation for this period.',
+                    'message' => 'You already have an evaluation for this period.',
                 ], 409);
             }
 
+            // Create evaluation
             $evaluation = Evaluation::create([
-                'employee_id' => $request->employee_id,
+                'employee_id' => $employeeId,
                 'evaluation_period_id' => $request->evaluation_period_id,
                 'status' => 'draft',
                 'employee_comment' => $request->employee_comment,
