@@ -188,13 +188,10 @@ const ReviewEvaluation = () => {
                     {error}
                 </p>
 
-                <button
-                    type="button"
-                    onClick={() =>
-                        navigate("/manager/dashboard")
-                    }
-                >
-                    Back to Manager Dashboard
+                <button onClick={handleBack}>
+                    {user?.role?.name === "HR"
+                        ? "Back to HR Dashboard"
+                        : "Back to Manager Dashboard"}
                 </button>
             </div>
         );
@@ -205,13 +202,10 @@ const ReviewEvaluation = () => {
             <div style={{ padding: "30px" }}>
                 <p>Evaluation not found.</p>
 
-                <button
-                    type="button"
-                    onClick={() =>
-                        navigate("/manager/dashboard")
-                    }
-                >
-                    Back to Manager Dashboard
+                <button onClick={handleBack}>
+                    {user?.role?.name === "HR"
+                        ? "Back to HR Dashboard"
+                        : "Back to Manager Dashboard"}
                 </button>
             </div>
         );
@@ -220,6 +214,15 @@ const ReviewEvaluation = () => {
     const employee = evaluation.employee;
     const evaluationPeriod =
         evaluation.evaluation_period;
+
+    const handleBack = () => {
+        if (user?.role?.name === "HR") {
+            navigate("/hr/dashboard");
+            return;
+        }
+
+        navigate("/manager/dashboard");
+    };
 
     return (
         <div
@@ -647,15 +650,10 @@ const ReviewEvaluation = () => {
             <br />
             <br />
 
-            <button
-                type="button"
-                onClick={() =>
-                    navigate(
-                        "/manager/dashboard"
-                    )
-                }
-            >
-                Back to Manager Dashboard
+            <button onClick={handleBack}>
+                {user?.role?.name === "HR"
+                    ? "Back to HR Dashboard"
+                    : "Back to Manager Dashboard"}
             </button>
         </div>
     );

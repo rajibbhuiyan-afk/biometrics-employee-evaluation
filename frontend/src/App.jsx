@@ -15,6 +15,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import EvaluationDetails from "./pages/employee/EvaluationDetails";
 
+import HRDashboard from "./pages/hr/HRDashboard";
+
 function App() {
     return (
         <BrowserRouter>
@@ -77,7 +79,7 @@ function App() {
                 <Route
                     path="/manager"
                     element={
-                        <ProtectedRoute roles={["Manager", "HR"]}>
+                        <ProtectedRoute roles={["Manager"]}>
                             <ManagerDashboard />
                         </ProtectedRoute>
                     }
@@ -86,7 +88,7 @@ function App() {
                 <Route
                     path="/manager/dashboard"
                     element={
-                        <ProtectedRoute roles={["Manager", "HR"]}>
+                        <ProtectedRoute roles={["Manager"]}>
                             <ManagerDashboard />
                         </ProtectedRoute>
                     }
@@ -95,7 +97,7 @@ function App() {
                 <Route
                     path="/manager/evaluations/:id"
                     element={
-                        <ProtectedRoute roles={["Manager", "HR"]}>
+                        <ProtectedRoute roles={["Manager"]}>
                             <ReviewEvaluation />
                         </ProtectedRoute>
                     }
@@ -105,6 +107,35 @@ function App() {
                     path="/manager/reviews"
                     element={
                         <ProtectedRoute roles={["Manager"]}>
+                            <ReviewEvaluation />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* HR */}
+
+                <Route
+                    path="/hr"
+                    element={
+                        <ProtectedRoute roles={["HR"]}>
+                            <HRDashboard />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/hr/dashboard"
+                    element={
+                        <ProtectedRoute roles={["HR"]}>
+                            <HRDashboard />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/hr/evaluations/:id"
+                    element={
+                        <ProtectedRoute roles={["HR"]}>
                             <ReviewEvaluation />
                         </ProtectedRoute>
                     }

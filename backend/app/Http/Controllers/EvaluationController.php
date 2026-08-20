@@ -6,47 +6,99 @@ use App\Http\Requests\StoreEvaluationRequest;
 use App\Models\Evaluation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
 
 class EvaluationController extends Controller
 {
     /**
-     * Display evaluations.
+     * Display evaluations according to logged-in user's role.
+     *
+     * Employee -> Own evaluations only
+     * Manager  -> Evaluations of assigned employees only
+     * HR       -> All evaluations
+     * Admin    -> All evaluations
      */
     public function index(): JsonResponse
     {
         $user = auth()->user();
 
+        $query = Evaluation::with([
+            'employee',
+            'evaluationPeriod',
+        ])->latest();
+
+        /*
+        |--------------------------------------------------------------------------
+        | EMPLOYEE
+        |--------------------------------------------------------------------------
+        */
+
         if ($user->role->name === 'Employee') {
 
-            $evaluations = Evaluation::with([
-                'employee',
-                'evaluationPeriod',
-            ])
-            ->where('employee_id', $user->id)
-            ->latest()
-            ->get();
+            $query->where(
+                'employee_id',
+                $user->id
+            );
+        }
 
-        } else {
+        /*
+        |--------------------------------------------------------------------------
+        | MANAGER
+        |--------------------------------------------------------------------------
+        */
 
-            $evaluations = Evaluation::with([
-                'employee',
-                'evaluationPeriod',
-            ])
-            ->latest()
-            ->get();
+        elseif ($user->role->name === 'Manager') {
+
+            /*
+             * Only evaluations belonging to employees
+             * whose manager_id is the logged-in manager.
+             */
+            $query->whereHas('employee', function ($employeeQuery) use ($user) {
+
+                $employeeQuery->where(
+                    'manager_id',
+                    $user->id
+                );
+
+            });
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | HR / ADMIN
+        |--------------------------------------------------------------------------
+        */
+
+        elseif (in_array($user->role->name, ['HR', 'Admin'])) {
+
+            // HR and Admin can see all evaluations.
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | UNKNOWN ROLE
+        |--------------------------------------------------------------------------
+        */
+
+        else {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to view evaluations.',
+            ], 403);
         }
 
         return response()->json([
             'success' => true,
-            'data' => $evaluations,
+            'data' => $query->get(),
         ]);
     }
 
 
     /**
-     * Create new evaluation.
+     * Create a new evaluation.
      *
-     * New evaluation always starts as draft.
+     * Employee only.
      */
     public function store(
         StoreEvaluationRequest $request
@@ -57,7 +109,12 @@ class EvaluationController extends Controller
             // Logged-in employee
             $employeeId = auth()->id();
 
-            // Check if evaluation already exists
+            /*
+            |--------------------------------------------------------------------------
+            | Check duplicate evaluation
+            |--------------------------------------------------------------------------
+            */
+
             $existingEvaluation = Evaluation::where(
                 'employee_id',
                 $employeeId
@@ -76,7 +133,12 @@ class EvaluationController extends Controller
                 ], 409);
             }
 
-            // Create evaluation
+            /*
+            |--------------------------------------------------------------------------
+            | Create evaluation
+            |--------------------------------------------------------------------------
+            */
+
             $evaluation = Evaluation::create([
                 'employee_id' => $employeeId,
                 'evaluation_period_id' => $request->evaluation_period_id,
@@ -95,7 +157,12 @@ class EvaluationController extends Controller
 
         } catch (QueryException $e) {
 
-            // Duplicate entry
+            /*
+            |--------------------------------------------------------------------------
+            | Duplicate database entry
+            |--------------------------------------------------------------------------
+            */
+
             if (
                 isset($e->errorInfo[1]) &&
                 $e->errorInfo[1] == 1062
@@ -113,11 +180,98 @@ class EvaluationController extends Controller
 
 
     /**
-     * Show single evaluation.
+     * Display a single evaluation.
+     *
+     * Access rules:
+     *
+     * Employee -> Own evaluation only
+     * Manager  -> Assigned employee only
+     * HR       -> All
+     * Admin    -> All
      */
     public function show(
         Evaluation $evaluation
     ): JsonResponse {
+
+        $user = auth()->user();
+
+        /*
+        |--------------------------------------------------------------------------
+        | EMPLOYEE ACCESS
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user->role->name === 'Employee') {
+
+            if (
+                (int) $evaluation->employee_id !==
+                (int) $user->id
+            ) {
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only view your own evaluation.',
+                ], 403);
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | MANAGER ACCESS
+        |--------------------------------------------------------------------------
+        */
+
+        elseif ($user->role->name === 'Manager') {
+
+            /*
+             * Check whether this evaluation's employee
+             * belongs to the logged-in manager.
+             */
+            $evaluation->loadMissing('employee');
+
+            if (
+                !$evaluation->employee ||
+                (int) $evaluation->employee->manager_id !==
+                (int) $user->id
+            ) {
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only view evaluations of your assigned employees.',
+                ], 403);
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | HR / ADMIN
+        |--------------------------------------------------------------------------
+        */
+
+        elseif (in_array($user->role->name, ['HR', 'Admin'])) {
+
+            // Allowed to view any evaluation.
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | UNKNOWN ROLE
+        |--------------------------------------------------------------------------
+        */
+
+        else {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to view this evaluation.',
+            ], 403);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Load evaluation details
+        |--------------------------------------------------------------------------
+        */
 
         $evaluation->load([
             'employee',
@@ -134,23 +288,23 @@ class EvaluationController extends Controller
 
 
     /**
-     * Employee submits evaluation.
+     * Employee submits / resubmits evaluation.
      *
      * Allowed statuses:
-     *
      * draft
      * returned
      * rejected
-     *
-     * After submission:
-     *
-     * submitted
      */
     public function submit(
         Evaluation $evaluation
     ): JsonResponse {
 
-        // Only owner can submit
+        /*
+        |--------------------------------------------------------------------------
+        | Only owner can submit
+        |--------------------------------------------------------------------------
+        */
+
         if (
             (int) $evaluation->employee_id !==
             (int) auth()->id()
@@ -162,30 +316,23 @@ class EvaluationController extends Controller
             ], 403);
         }
 
-
         /*
         |--------------------------------------------------------------------------
-        | Allowed statuses for employee resubmission
+        | Only draft / returned / rejected can be submitted
         |--------------------------------------------------------------------------
         */
 
-        if (!in_array(
-            $evaluation->status,
-            [
-                'draft',
-                'returned',
-                'rejected',
-            ],
-            true
-        )) {
+        if (!in_array($evaluation->status, [
+            'draft',
+            'returned',
+            'rejected',
+        ])) {
 
             return response()->json([
                 'success' => false,
-                'message' =>
-                    'Only draft, returned, or rejected evaluations can be submitted.',
+                'message' => 'Only draft, returned, or rejected evaluations can be submitted.',
             ], 422);
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -198,37 +345,33 @@ class EvaluationController extends Controller
             'submitted_at' => now(),
         ]);
 
-
         return response()->json([
             'success' => true,
             'message' => 'Evaluation submitted successfully.',
-            'data' => $evaluation
-                ->fresh()
-                ->load([
-                    'employee',
-                    'evaluationPeriod',
-                    'answers.question.category',
-                    'reviews.reviewer',
-                ]),
+            'data' => $evaluation->fresh()->load([
+                'employee',
+                'evaluationPeriod',
+                'answers.question.category',
+                'reviews.reviewer',
+            ]),
         ]);
     }
 
 
     /**
-     * Employee can update evaluation.
-     *
-     * Employee can edit:
-     *
-     * draft
-     * returned
-     * rejected
+     * Employee can update draft / returned / rejected evaluation.
      */
     public function update(
         StoreEvaluationRequest $request,
         Evaluation $evaluation
     ): JsonResponse {
 
-        // Only owner can update
+        /*
+        |--------------------------------------------------------------------------
+        | Only owner can update
+        |--------------------------------------------------------------------------
+        */
+
         if (
             (int) $evaluation->employee_id !==
             (int) auth()->id()
@@ -240,30 +383,23 @@ class EvaluationController extends Controller
             ], 403);
         }
 
-
         /*
         |--------------------------------------------------------------------------
-        | Allowed statuses for editing
+        | Only draft / returned / rejected can be updated
         |--------------------------------------------------------------------------
         */
 
-        if (!in_array(
-            $evaluation->status,
-            [
-                'draft',
-                'returned',
-                'rejected',
-            ],
-            true
-        )) {
+        if (!in_array($evaluation->status, [
+            'draft',
+            'returned',
+            'rejected',
+        ])) {
 
             return response()->json([
                 'success' => false,
-                'message' =>
-                    'Only draft, returned, or rejected evaluations can be updated.',
+                'message' => 'Only draft, returned, or rejected evaluations can be updated.',
             ], 422);
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -275,18 +411,13 @@ class EvaluationController extends Controller
             'employee_comment' => $request->employee_comment,
         ]);
 
-
         return response()->json([
             'success' => true,
             'message' => 'Evaluation updated successfully.',
-            'data' => $evaluation
-                ->fresh()
-                ->load([
-                    'employee',
-                    'evaluationPeriod',
-                    'answers.question.category',
-                    'reviews.reviewer',
-                ]),
+            'data' => $evaluation->fresh()->load([
+                'employee',
+                'evaluationPeriod',
+            ]),
         ]);
     }
 
@@ -294,13 +425,18 @@ class EvaluationController extends Controller
     /**
      * Delete evaluation.
      *
-     * Only draft evaluations can be deleted.
+     * Only draft evaluation can be deleted.
      */
     public function destroy(
         Evaluation $evaluation
     ): JsonResponse {
 
-        // Only owner can delete
+        /*
+        |--------------------------------------------------------------------------
+        | Only owner can delete
+        |--------------------------------------------------------------------------
+        */
+
         if (
             (int) $evaluation->employee_id !==
             (int) auth()->id()
@@ -312,8 +448,12 @@ class EvaluationController extends Controller
             ], 403);
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Only draft can be deleted
+        |--------------------------------------------------------------------------
+        */
 
-        // Only draft can be deleted
         if ($evaluation->status !== 'draft') {
 
             return response()->json([
@@ -322,9 +462,7 @@ class EvaluationController extends Controller
             ], 422);
         }
 
-
         $evaluation->delete();
-
 
         return response()->json([
             'success' => true,

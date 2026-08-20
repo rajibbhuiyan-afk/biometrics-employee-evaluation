@@ -14,6 +14,8 @@ use App\Http\Controllers\EvaluationReviewController;
 
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\AdminDashboardController;
+
 
 // ==========================================
 // PUBLIC ROUTES
@@ -28,6 +30,7 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
+
     // ======================================
     // AUTHENTICATION
     // ======================================
@@ -36,16 +39,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/me', [AuthController::class, 'me']);
 
+
+    // ======================================
+    // ACTIVE EVALUATION PERIOD
+    // ======================================
+
     Route::get(
         '/evaluation-periods/active',
         [EvaluationPeriodController::class, 'active']
     );
 
-     // Evaluation Questions
-        Route::apiResource(
-            'evaluation-questions',
-            EvaluationQuestionController::class
-        );
+
     // ======================================
     // ADMIN ONLY
     // ======================================
@@ -63,7 +67,11 @@ Route::middleware('auth:sanctum')->group(function () {
             'users',
             UserController::class
         );
-
+         // Admin Dashboard
+        Route::get(
+            '/admin/dashboard',
+            [AdminDashboardController::class, 'index']
+        );
     });
 
 
@@ -96,33 +104,130 @@ Route::middleware('auth:sanctum')->group(function () {
             'evaluation-categories',
             EvaluationCategoryController::class
         );
-
-       
-
     });
 
 
     // ======================================
-    // EVALUATIONS
+    // EVALUATION QUESTIONS
     // ======================================
 
-    // Employee can create evaluations
+    /*
+    |--------------------------------------------------------------------------
+    | VIEW QUESTIONS
+    |--------------------------------------------------------------------------
+    |
+    | Employee যখন evaluation form খুলবে,
+    | তখন questions দেখতে পারবে।
+    |
+    | তাই GET routes শুধু auth:sanctum-এর মধ্যে থাকবে।
+    |
+    */
+
+    Route::get(
+        '/evaluation-questions',
+        [EvaluationQuestionController::class, 'index']
+    );
+
+    Route::get(
+        '/evaluation-questions/{evaluationQuestion}',
+        [EvaluationQuestionController::class, 'show']
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MANAGE QUESTIONS
+    |--------------------------------------------------------------------------
+    |
+    | Question create/update/delete শুধুমাত্র
+    | Admin এবং HR করতে পারবে।
+    |
+    */
+
+    Route::middleware('role:Admin,HR')->group(function () {
+
+        Route::post(
+            '/evaluation-questions',
+            [EvaluationQuestionController::class, 'store']
+        );
+
+        Route::put(
+            '/evaluation-questions/{evaluationQuestion}',
+            [EvaluationQuestionController::class, 'update']
+        );
+
+        Route::patch(
+            '/evaluation-questions/{evaluationQuestion}',
+            [EvaluationQuestionController::class, 'update']
+        );
+
+        Route::delete(
+            '/evaluation-questions/{evaluationQuestion}',
+            [EvaluationQuestionController::class, 'destroy']
+        );
+    });
+
+
+    // ======================================
+    // EMPLOYEE EVALUATIONS
+    // ======================================
+
     Route::middleware('role:Employee')->group(function () {
 
-       Route::post(
+        // Create evaluation
+        Route::post(
             '/evaluations',
             [EvaluationController::class, 'store']
         );
 
+        // Update draft / returned / rejected evaluation
+        Route::put(
+            '/evaluations/{evaluation}',
+            [EvaluationController::class, 'update']
+        );
+
+        // Submit / Resubmit evaluation
         Route::post(
             '/evaluations/{evaluation}/submit',
             [EvaluationController::class, 'submit']
         );
-
     });
 
 
-    // Authenticated users can view evaluations
+    // ======================================
+    // EMPLOYEE ANSWERS
+    // ======================================
+
+    Route::middleware('role:Employee')->group(function () {
+
+        // Create / save answer
+        Route::post(
+            '/evaluation-answers',
+            [EvaluationAnswerController::class, 'store']
+        );
+
+        // Update answer
+        Route::put(
+            '/evaluation-answers/{evaluationAnswer}',
+            [EvaluationAnswerController::class, 'update']
+        );
+    });
+
+
+    // ======================================
+    // EVALUATIONS - VIEW
+    // ======================================
+
+    /*
+    |--------------------------------------------------------------------------
+    | All authenticated users can view evaluations.
+    |--------------------------------------------------------------------------
+    |
+    | EvaluationController@index() এবং show() এর ভিতরে
+    | প্রয়োজনীয় business/ownership logic থাকবে।
+    |
+    */
+
     Route::get(
         '/evaluations',
         [EvaluationController::class, 'index']
@@ -135,30 +240,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // ======================================
-    // EVALUATION ANSWERS
+    // EVALUATION ANSWERS - VIEW
     // ======================================
 
-    // Employee can create/update answers
-    Route::middleware('role:Employee')->group(function () {
-
-        Route::post(
-            '/evaluation-answers',
-            [EvaluationAnswerController::class, 'store']
-        );
-
-        Route::put(
-            '/evaluation-answers/{evaluationAnswer}',
-            [EvaluationAnswerController::class, 'update']
-        );
-        Route::post(
-            '/evaluations/{evaluation}/submit',
-            [EvaluationController::class, 'submit']
-        );
-
-    });
-
-
-    // Authenticated users can view answers
     Route::get(
         '/evaluation-answers',
         [EvaluationAnswerController::class, 'index']
@@ -174,29 +258,44 @@ Route::middleware('auth:sanctum')->group(function () {
     // EVALUATION REVIEWS
     // ======================================
 
-    // Manager + HR can review evaluations
     Route::middleware('role:Manager,HR')->group(function () {
 
+        // Review history
         Route::get(
             '/evaluation-reviews',
             [EvaluationReviewController::class, 'index']
         );
 
+        // Single review
         Route::get(
             '/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'show']
         );
 
+        // Create review
+        //
+        // Actions:
+        // reviewed
+        // approved
+        // rejected
+        // returned
+        //
         Route::post(
             '/evaluation-reviews',
             [EvaluationReviewController::class, 'store']
         );
 
+        // Update review
         Route::put(
             '/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'update']
         );
 
+        // Delete review
+        Route::delete(
+            '/evaluation-reviews/{evaluationReview}',
+            [EvaluationReviewController::class, 'destroy']
+        );
     });
 
 });
