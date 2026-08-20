@@ -258,40 +258,28 @@ Route::middleware('auth:sanctum')->group(function () {
     // EVALUATION REVIEWS
     // ======================================
 
-    Route::middleware('role:Manager,HR')->group(function () {
+        Route::middleware('role:Manager,HR')->group(function () {
 
-        // Review history
         Route::get(
             '/evaluation-reviews',
             [EvaluationReviewController::class, 'index']
         );
 
-        // Single review
         Route::get(
             '/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'show']
         );
 
-        // Create review
-        //
-        // Actions:
-        // reviewed
-        // approved
-        // rejected
-        // returned
-        //
         Route::post(
             '/evaluation-reviews',
             [EvaluationReviewController::class, 'store']
         );
 
-        // Update review
         Route::put(
             '/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'update']
         );
 
-        // Delete review
         Route::delete(
             '/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'destroy']

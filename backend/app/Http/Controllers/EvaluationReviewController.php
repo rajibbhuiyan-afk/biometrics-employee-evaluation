@@ -9,29 +9,154 @@ use Illuminate\Http\JsonResponse;
 
 class EvaluationReviewController extends Controller
 {
+    /**
+     * Review history.
+     *
+     * Manager -> Reviews of assigned employees only
+     * HR/Admin -> All reviews
+     */
     public function index(): JsonResponse
     {
-        $reviews = EvaluationReview::with([
-            'evaluation',
+        $user = auth()->user();
+
+        $query = EvaluationReview::with([
+            'evaluation.employee',
             'reviewer',
-        ])->latest()->get();
+        ])->latest();
+
+        /*
+        |--------------------------------------------------------------------------
+        | MANAGER
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user->role->name === 'Manager') {
+
+            $query->whereHas(
+                'evaluation.employee',
+                function ($employeeQuery) use ($user) {
+
+                    $employeeQuery->where(
+                        'manager_id',
+                        $user->id
+                    );
+                }
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | HR / ADMIN
+        |--------------------------------------------------------------------------
+        */
+
+        elseif (in_array($user->role->name, ['HR', 'Admin'])) {
+
+            // Can see all review history.
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | OTHER ROLES
+        |--------------------------------------------------------------------------
+        */
+
+        else {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to view review history.',
+            ], 403);
+        }
 
         return response()->json([
             'success' => true,
-            'data' => $reviews,
+            'data' => $query->get(),
         ]);
     }
 
+
+    /**
+     * Create review / change evaluation status.
+     *
+     * Actions:
+     *
+     * submitted -> reviewed
+     * reviewed  -> approved
+     * reviewed  -> rejected
+     * reviewed  -> returned
+     */
     public function store(
         StoreEvaluationReviewRequest $request
     ): JsonResponse {
 
-        $evaluation = Evaluation::findOrFail(
-            $request->evaluation_id
-        );
+        $user = auth()->user();
 
-        // Logged-in user automatically becomes reviewer
-        $reviewerId = auth()->id();
+        /*
+        |--------------------------------------------------------------------------
+        | Only Manager and HR can review
+        |--------------------------------------------------------------------------
+        */
+
+        if (!in_array($user->role->name, ['Manager', 'HR'])) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to review evaluations.',
+            ], 403);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Find evaluation
+        |--------------------------------------------------------------------------
+        */
+
+        $evaluation = Evaluation::with('employee')
+            ->find($request->evaluation_id);
+
+        if (!$evaluation) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Evaluation not found.',
+            ], 404);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | MANAGER OWNERSHIP CHECK
+        |--------------------------------------------------------------------------
+        |
+        | Manager can review ONLY evaluations of employees
+        | whose manager_id equals logged-in manager ID.
+        |
+        */
+
+        if ($user->role->name === 'Manager') {
+
+            if (
+                !$evaluation->employee ||
+                (int) $evaluation->employee->manager_id !==
+                (int) $user->id
+            ) {
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only review evaluations of your assigned employees.',
+                ], 403);
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | ACTION
+        |--------------------------------------------------------------------------
+        */
+
+        $action = $request->action;
+
 
         /*
         |--------------------------------------------------------------------------
@@ -39,7 +164,7 @@ class EvaluationReviewController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if ($request->action === 'reviewed') {
+        if ($action === 'reviewed') {
 
             if ($evaluation->status !== 'submitted') {
 
@@ -55,13 +180,14 @@ class EvaluationReviewController extends Controller
             ]);
         }
 
+
         /*
         |--------------------------------------------------------------------------
         | APPROVED
         |--------------------------------------------------------------------------
         */
 
-        elseif ($request->action === 'approved') {
+        elseif ($action === 'approved') {
 
             if ($evaluation->status !== 'reviewed') {
 
@@ -77,22 +203,24 @@ class EvaluationReviewController extends Controller
             ]);
         }
 
+
         /*
         |--------------------------------------------------------------------------
         | REJECTED
         |--------------------------------------------------------------------------
         */
 
-        elseif ($request->action === 'rejected') {
+        elseif ($action === 'rejected') {
 
             if (!in_array($evaluation->status, [
                 'submitted',
-                'reviewed'
+                'reviewed',
             ])) {
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'This evaluation cannot be rejected in its current status.',
+                    'message' =>
+                        'This evaluation cannot be rejected in its current status.',
                 ], 422);
             }
 
@@ -102,13 +230,14 @@ class EvaluationReviewController extends Controller
             ]);
         }
 
+
         /*
         |--------------------------------------------------------------------------
         | RETURNED
         |--------------------------------------------------------------------------
         */
 
-        elseif ($request->action === 'returned') {
+        elseif ($action === 'returned') {
 
             if ($evaluation->status !== 'reviewed') {
 
@@ -124,39 +253,119 @@ class EvaluationReviewController extends Controller
             ]);
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | CREATE REVIEW RECORD
+        | INVALID ACTION
+        |--------------------------------------------------------------------------
+        */
+
+        else {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid review action.',
+            ], 422);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE REVIEW HISTORY
         |--------------------------------------------------------------------------
         */
 
         $review = EvaluationReview::create([
-            'evaluation_id' => $request->evaluation_id,
-            'reviewer_id' => $reviewerId,
+            'evaluation_id' => $evaluation->id,
+            'reviewer_id' => $user->id,
             'rating' => $request->rating,
             'comment' => $request->comment,
-            'action' => $request->action,
+            'action' => $action,
             'reviewed_at' => $request->reviewed_at ?? now(),
         ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | RESPONSE
+        |--------------------------------------------------------------------------
+        */
 
         return response()->json([
             'success' => true,
             'message' => 'Evaluation review created successfully.',
             'data' => $review->load([
-                'evaluation',
+                'evaluation.employee',
                 'reviewer',
             ]),
         ], 201);
     }
 
+
+    /**
+     * Show single review.
+     */
     public function show(
         EvaluationReview $evaluationReview
     ): JsonResponse {
 
+        $user = auth()->user();
+
         $evaluationReview->load([
-            'evaluation',
+            'evaluation.employee',
             'reviewer',
         ]);
+
+        $evaluation = $evaluationReview->evaluation;
+
+        /*
+        |--------------------------------------------------------------------------
+        | MANAGER ACCESS CHECK
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user->role->name === 'Manager') {
+
+            if (
+                !$evaluation ||
+                !$evaluation->employee ||
+                (int) $evaluation->employee->manager_id !==
+                (int) $user->id
+            ) {
+
+                return response()->json([
+                    'success' => false,
+                    'message' =>
+                        'You can only view reviews of your assigned employees.',
+                ], 403);
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | HR / ADMIN
+        |--------------------------------------------------------------------------
+        */
+
+        elseif (in_array($user->role->name, ['HR', 'Admin'])) {
+
+            // Allowed.
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | OTHER ROLES
+        |--------------------------------------------------------------------------
+        */
+
+        else {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'You do not have permission to view this review.',
+            ], 403);
+        }
 
         return response()->json([
             'success' => true,
@@ -164,10 +373,86 @@ class EvaluationReviewController extends Controller
         ]);
     }
 
+
+    /**
+     * Update review history record.
+     *
+     * For security, only the reviewer who created
+     * the review can update it.
+     */
     public function update(
         StoreEvaluationReviewRequest $request,
         EvaluationReview $evaluationReview
     ): JsonResponse {
+
+        $user = auth()->user();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Only Manager / HR
+        |--------------------------------------------------------------------------
+        */
+
+        if (!in_array($user->role->name, ['Manager', 'HR'])) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to update reviews.',
+            ], 403);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Load evaluation + employee
+        |--------------------------------------------------------------------------
+        */
+
+        $evaluationReview->load([
+            'evaluation.employee',
+        ]);
+
+        $evaluation = $evaluationReview->evaluation;
+
+        /*
+        |--------------------------------------------------------------------------
+        | MANAGER OWNERSHIP CHECK
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user->role->name === 'Manager') {
+
+            if (
+                !$evaluation ||
+                !$evaluation->employee ||
+                (int) $evaluation->employee->manager_id !==
+                (int) $user->id
+            ) {
+
+                return response()->json([
+                    'success' => false,
+                    'message' =>
+                        'You can only update reviews of your assigned employees.',
+                ], 403);
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Only original reviewer can update
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            (int) $evaluationReview->reviewer_id !==
+            (int) $user->id
+        ) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'You can only update your own review.',
+            ], 403);
+        }
 
         $evaluationReview->update(
             $request->validated()
@@ -176,16 +461,91 @@ class EvaluationReviewController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Evaluation review updated successfully.',
-            'data' => $evaluationReview->load([
-                'evaluation',
+            'data' => $evaluationReview->fresh()->load([
+                'evaluation.employee',
                 'reviewer',
             ]),
         ]);
     }
 
+
+    /**
+     * Delete review history record.
+     *
+     * Only original reviewer can delete.
+     */
     public function destroy(
         EvaluationReview $evaluationReview
     ): JsonResponse {
+
+        $user = auth()->user();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Only Manager / HR
+        |--------------------------------------------------------------------------
+        */
+
+        if (!in_array($user->role->name, ['Manager', 'HR'])) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to delete reviews.',
+            ], 403);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Load evaluation
+        |--------------------------------------------------------------------------
+        */
+
+        $evaluationReview->load([
+            'evaluation.employee',
+        ]);
+
+        $evaluation = $evaluationReview->evaluation;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Manager ownership
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user->role->name === 'Manager') {
+
+            if (
+                !$evaluation ||
+                !$evaluation->employee ||
+                (int) $evaluation->employee->manager_id !==
+                (int) $user->id
+            ) {
+
+                return response()->json([
+                    'success' => false,
+                    'message' =>
+                        'You can only delete reviews of your assigned employees.',
+                ], 403);
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Only original reviewer
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            (int) $evaluationReview->reviewer_id !==
+            (int) $user->id
+        ) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'You can only delete your own review.',
+            ], 403);
+        }
 
         $evaluationReview->delete();
 
