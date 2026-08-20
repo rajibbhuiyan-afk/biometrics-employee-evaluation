@@ -23,139 +23,136 @@ class EvaluationReviewController extends Controller
     }
 
     public function store(
-    StoreEvaluationReviewRequest $request
-): JsonResponse {
+        StoreEvaluationReviewRequest $request
+    ): JsonResponse {
 
-    $evaluation = Evaluation::findOrFail(
-        $request->evaluation_id
-    );
+        $evaluation = Evaluation::findOrFail(
+            $request->evaluation_id
+        );
 
-    // Reviewer must be logged-in user
-    if ((int) $request->reviewer_id !== (int) auth()->id()) {
+        // Logged-in user automatically becomes reviewer
+        $reviewerId = auth()->id();
+
+        /*
+        |--------------------------------------------------------------------------
+        | REVIEWED
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->action === 'reviewed') {
+
+            if ($evaluation->status !== 'submitted') {
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only submitted evaluations can be reviewed.',
+                ], 422);
+            }
+
+            $evaluation->update([
+                'status' => 'reviewed',
+                'reviewed_at' => now(),
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | APPROVED
+        |--------------------------------------------------------------------------
+        */
+
+        elseif ($request->action === 'approved') {
+
+            if ($evaluation->status !== 'reviewed') {
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only reviewed evaluations can be approved.',
+                ], 422);
+            }
+
+            $evaluation->update([
+                'status' => 'approved',
+                'approved_at' => now(),
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | REJECTED
+        |--------------------------------------------------------------------------
+        */
+
+        elseif ($request->action === 'rejected') {
+
+            if (!in_array($evaluation->status, [
+                'submitted',
+                'reviewed'
+            ])) {
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This evaluation cannot be rejected in its current status.',
+                ], 422);
+            }
+
+            $evaluation->update([
+                'status' => 'rejected',
+                'reviewed_at' => now(),
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | RETURNED
+        |--------------------------------------------------------------------------
+        */
+
+        elseif ($request->action === 'returned') {
+
+            if ($evaluation->status !== 'reviewed') {
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only reviewed evaluations can be returned.',
+                ], 422);
+            }
+
+            $evaluation->update([
+                'status' => 'returned',
+                'reviewed_at' => now(),
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE REVIEW RECORD
+        |--------------------------------------------------------------------------
+        */
+
+        $review = EvaluationReview::create([
+            'evaluation_id' => $request->evaluation_id,
+            'reviewer_id' => $reviewerId,
+            'rating' => $request->rating,
+            'comment' => $request->comment,
+            'action' => $request->action,
+            'reviewed_at' => $request->reviewed_at ?? now(),
+        ]);
 
         return response()->json([
-            'success' => false,
-            'message' => 'Reviewer ID must match the logged-in user.',
-        ], 403);
+            'success' => true,
+            'message' => 'Evaluation review created successfully.',
+            'data' => $review->load([
+                'evaluation',
+                'reviewer',
+            ]),
+        ], 201);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | REVIEWED
-    |--------------------------------------------------------------------------
-    */
-
-    if ($request->action === 'reviewed') {
-
-        if ($evaluation->status !== 'submitted') {
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Only submitted evaluations can be reviewed.',
-            ], 422);
-        }
-
-        $evaluation->update([
-            'status' => 'reviewed',
-            'reviewed_at' => now(),
-        ]);
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | APPROVED
-    |--------------------------------------------------------------------------
-    */
-
-    elseif ($request->action === 'approved') {
-
-        if ($evaluation->status !== 'reviewed') {
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Only reviewed evaluations can be approved.',
-            ], 422);
-        }
-
-        $evaluation->update([
-            'status' => 'approved',
-            'approved_at' => now(),
-        ]);
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | REJECTED
-    |--------------------------------------------------------------------------
-    */
-
-    elseif ($request->action === 'rejected') {
-
-        if (!in_array($evaluation->status, [
-            'submitted',
-            'reviewed'
-        ])) {
-
-            return response()->json([
-                'success' => false,
-                'message' => 'This evaluation cannot be rejected in its current status.',
-            ], 422);
-        }
-
-        $evaluation->update([
-            'status' => 'rejected',
-            'reviewed_at' => now(),
-        ]);
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | RETURNED
-    |--------------------------------------------------------------------------
-    */
-
-    elseif ($request->action === 'returned') {
-
-        if ($evaluation->status !== 'reviewed') {
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Only reviewed evaluations can be returned.',
-            ], 422);
-        }
-
-        $evaluation->update([
-            'status' => 'returned',
-            'reviewed_at' => now(),
-        ]);
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CREATE REVIEW RECORD
-    |--------------------------------------------------------------------------
-    */
-
-    $review = EvaluationReview::create(
-        $request->validated()
-    );
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Evaluation review created successfully.',
-        'data' => $review->load([
-            'evaluation',
-            'reviewer',
-        ]),
-    ], 201);
-}
     public function show(
         EvaluationReview $evaluationReview
     ): JsonResponse {
+
         $evaluationReview->load([
             'evaluation',
             'reviewer',
@@ -171,6 +168,7 @@ class EvaluationReviewController extends Controller
         StoreEvaluationReviewRequest $request,
         EvaluationReview $evaluationReview
     ): JsonResponse {
+
         $evaluationReview->update(
             $request->validated()
         );
@@ -188,6 +186,7 @@ class EvaluationReviewController extends Controller
     public function destroy(
         EvaluationReview $evaluationReview
     ): JsonResponse {
+
         $evaluationReview->delete();
 
         return response()->json([

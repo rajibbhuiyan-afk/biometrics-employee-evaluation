@@ -20,21 +20,15 @@ class StoreEvaluationReviewRequest extends FormRequest
                 'exists:evaluations,id',
             ],
 
-            'reviewer_id' => [
-                'required',
-                'integer',
-                'exists:users,id',
-            ],
-
             'rating' => [
-                'nullable',
+                'required',
                 'numeric',
                 'min:0',
                 'max:100',
             ],
 
             'comment' => [
-                'nullable',
+                'required',
                 'string',
             ],
 

@@ -28,6 +28,7 @@ return new class extends Migration
                 'reviewed',
                 'approved',
                 'rejected',
+                'returned',
             ])->default('draft');
 
             $table->decimal('overall_rating', 5, 2)->nullable();

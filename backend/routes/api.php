@@ -40,6 +40,12 @@ Route::middleware('auth:sanctum')->group(function () {
         '/evaluation-periods/active',
         [EvaluationPeriodController::class, 'active']
     );
+
+     // Evaluation Questions
+        Route::apiResource(
+            'evaluation-questions',
+            EvaluationQuestionController::class
+        );
     // ======================================
     // ADMIN ONLY
     // ======================================
@@ -91,11 +97,7 @@ Route::middleware('auth:sanctum')->group(function () {
             EvaluationCategoryController::class
         );
 
-        // Evaluation Questions
-        Route::apiResource(
-            'evaluation-questions',
-            EvaluationQuestionController::class
-        );
+       
 
     });
 

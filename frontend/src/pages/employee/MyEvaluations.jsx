@@ -3,67 +3,40 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 
 const MyEvaluations = () => {
+
     const navigate = useNavigate();
 
     const [evaluations, setEvaluations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [submittingId, setSubmittingId] = useState(null);
 
     useEffect(() => {
         fetchMyEvaluations();
     }, []);
 
     const fetchMyEvaluations = async () => {
+
         try {
+
             const response = await api.get("/evaluations");
 
             console.log("My Evaluations:", response.data);
 
             setEvaluations(response.data.data || []);
+
         } catch (error) {
+
             console.error(error);
 
             setError(
                 error.response?.data?.message ||
                 "Failed to load evaluations."
             );
+
         } finally {
+
             setLoading(false);
-        }
-    };
 
-    const handleSubmit = async (evaluationId) => {
-        const confirmed = window.confirm(
-            "Are you sure you want to submit this evaluation?"
-        );
-
-        if (!confirmed) {
-            return;
-        }
-
-        try {
-            setSubmittingId(evaluationId);
-            setError("");
-
-            const response = await api.post(
-                `/evaluations/${evaluationId}/submit`
-            );
-
-            console.log("Evaluation Submitted:", response.data);
-
-            alert("Evaluation submitted successfully.");
-
-            await fetchMyEvaluations();
-        } catch (error) {
-            console.error(error);
-
-            setError(
-                error.response?.data?.message ||
-                "Failed to submit evaluation."
-            );
-        } finally {
-            setSubmittingId(null);
         }
     };
 
@@ -73,6 +46,7 @@ const MyEvaluations = () => {
 
     return (
         <div>
+
             <h1>My Evaluations</h1>
 
             {error && (
@@ -94,35 +68,39 @@ const MyEvaluations = () => {
             <br />
 
             {evaluations.length === 0 ? (
-                <p>No evaluations found.</p>
+
+                <p>
+                    No evaluations found.
+                </p>
+
             ) : (
+
                 <table border="1" cellPadding="10">
+
                     <thead>
+
                         <tr>
                             <th>ID</th>
                             <th>Evaluation Period</th>
-                            <th>Comment</th>
                             <th>Status</th>
-                            <th>Created At</th>
+                            <th>Comment</th>
                             <th>Action</th>
                         </tr>
+
                     </thead>
 
                     <tbody>
+
                         {evaluations.map((evaluation) => (
+
                             <tr key={evaluation.id}>
+
                                 <td>
                                     {evaluation.id}
                                 </td>
 
                                 <td>
-                                    {evaluation.evaluation_period?.name ||
-                                        "N/A"}
-                                </td>
-
-                                <td>
-                                    {evaluation.employee_comment ||
-                                        "No comment"}
+                                    {evaluation.evaluation_period?.name}
                                 </td>
 
                                 <td>
@@ -130,41 +108,77 @@ const MyEvaluations = () => {
                                 </td>
 
                                 <td>
-                                    {evaluation.created_at
-                                        ? new Date(
-                                            evaluation.created_at
-                                        ).toLocaleDateString()
-                                        : "N/A"}
+                                    {evaluation.employee_comment || "-"}
                                 </td>
 
                                 <td>
-                                    {evaluation.status === "draft" ? (
+
+                                    {evaluation.status === "draft" && (
                                         <button
-                                            type="button"
                                             onClick={() =>
-                                                handleSubmit(
-                                                    evaluation.id
+                                                navigate(
+                                                    `/employee/evaluations/${evaluation.id}`
                                                 )
                                             }
-                                            disabled={
-                                                submittingId ===
-                                                evaluation.id
+                                        >
+                                            Continue
+                                        </button>
+                                    )}
+
+                                    {evaluation.status === "submitted" && (
+                                        <span>
+                                            Submitted
+                                        </span>
+                                    )}
+
+                                    {evaluation.status === "reviewed" && (
+                                        <span>
+                                            Reviewed
+                                        </span>
+                                    )}
+
+                                    {evaluation.status === "approved" && (
+                                        <span>
+                                            Approved
+                                        </span>
+                                    )}
+
+                                    {evaluation.status === "rejected" && (
+                                        <button
+                                            onClick={() =>
+                                                navigate(
+                                                    `/employee/evaluations/${evaluation.id}`
+                                                )
                                             }
                                         >
-                                            {submittingId ===
-                                            evaluation.id
-                                                ? "Submitting..."
-                                                : "Submit"}
+                                            Edit & Resubmit
                                         </button>
-                                    ) : (
-                                        <span>No action</span>
                                     )}
+
+                                    {evaluation.status === "returned" && (
+                                        <button
+                                            onClick={() =>
+                                                navigate(
+                                                    `/employee/evaluations/${evaluation.id}`
+                                                )
+                                            }
+                                        >
+                                            Edit & Resubmit
+                                        </button>
+                                    )}
+
                                 </td>
+
                             </tr>
+
                         ))}
+
                     </tbody>
+
                 </table>
+
             )}
+
         </div>
     );
 };

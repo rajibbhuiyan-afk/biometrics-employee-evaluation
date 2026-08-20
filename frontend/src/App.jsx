@@ -13,6 +13,7 @@ import ReviewEvaluation from "./pages/manager/ReviewEvaluation";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
 import ProtectedRoute from "./components/ProtectedRoute";
+import EvaluationDetails from "./pages/employee/EvaluationDetails";
 
 function App() {
     return (
@@ -62,14 +63,40 @@ function App() {
                         </ProtectedRoute>
                     }
                 />
+                <Route
+                    path="/employee/evaluations/:id"
+                    element={
+                        <ProtectedRoute roles={["Employee"]}>
+                            <EvaluationDetails />
+                        </ProtectedRoute>
+                    }
+                />
 
+                {/* Manager */}                
 
-                {/* Manager */}
                 <Route
                     path="/manager"
                     element={
-                        <ProtectedRoute roles={["Manager"]}>
+                        <ProtectedRoute roles={["Manager", "HR"]}>
                             <ManagerDashboard />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/manager/dashboard"
+                    element={
+                        <ProtectedRoute roles={["Manager", "HR"]}>
+                            <ManagerDashboard />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/manager/evaluations/:id"
+                    element={
+                        <ProtectedRoute roles={["Manager", "HR"]}>
+                            <ReviewEvaluation />
                         </ProtectedRoute>
                     }
                 />
