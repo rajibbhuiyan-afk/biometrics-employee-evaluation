@@ -44,6 +44,18 @@ const HRDashboard = () => {
         <div>
             <h1>HR Dashboard</h1>
 
+            <button
+                type="button"
+                onClick={() => navigate("/management")}
+                style={{
+                    marginBottom: "30px",
+                    padding: "10px 20px",
+                    cursor: "pointer",
+                }}
+            >
+                Management
+            </button>
+
             {error && (
                 <p style={{ color: "red" }}>
                     {error}

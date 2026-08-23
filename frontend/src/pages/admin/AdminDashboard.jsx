@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
+import { useNavigate } from "react-router-dom";
 
 const AdminDashboard = () => {
 
     const [dashboard, setDashboard] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchDashboard();
@@ -81,11 +83,11 @@ const AdminDashboard = () => {
 
     return (
         <div
-            style={{
-                maxWidth: "1200px",
-                margin: "30px auto",
-                padding: "20px",
-            }}
+            // style={{
+            //     maxWidth: "1200px",
+            //     margin: "30px auto",
+            //     padding: "20px",
+            // }}
         >
 
             <h1>Admin Dashboard</h1>
@@ -137,6 +139,18 @@ const AdminDashboard = () => {
             {/* ================================
                 EVALUATION SUMMARY
             ================================= */}
+
+            <button
+                type="button"
+                onClick={() => navigate("/management")}
+                style={{
+                    marginBottom: "30px",
+                    padding: "10px 20px",
+                    cursor: "pointer",
+                }}
+            >
+                Management
+            </button>
 
             <h2>Evaluation Summary</h2>
 

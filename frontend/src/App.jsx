@@ -17,6 +17,40 @@ import EvaluationDetails from "./pages/employee/EvaluationDetails";
 
 import HRDashboard from "./pages/hr/HRDashboard";
 
+import ManagementDashboard from "./pages/management/ManagementDashboard";
+import Users from "./pages/management/Users";
+
+import CreateUser from "./pages/management/CreateUser";
+import EditUser from "./pages/management/EditUser";
+
+import ChangePassword from "./pages/management/ChangePassword";
+
+import Departments from "./pages/management/Departments";
+import CreateDepartment from "./pages/management/CreateDepartment";
+import EditDepartment from "./pages/management/EditDepartment";
+
+import Positions from "./pages/management/Positions";
+import CreatePosition from "./pages/management/CreatePosition";
+import EditPosition from "./pages/management/EditPosition";
+
+import EvaluationPeriods from "./pages/management/EvaluationPeriods"; 
+import CreateEvaluationPeriod from "./pages/management/CreateEvaluationPeriod"; 
+import EditEvaluationPeriod from "./pages/management/EditEvaluationPeriod";
+
+import EvaluationCategories from "./pages/management/EvaluationCategories";
+import CreateEvaluationCategory from "./pages/management/CreateEvaluationCategory";
+import EditEvaluationCategory from "./pages/management/EditEvaluationCategory";
+
+import EvaluationQuestions from "./pages/management/EvaluationQuestions";
+import CreateEvaluationQuestion from "./pages/management/CreateEvaluationQuestion";
+import EditEvaluationQuestion from "./pages/management/EditEvaluationQuestion";
+
+import ProbationPeriods from "./pages/management/ProbationPeriods";
+import CreateProbationPeriod from "./pages/management/CreateProbationPeriod";
+import EditProbationPeriod from "./pages/management/EditProbationPeriod";
+
+import ManagementLayout from "./components/ManagementLayout";
+
 function App() {
     return (
         <BrowserRouter>
@@ -151,6 +185,127 @@ function App() {
                         </ProtectedRoute>
                     }
                 />
+
+                {/* Admin and HR */}
+
+                <Route
+                    path="/management"
+                    element={
+                        <ProtectedRoute roles={["Admin", "HR"]}>
+                            <ManagementLayout />
+                        </ProtectedRoute>
+                    }
+                >
+                    <Route
+                        index
+                        element={<ManagementDashboard />}
+                    />
+
+                    <Route
+                        path="users"
+                        element={<Users />}
+                    />
+
+                    <Route
+                        path="users/create"
+                        element={<CreateUser />}
+                    />
+
+                    <Route
+                        path="users/:id/edit"
+                        element={<EditUser />}
+                    />
+
+                    <Route
+                        path="departments"
+                        element={<Departments />}
+                    />
+
+                    <Route
+                        path="departments/create"
+                        element={<CreateDepartment />}
+                    />
+
+                    <Route
+                        path="departments/:id/edit"
+                        element={<EditDepartment />}
+                    />
+
+                    <Route
+                        path="positions"
+                        element={<Positions />}
+                    />
+
+                    <Route
+                        path="positions/create"
+                        element={<CreatePosition />}
+                    />
+
+                    <Route
+                        path="positions/:id/edit"
+                        element={<EditPosition />}
+                    />
+
+                    <Route
+                        path="evaluation-categories"
+                        element={<EvaluationCategories />}
+                    />
+
+                    <Route
+                        path="evaluation-categories/create"
+                        element={<CreateEvaluationCategory />}
+                    />
+
+                    <Route
+                        path="evaluation-categories/:id/edit"
+                        element={<EditEvaluationCategory />}
+                    />
+
+                    <Route
+                        path="evaluation-questions"
+                        element={<EvaluationQuestions />}
+                    />
+
+                    <Route
+                        path="evaluation-questions/create"
+                        element={<CreateEvaluationQuestion />}
+                    />
+
+                    <Route
+                        path="evaluation-questions/:id/edit"
+                        element={<EditEvaluationQuestion />}
+                    />
+
+                    <Route
+                        path="evaluation-periods"
+                        element={<EvaluationPeriods />}
+                    />
+
+                    <Route
+                        path="evaluation-periods/create"
+                        element={<CreateEvaluationPeriod />}
+                    />
+
+                    <Route
+                        path="evaluation-periods/:id/edit"
+                        element={<EditEvaluationPeriod />}
+                    />
+
+                    <Route
+                        path="probation-periods"
+                        element={<ProbationPeriods />}
+                    />
+
+                    <Route
+                        path="probation-periods/create"
+                        element={<CreateProbationPeriod />}
+                    />
+
+                    <Route
+                        path="probation-periods/:id/edit"
+                        element={<EditProbationPeriod />}
+                    />
+                </Route>
 
             </Routes>
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ class UserController extends Controller
             'role',
             'department',
             'position',
+            'manager',
         ])
         ->latest()
         ->get();
@@ -29,18 +31,20 @@ class UserController extends Controller
         ]);
     }
 
+
     /**
      * Store a newly created user.
      */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-             'employee_id' => [
+            'employee_id' => [
                 'required',
                 'string',
                 'max:50',
                 'unique:users,employee_id',
             ],
+
             'name' => [
                 'required',
                 'string',
@@ -79,15 +83,73 @@ class UserController extends Controller
                 'exists:positions,id',
             ],
 
+            'manager_id' => [
+                'nullable',
+                'integer',
+                'exists:users,id',
+            ],
+
             'status' => [
                 'nullable',
                 'boolean',
             ],
+
+            'joining_date' => [
+                'nullable',
+                'date',
+            ],
         ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Manager
+        |--------------------------------------------------------------------------
+        */
+
+        if (!empty($validated['manager_id'])) {
+
+            $manager = User::with('role')->find(
+                $validated['manager_id']
+            );
+
+            if (
+                !$manager ||
+                !$manager->role ||
+                $manager->role->name !== 'Manager'
+            ) {
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected user is not a Manager.',
+                ], 422);
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Password
+        |--------------------------------------------------------------------------
+        */
 
         $validated['password'] = Hash::make(
             $validated['password']
         );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Default Status
+        |--------------------------------------------------------------------------
+        */
+
+        if (!isset($validated['status'])) {
+            $validated['status'] = true;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create User
+        |--------------------------------------------------------------------------
+        */
 
         $user = User::create($validated);
 
@@ -98,9 +160,11 @@ class UserController extends Controller
                 'role',
                 'department',
                 'position',
+                'manager',
             ]),
         ], 201);
     }
+
 
     /**
      * Display the specified user.
@@ -111,6 +175,8 @@ class UserController extends Controller
             'role',
             'department',
             'position',
+            'manager',
+            'managedEmployees',
             'evaluations.evaluationPeriod',
             'reviews.evaluation',
         ]);
@@ -121,6 +187,7 @@ class UserController extends Controller
         ]);
     }
 
+
     /**
      * Update the specified user.
      */
@@ -128,6 +195,7 @@ class UserController extends Controller
         Request $request,
         User $user
     ): JsonResponse {
+
         $validated = $request->validate([
             'employee_id' => [
                 'required',
@@ -136,6 +204,7 @@ class UserController extends Controller
                 Rule::unique('users', 'employee_id')
                     ->ignore($user->id),
             ],
+
             'name' => [
                 'required',
                 'string',
@@ -150,12 +219,12 @@ class UserController extends Controller
                     ->ignore($user->id),
             ],
 
-            'password' => [
-                'nullable',
-                'string',
-                'min:8',
-                'confirmed',
-            ],
+            // 'password' => [
+            //     'nullable',
+            //     'string',
+            //     'min:8',
+            //     'confirmed',
+            // ],
 
             'role_id' => [
                 'required',
@@ -175,32 +244,85 @@ class UserController extends Controller
                 'exists:positions,id',
             ],
 
+            'manager_id' => [
+                'nullable',
+                'integer',
+                'exists:users,id',
+                Rule::notIn([$user->id]),
+            ],
+
             'status' => [
                 'nullable',
                 'boolean',
             ],
+            'joining_date' => [
+                'nullable',
+                'date',
+            ],
         ]);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Validate selected manager
+        |--------------------------------------------------------------------------
+        */
+
+        if (!empty($validated['manager_id'])) {
+
+            $manager = User::with('role')->find(
+                $validated['manager_id']
+            );
+
+            if (
+                !$manager ||
+                !$manager->role ||
+                $manager->role->name !== 'Manager'
+            ) {
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected user is not a Manager.',
+                ], 422);
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Password
+        |--------------------------------------------------------------------------
+        */
+
         if (!empty($validated['password'])) {
+
             $validated['password'] = Hash::make(
                 $validated['password']
             );
+
         } else {
+
             unset($validated['password']);
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Update User
+        |--------------------------------------------------------------------------
+        */
 
         $user->update($validated);
 
         return response()->json([
             'success' => true,
             'message' => 'User updated successfully.',
-            'data' => $user->load([
+            'data' => $user->fresh()->load([
                 'role',
                 'department',
                 'position',
+                'manager',
             ]),
         ]);
     }
+
 
     /**
      * Remove the specified user.
@@ -208,16 +330,35 @@ class UserController extends Controller
     public function destroy(User $user): JsonResponse
     {
         if ($user->evaluations()->exists()) {
+
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot delete this user because evaluation records exist.',
+                'message' =>
+                    'Cannot delete this user because evaluation records exist.',
             ], 409);
         }
 
         if ($user->reviews()->exists()) {
+
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot delete this user because review records exist.',
+                'message' =>
+                    'Cannot delete this user because review records exist.',
+            ], 409);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check managed employees
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user->managedEmployees()->exists()) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Cannot delete this manager because employees are assigned to this manager.',
             ], 409);
         }
 
@@ -228,4 +369,37 @@ class UserController extends Controller
             'message' => 'User deleted successfully.',
         ]);
     }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Change Password
+        |--------------------------------------------------------------------------
+        */
+
+        public function changePassword(
+            Request $request,
+            User $user
+        ): JsonResponse {
+
+            $validated = $request->validate([
+                'password' => [
+                    'required',
+                    'string',
+                    'min:8',
+                    'confirmed',
+                ],
+            ]);
+
+            $user->update([
+                'password' => Hash::make(
+                    $validated['password']
+                ),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User password changed successfully.',
+            ]);
+        }
+
 }

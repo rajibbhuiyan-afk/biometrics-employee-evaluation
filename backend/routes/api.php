@@ -15,6 +15,7 @@ use App\Http\Controllers\EvaluationReviewController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\ProbationPeriodController;
 
 
 // ==========================================
@@ -62,11 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
             RoleController::class
         );
 
-        // Users
-        Route::apiResource(
-            'users',
-            UserController::class
-        );
+       
          // Admin Dashboard
         Route::get(
             '/admin/dashboard',
@@ -80,7 +77,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // ======================================
 
     Route::middleware('role:Admin,HR')->group(function () {
-
+         // Users
+        Route::apiResource(
+            'users',
+            UserController::class
+        );
+        Route::post(
+            '/users/{user}/change-password',
+            [UserController::class, 'changePassword']
+        );
         // Departments
         Route::apiResource(
             'departments',
@@ -103,6 +108,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource(
             'evaluation-categories',
             EvaluationCategoryController::class
+        );
+
+        // Probation Periods active route
+        Route::get(
+        '/probation-periods/active',
+            [ProbationPeriodController::class, 'active']
+        );
+        // Probation Periods
+        Route::apiResource(
+            'probation-periods',
+            ProbationPeriodController::class
         );
     });
 

@@ -25,7 +25,6 @@ class EvaluationPeriod extends Model
         'end_date' => 'date',
         'submission_start_date' => 'date',
         'submission_end_date' => 'date',
-        'status' => 'boolean',
     ];
 
     public function evaluations(): HasMany
