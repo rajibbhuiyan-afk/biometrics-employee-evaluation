@@ -4,77 +4,68 @@ const DataTable = ({
     emptyMessage = "No records found.",
 }) => {
     return (
-        <div
-            style={{
-                overflowX: "auto",
-                backgroundColor: "#fff",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-            }}
-        >
+        <div className="data-table-container">
+
             {data.length === 0 ? (
-                <div
-                    style={{
-                        padding: "30px",
-                        textAlign: "center",
-                        color: "#666",
-                    }}
-                >
-                    {emptyMessage}
+                <div className="data-table-empty">
+                    <div className="data-table-empty-title">
+                        No Data
+                    </div>
+
+                    <div className="data-table-empty-message">
+                        {emptyMessage}
+                    </div>
                 </div>
             ) : (
-                <table
-                    style={{
-                        width: "100%",
-                        borderCollapse: "collapse",
-                    }}
-                >
-                    <thead>
-                        <tr>
-                            {columns.map((column) => (
-                                <th
-                                    key={column.key}
-                                    style={thStyle}
-                                >
-                                    {column.label}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
+                <div className="data-table-wrapper">
+                    <table className="data-table">
 
-                    <tbody>
-                        {data.map((row, index) => (
-                            <tr key={row.id ?? index}>
+                        <thead>
+                            <tr>
                                 {columns.map((column) => (
-                                    <td
+                                    <th
                                         key={column.key}
-                                        style={tdStyle}
+                                        className={
+                                            column.key === "actions"
+                                                ? "data-table-actions-header"
+                                                : ""
+                                        }
                                     >
-                                        {column.render
-                                            ? column.render(row)
-                                            : row[column.key] ?? "N/A"}
-                                    </td>
+                                        {column.label}
+                                    </th>
                                 ))}
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+
+                        <tbody>
+                            {data.map((row, index) => (
+                                <tr key={row.id ?? index}>
+
+                                    {columns.map((column) => (
+                                        <td
+                                            key={column.key}
+                                            className={
+                                                column.key === "actions"
+                                                    ? "data-table-actions"
+                                                    : ""
+                                            }
+                                        >
+                                            {column.render
+                                                ? column.render(row)
+                                                : row[column.key] ?? "N/A"}
+                                        </td>
+                                    ))}
+
+                                </tr>
+                            ))}
+                        </tbody>
+
+                    </table>
+                </div>
             )}
+
         </div>
     );
-};
-
-const thStyle = {
-    borderBottom: "1px solid #ddd",
-    padding: "12px",
-    textAlign: "left",
-    backgroundColor: "#f5f6f8",
-    fontWeight: "600",
-};
-
-const tdStyle = {
-    borderBottom: "1px solid #eee",
-    padding: "12px",
 };
 
 export default DataTable;

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 
 const CreateDepartment = () => {
-
     const navigate = useNavigate();
 
     const [form, setForm] = useState({
@@ -17,25 +16,18 @@ const CreateDepartment = () => {
     const [error, setError] = useState("");
 
     const handleChange = (e) => {
-
         const { name, value, type, checked } = e.target;
 
-        setForm({
-            ...form,
-            [name]:
-                type === "checkbox"
-                    ? checked
-                    : value,
-        });
+        setForm((previous) => ({
+            ...previous,
+            [name]: type === "checkbox" ? checked : value,
+        }));
     };
 
-
     const handleSubmit = async (e) => {
-
         e.preventDefault();
 
         try {
-
             setSaving(true);
             setError("");
 
@@ -46,31 +38,22 @@ const CreateDepartment = () => {
                 status: form.status,
             });
 
-            alert(
-                "Department created successfully."
-            );
+            alert("Department created successfully.");
 
-            navigate(
-                "/management/departments"
-            );
+            navigate("/management/departments");
 
         } catch (error) {
-
             console.error(error);
 
             if (error.response?.data?.errors) {
-
-                const errors =
-                    error.response.data.errors;
+                const errors = error.response.data.errors;
 
                 setError(
                     Object.values(errors)
                         .flat()
                         .join(" ")
                 );
-
             } else {
-
                 setError(
                     error.response?.data?.message ||
                     "Failed to create department."
@@ -78,37 +61,37 @@ const CreateDepartment = () => {
             }
 
         } finally {
-
             setSaving(false);
         }
     };
 
-
     return (
-        <div style={containerStyle}>
+        <div className="management-form-page">
 
-            <h1>Create Department</h1>
+            <h1 className="management-form-title">
+                Create Department
+            </h1>
 
             {error && (
-                <p style={{ color: "red" }}>
+                <div className="management-form-error">
                     {error}
-                </p>
+                </div>
             )}
 
+            <form
+                className="management-form"
+                onSubmit={handleSubmit}
+            >
 
-            <form onSubmit={handleSubmit}>
+                {/* Department Name */}
 
-                {/* Name */}
-
-                <div style={fieldStyle}>
-
-                    <label>
+                <div className="management-form-field">
+                    <label htmlFor="name">
                         Department Name
                     </label>
 
-                    <br />
-
                     <input
+                        id="name"
                         type="text"
                         name="name"
                         value={form.name}
@@ -116,21 +99,17 @@ const CreateDepartment = () => {
                         placeholder="e.g. Finance"
                         required
                     />
-
                 </div>
 
+                {/* Department Code */}
 
-                {/* Code */}
-
-                <div style={fieldStyle}>
-
-                    <label>
+                <div className="management-form-field">
+                    <label htmlFor="code">
                         Department Code
                     </label>
 
-                    <br />
-
                     <input
+                        id="code"
                         type="text"
                         name="code"
                         value={form.code}
@@ -138,91 +117,72 @@ const CreateDepartment = () => {
                         placeholder="e.g. FIN"
                         required
                     />
-
                 </div>
-
 
                 {/* Description */}
 
-                <div style={fieldStyle}>
-
-                    <label>
+                <div className="management-form-field">
+                    <label htmlFor="description">
                         Description
                     </label>
 
-                    <br />
-
                     <textarea
+                        id="description"
                         name="description"
                         value={form.description}
                         onChange={handleChange}
                         placeholder="Department description"
                         rows="4"
                     />
-
                 </div>
-
 
                 {/* Status */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-checkbox">
+                    <input
+                        id="status"
+                        type="checkbox"
+                        name="status"
+                        checked={form.status}
+                        onChange={handleChange}
+                    />
 
-                    <label>
-
-                        <input
-                            type="checkbox"
-                            name="status"
-                            checked={form.status}
-                            onChange={handleChange}
-                        />
-
-                        {" "}Active
-
+                    <label htmlFor="status">
+                        Active
                     </label>
-
                 </div>
-
 
                 {/* Buttons */}
 
-                <button
-                    type="submit"
-                    disabled={saving}
-                >
-                    {saving
-                        ? "Creating..."
-                        : "Create Department"}
-                </button>
+                <div className="management-form-actions">
 
-                {" "}
+                    <button
+                        type="submit"
+                        className="management-btn-primary"
+                        disabled={saving}
+                    >
+                        {saving
+                            ? "Creating..."
+                            : "Create Department"}
+                    </button>
 
-                <button
-                    type="button"
-                    onClick={() =>
-                        navigate(
-                            "/management/departments"
-                        )
-                    }
-                >
-                    Cancel
-                </button>
+                    <button
+                        type="button"
+                        className="management-btn-secondary"
+                        onClick={() =>
+                            navigate(
+                                "/management/departments"
+                            )
+                        }
+                    >
+                        Cancel
+                    </button>
+
+                </div>
 
             </form>
-
         </div>
     );
 };
-
-
-const containerStyle = {
-    maxWidth: "700px",
-    margin: "30px auto",
-    padding: "20px",
-};
-
-const fieldStyle = {
-    marginBottom: "20px",
-};
-
 
 export default CreateDepartment;

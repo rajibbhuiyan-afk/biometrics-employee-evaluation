@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+
 import api from "../../api/axios";
 
 const EditEvaluationQuestion = () => {
-
     const { id } = useParams();
     const navigate = useNavigate();
 
@@ -22,26 +22,15 @@ const EditEvaluationQuestion = () => {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-
     const [error, setError] = useState("");
     const [validationErrors, setValidationErrors] = useState({});
-
 
     useEffect(() => {
         fetchData();
     }, [id]);
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Fetch Question + Categories
-    |--------------------------------------------------------------------------
-    */
-
     const fetchData = async () => {
-
         try {
-
             setLoading(true);
             setError("");
 
@@ -49,17 +38,9 @@ const EditEvaluationQuestion = () => {
                 questionResponse,
                 categoriesResponse,
             ] = await Promise.all([
-
-                api.get(
-                    `/evaluation-questions/${id}`
-                ),
-
-                api.get(
-                    "/evaluation-categories"
-                ),
-
+                api.get(`/evaluation-questions/${id}`),
+                api.get("/evaluation-categories"),
             ]);
-
 
             const question =
                 questionResponse.data.data;
@@ -68,9 +49,7 @@ const EditEvaluationQuestion = () => {
                 categoriesResponse.data.data || []
             );
 
-
             setForm({
-
                 category_id:
                     question.category_id || "",
 
@@ -94,11 +73,9 @@ const EditEvaluationQuestion = () => {
 
                 status:
                     Boolean(question.status),
-
             });
 
         } catch (error) {
-
             console.error(error);
 
             setError(
@@ -107,88 +84,50 @@ const EditEvaluationQuestion = () => {
             );
 
         } finally {
-
             setLoading(false);
-
         }
     };
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Input Change
-    |--------------------------------------------------------------------------
-    */
-
     const handleChange = (e) => {
-
-        const { name, value } = e.target;
-
-        setForm((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-
-    };
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Boolean Change
-    |--------------------------------------------------------------------------
-    */
-
-    const handleBooleanChange = (e) => {
-
-        const { name, checked } = e.target;
+        const {
+            name,
+            value,
+            type,
+            checked,
+        } = e.target;
 
         setForm((prev) => ({
             ...prev,
-            [name]: checked,
+            [name]:
+                type === "checkbox"
+                    ? checked
+                    : value,
         }));
-
     };
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Question Type
-    |--------------------------------------------------------------------------
-    */
 
     const handleQuestionTypeChange = (e) => {
-
         const value = e.target.value;
 
         setForm((prev) => ({
             ...prev,
+
             question_type: value,
+
             max_rating:
                 value === "rating"
                     ? prev.max_rating || 5
                     : null,
         }));
-
     };
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Update
-    |--------------------------------------------------------------------------
-    */
-
     const handleSubmit = async (e) => {
-
         e.preventDefault();
 
         setSaving(true);
         setError("");
         setValidationErrors({});
 
-
         const payload = {
-
             category_id:
                 Number(form.category_id),
 
@@ -214,12 +153,9 @@ const EditEvaluationQuestion = () => {
 
             status:
                 Boolean(form.status),
-
         };
 
-
         try {
-
             await api.put(
                 `/evaluation-questions/${id}`,
                 payload
@@ -234,7 +170,6 @@ const EditEvaluationQuestion = () => {
             );
 
         } catch (error) {
-
             console.error(error);
 
             if (error.response?.status === 422) {
@@ -249,21 +184,16 @@ const EditEvaluationQuestion = () => {
                     error.response?.data?.message ||
                     "Failed to update evaluation question."
                 );
-
             }
 
         } finally {
-
             setSaving(false);
-
         }
     };
 
-
     if (loading) {
-
         return (
-            <div style={containerStyle}>
+            <div className="management-form-page">
                 <h2>
                     Loading Evaluation Question...
                 </h2>
@@ -271,31 +201,26 @@ const EditEvaluationQuestion = () => {
         );
     }
 
-
     return (
-
-        <div style={containerStyle}>
-
+        <div className="management-form-page">
             <h1>
                 Edit Evaluation Question
             </h1>
 
-
             {error && (
-                <div style={errorStyle}>
+                <div className="management-form-error">
                     {error}
                 </div>
             )}
 
-
             <form
                 onSubmit={handleSubmit}
-                style={formStyle}
+                className="management-form"
             >
 
-                {/* CATEGORY */}
+                {/* Category */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
                     <label>
                         Category
@@ -307,21 +232,20 @@ const EditEvaluationQuestion = () => {
                         onChange={handleChange}
                         required
                     >
-
                         <option value="">
                             Select Category
                         </option>
 
-                        {categories.map((category) => (
-
-                            <option
-                                key={category.id}
-                                value={category.id}
-                            >
-                                {category.name}
-                            </option>
-
-                        ))}
+                        {categories.map(
+                            (category) => (
+                                <option
+                                    key={category.id}
+                                    value={category.id}
+                                >
+                                    {category.name}
+                                </option>
+                            )
+                        )}
 
                     </select>
 
@@ -332,10 +256,9 @@ const EditEvaluationQuestion = () => {
 
                 </div>
 
+                {/* Question */}
 
-                {/* QUESTION */}
-
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
                     <label>
                         Question
@@ -347,6 +270,7 @@ const EditEvaluationQuestion = () => {
                         onChange={handleChange}
                         rows="5"
                         required
+                        placeholder="Enter evaluation question"
                     />
 
                     <ValidationError
@@ -356,22 +280,20 @@ const EditEvaluationQuestion = () => {
 
                 </div>
 
+                {/* Question Type */}
 
-                {/* QUESTION TYPE */}
-
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
                     <label>
                         Question Type
                     </label>
 
                     <select
+                        name="question_type"
                         value={form.question_type}
-                        onChange={
-                            handleQuestionTypeChange
-                        }
+                        onChange={handleQuestionTypeChange}
+                        required
                     >
-
                         <option value="rating">
                             Rating
                         </option>
@@ -386,14 +308,18 @@ const EditEvaluationQuestion = () => {
 
                     </select>
 
+                    <ValidationError
+                        errors={validationErrors}
+                        field="question_type"
+                    />
+
                 </div>
 
-
-                {/* MAX RATING */}
+                {/* Max Rating */}
 
                 {form.question_type === "rating" && (
 
-                    <div style={fieldStyle}>
+                    <div className="management-form-field">
 
                         <label>
                             Max Rating
@@ -402,20 +328,26 @@ const EditEvaluationQuestion = () => {
                         <input
                             type="number"
                             name="max_rating"
-                            value={form.max_rating ?? ""}
+                            value={
+                                form.max_rating ?? ""
+                            }
                             onChange={handleChange}
                             min="1"
                             max="100"
+                            required
+                        />
+
+                        <ValidationError
+                            errors={validationErrors}
+                            field="max_rating"
                         />
 
                     </div>
-
                 )}
 
+                {/* Weight */}
 
-                {/* WEIGHT */}
-
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
                     <label>
                         Weight
@@ -429,14 +361,19 @@ const EditEvaluationQuestion = () => {
                         min="0"
                         max="999.99"
                         step="0.01"
+                        required
+                    />
+
+                    <ValidationError
+                        errors={validationErrors}
+                        field="weight"
                     />
 
                 </div>
 
+                {/* Sort Order */}
 
-                {/* SORT ORDER */}
-
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
                     <label>
                         Sort Order
@@ -448,20 +385,25 @@ const EditEvaluationQuestion = () => {
                         value={form.sort_order}
                         onChange={handleChange}
                         min="0"
+                        required
+                    />
+
+                    <ValidationError
+                        errors={validationErrors}
+                        field="sort_order"
                     />
 
                 </div>
 
+                {/* Required */}
 
-                {/* REQUIRED */}
-
-                <div style={checkboxStyle}>
+                <div className="management-form-checkbox">
 
                     <input
                         type="checkbox"
                         name="is_required"
                         checked={form.is_required}
-                        onChange={handleBooleanChange}
+                        onChange={handleChange}
                     />
 
                     <label>
@@ -470,16 +412,15 @@ const EditEvaluationQuestion = () => {
 
                 </div>
 
+                {/* Status */}
 
-                {/* STATUS */}
-
-                <div style={checkboxStyle}>
+                <div className="management-form-checkbox">
 
                     <input
                         type="checkbox"
                         name="status"
                         checked={form.status}
-                        onChange={handleBooleanChange}
+                        onChange={handleChange}
                     />
 
                     <label>
@@ -488,16 +429,9 @@ const EditEvaluationQuestion = () => {
 
                 </div>
 
+                {/* Actions */}
 
-                {/* BUTTONS */}
-
-                <div
-                    style={{
-                        display: "flex",
-                        gap: "10px",
-                        marginTop: "20px",
-                    }}
-                >
+                <div className="management-form-actions">
 
                     <button
                         type="submit"
@@ -508,7 +442,6 @@ const EditEvaluationQuestion = () => {
                             : "Update Question"}
                     </button>
 
-
                     <button
                         type="button"
                         onClick={() =>
@@ -516,6 +449,7 @@ const EditEvaluationQuestion = () => {
                                 "/management/evaluation-questions"
                             )
                         }
+                        disabled={saving}
                     >
                         Cancel
                     </button>
@@ -523,64 +457,23 @@ const EditEvaluationQuestion = () => {
                 </div>
 
             </form>
-
         </div>
     );
 };
-
 
 const ValidationError = ({
     errors,
     field,
 }) => {
-
     if (!errors[field]) {
         return null;
     }
 
     return (
-        <div
-            style={{
-                color: "red",
-                fontSize: "13px",
-            }}
-        >
+        <div className="management-form-validation-error">
             {errors[field][0]}
         </div>
     );
-};
-
-
-const containerStyle = {
-    maxWidth: "800px",
-    margin: "30px auto",
-    padding: "20px",
-};
-
-const formStyle = {
-    display: "flex",
-    flexDirection: "column",
-    gap: "15px",
-};
-
-const fieldStyle = {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-};
-
-const checkboxStyle = {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-};
-
-const errorStyle = {
-    color: "red",
-    background: "#ffe5e5",
-    padding: "10px",
-    borderRadius: "5px",
-    marginBottom: "20px",
 };
 
 export default EditEvaluationQuestion;

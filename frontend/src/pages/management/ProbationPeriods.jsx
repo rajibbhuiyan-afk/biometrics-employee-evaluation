@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import api from "../../api/axios";
+import PageHeader from "../../components/PageHeader";
+import DataTable from "../../components/DataTable";
 
 const ProbationPeriods = () => {
     const navigate = useNavigate();
@@ -8,6 +11,12 @@ const ProbationPeriods = () => {
     const [periods, setPeriods] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fetch Probation Periods
+    |--------------------------------------------------------------------------
+    */
 
     useEffect(() => {
         fetchPeriods();
@@ -18,11 +27,18 @@ const ProbationPeriods = () => {
             setLoading(true);
             setError("");
 
-            const response = await api.get("/probation-periods");
+            const response = await api.get(
+                "/probation-periods"
+            );
 
-            console.log("Probation Periods:", response.data);
+            console.log(
+                "Probation Periods:",
+                response.data
+            );
 
-            setPeriods(response.data.data || []);
+            setPeriods(
+                response.data.data || []
+            );
         } catch (error) {
             console.error(error);
 
@@ -35,6 +51,12 @@ const ProbationPeriods = () => {
         }
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Format Date
+    |--------------------------------------------------------------------------
+    */
+
     const formatDate = (date) => {
         if (!date) {
             return "N/A";
@@ -42,6 +64,56 @@ const ProbationPeriods = () => {
 
         return String(date).substring(0, 10);
     };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Format Status
+    |--------------------------------------------------------------------------
+    */
+
+    const formatStatus = (status) => {
+        if (!status) {
+            return "N/A";
+        }
+
+        return (
+            String(status).charAt(0).toUpperCase() +
+            String(status).slice(1)
+        );
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Status Class
+    |--------------------------------------------------------------------------
+    */
+
+    const getStatusClass = (status) => {
+        switch (
+            String(status || "").toLowerCase()
+        ) {
+            case "active":
+                return "status-active";
+
+            case "completed":
+                return "status-completed";
+
+            case "extended":
+                return "status-extended";
+
+            case "terminated":
+                return "status-inactive";
+
+            default:
+                return "status-inactive";
+        }
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Delete Probation Period
+    |--------------------------------------------------------------------------
+    */
 
     const handleDelete = async (id) => {
         const confirmed = window.confirm(
@@ -53,11 +125,21 @@ const ProbationPeriods = () => {
         }
 
         try {
-            await api.delete(`/probation-periods/${id}`);
+            await api.delete(
+                `/probation-periods/${id}`
+            );
 
-            alert("Probation period deleted successfully.");
+            setPeriods(
+                (currentPeriods) =>
+                    currentPeriods.filter(
+                        (period) =>
+                            period.id !== id
+                    )
+            );
 
-            fetchPeriods();
+            alert(
+                "Probation period deleted successfully."
+            );
         } catch (error) {
             console.error(error);
 
@@ -68,236 +150,175 @@ const ProbationPeriods = () => {
         }
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Loading
+    |--------------------------------------------------------------------------
+    */
+
     if (loading) {
         return (
-            <div style={containerStyle}>
-                <h2>Loading Probation Periods...</h2>
+            <div className="management-page">
+                <h2>
+                    Loading Probation Periods...
+                </h2>
             </div>
         );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Page
+    |--------------------------------------------------------------------------
+    */
+
     return (
-        <div style={containerStyle}>
+        <div className="management-page">
 
-            <div style={headerStyle}>
+            {/* Page Header */}
 
-                <h1>Probation Periods</h1>
+            <PageHeader
+                title="Probation Period Management"
+                description="Create, view, edit and manage employee probation periods."
+                buttonText="+ Create Probation Period"
+                onButtonClick={() =>
+                    navigate(
+                        "/management/probation-periods/create"
+                    )
+                }
+            />
 
-                <button
-                    type="button"
-                    onClick={() =>
-                        navigate(
-                            "/management/probation-periods/create"
-                        )
-                    }
-                >
-                    + Create Probation Period
-                </button>
-
-            </div>
+            {/* Error */}
 
             {error && (
-                <div style={errorStyle}>
+                <div className="management-error">
                     {error}
                 </div>
             )}
 
+            {/* Empty State */}
+
             {periods.length === 0 ? (
-                <p>No probation periods found.</p>
-            ) : (
-                <div style={{ overflowX: "auto" }}>
+                <div className="data-table-container">
 
-                    <table style={tableStyle}>
+                    <div className="data-table-empty">
 
-                        <thead>
-                            <tr>
+                        <div className="data-table-empty-title">
+                            No probation periods found.
+                        </div>
 
-                                <th style={thStyle}>
-                                    ID
-                                </th>
+                        <div className="data-table-empty-message">
+                            Create a probation period to get started.
+                        </div>
 
-                                <th style={thStyle}>
-                                    Employee
-                                </th>
-
-                                <th style={thStyle}>
-                                    Employee ID
-                                </th>
-
-                                <th style={thStyle}>
-                                    Start Date
-                                </th>
-
-                                <th style={thStyle}>
-                                    End Date
-                                </th>
-
-                                <th style={thStyle}>
-                                    Status
-                                </th>
-
-                                <th style={thStyle}>
-                                    Actions
-                                </th>
-
-                            </tr>
-                        </thead>
-
-                        <tbody>
-
-                            {periods.map((period) => {
-
-                                const status =
-                                    typeof period.status === "string"
-                                        ? period.status
-                                        : "";
-
-                                return (
-                                    <tr key={period.id}>
-
-                                        <td style={tdStyle}>
-                                            {period.id}
-                                        </td>
-
-                                        <td style={tdStyle}>
-                                            {period.employee?.name || "N/A"}
-                                        </td>
-
-                                        <td style={tdStyle}>
-                                            {period.employee?.employee_id || "N/A"}
-                                        </td>
-
-                                        <td style={tdStyle}>
-                                            {formatDate(period.start_date)}
-                                        </td>
-
-                                        <td style={tdStyle}>
-                                            {formatDate(period.end_date)}
-                                        </td>
-
-                                        <td style={tdStyle}>
-
-                                            <span
-                                                style={{
-                                                    ...statusStyle,
-                                                    backgroundColor:
-                                                        status === "active"
-                                                            ? "#d4edda"
-                                                            : status === "completed"
-                                                                ? "#d1ecf1"
-                                                                : status === "extended"
-                                                                    ? "#fff3cd"
-                                                                    : "#f8d7da",
-                                                    color:
-                                                        status === "active"
-                                                            ? "#155724"
-                                                            : status === "completed"
-                                                                ? "#0c5460"
-                                                                : status === "extended"
-                                                                    ? "#856404"
-                                                                    : "#721c24",
-                                                }}
-                                            >
-                                                {status
-                                                    ? status.charAt(0).toUpperCase() +
-                                                      status.slice(1)
-                                                    : "N/A"}
-                                            </span>
-
-                                        </td>
-
-                                        <td style={tdStyle}>
-
-                                            <div
-                                                style={{
-                                                    display: "flex",
-                                                    gap: "8px",
-                                                }}
-                                            >
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        navigate(
-                                                            `/management/probation-periods/${period.id}/edit`
-                                                        )
-                                                    }
-                                                >
-                                                    Edit
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleDelete(period.id)
-                                                    }
-                                                >
-                                                    Delete
-                                                </button>
-
-                                            </div>
-
-                                        </td>
-
-                                    </tr>
-                                );
-                            })}
-
-                        </tbody>
-
-                    </table>
+                    </div>
 
                 </div>
+            ) : (
+                <DataTable
+                    columns={[
+                        {
+                            key: "id",
+                            label: "ID",
+                        },
+                        {
+                            key: "employee",
+                            label: "Employee",
+                        },
+                        {
+                            key: "employee_id",
+                            label: "Employee ID",
+                        },
+                        {
+                            key: "start_date",
+                            label: "Start Date",
+                        },
+                        {
+                            key: "end_date",
+                            label: "End Date",
+                        },
+                        {
+                            key: "status",
+                            label: "Status",
+                        },
+                        {
+                            key: "actions",
+                            label: "Actions",
+                        },
+                    ]}
+
+                    data={periods.map((period) => {
+                        const status = String(
+                            period.status || ""
+                        ).toLowerCase();
+
+                        return {
+                            id: period.id,
+
+                            employee:
+                                period.employee?.name ||
+                                "N/A",
+
+                            employee_id:
+                                period.employee?.employee_id ||
+                                "N/A",
+
+                            start_date:
+                                formatDate(
+                                    period.start_date
+                                ),
+
+                            end_date:
+                                formatDate(
+                                    period.end_date
+                                ),
+
+                            status: (
+                                <span
+                                    className={`status-badge ${getStatusClass(
+                                        status
+                                    )}`}
+                                >
+                                    {formatStatus(status)}
+                                </span>
+                            ),
+
+                            actions: (
+                                <div className="table-actions">
+
+                                    <button
+                                        type="button"
+                                        className="action-button action-edit"
+                                        onClick={() =>
+                                            navigate(
+                                                `/management/probation-periods/${period.id}/edit`
+                                            )
+                                        }
+                                    >
+                                        Edit
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className="action-button action-delete"
+                                        onClick={() =>
+                                            handleDelete(
+                                                period.id
+                                            )
+                                        }
+                                    >
+                                        Delete
+                                    </button>
+
+                                </div>
+                            ),
+                        };
+                    })}
+                />
             )}
 
         </div>
     );
-};
-
-const containerStyle = {
-    // maxWidth: "1200px",
-    // margin: "30px auto",
-    // padding: "20px",
-};
-
-const headerStyle = {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "20px",
-};
-
-const errorStyle = {
-    color: "red",
-    background: "#ffe5e5",
-    padding: "10px",
-    borderRadius: "5px",
-    marginBottom: "20px",
-};
-
-const tableStyle = {
-    width: "100%",
-    borderCollapse: "collapse",
-};
-
-const thStyle = {
-    border: "1px solid #ddd",
-    padding: "10px",
-    textAlign: "left",
-    backgroundColor: "#f5f5f5",
-};
-
-const tdStyle = {
-    border: "1px solid #ddd",
-    padding: "10px",
-};
-
-const statusStyle = {
-    display: "inline-block",
-    padding: "5px 10px",
-    borderRadius: "12px",
-    fontSize: "13px",
-    fontWeight: "bold",
 };
 
 export default ProbationPeriods;

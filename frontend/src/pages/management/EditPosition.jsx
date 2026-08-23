@@ -7,8 +7,7 @@ const EditPosition = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    const [departments, setDepartments] =
-        useState([]);
+    const [departments, setDepartments] = useState([]);
 
     const [form, setForm] = useState({
         title: "",
@@ -22,6 +21,12 @@ const EditPosition = () => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load Position + Departments
+    |--------------------------------------------------------------------------
+    */
 
     useEffect(() => {
         fetchData();
@@ -52,13 +57,17 @@ const EditPosition = () => {
 
             setForm({
                 title: position.title || "",
+
                 code: position.code || "",
+
                 department_id:
                     position.department_id || "",
+
                 description:
                     position.description || "",
+
                 status:
-                    position.status ?? true,
+                    Boolean(position.status),
             });
 
         } catch (error) {
@@ -73,9 +82,16 @@ const EditPosition = () => {
         } finally {
 
             setLoading(false);
+
         }
     };
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Handle Input Change
+    |--------------------------------------------------------------------------
+    */
 
     const handleChange = (e) => {
 
@@ -86,15 +102,21 @@ const EditPosition = () => {
             checked,
         } = e.target;
 
-        setForm({
-            ...form,
+        setForm((prev) => ({
+            ...prev,
             [name]:
                 type === "checkbox"
                     ? checked
                     : value,
-        });
+        }));
     };
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Submit
+    |--------------------------------------------------------------------------
+    */
 
     const handleSubmit = async (e) => {
 
@@ -111,10 +133,11 @@ const EditPosition = () => {
                     title: form.title,
                     code: form.code,
                     department_id:
-                        form.department_id,
+                        Number(form.department_id),
                     description:
                         form.description,
-                    status: form.status,
+                    status:
+                        Boolean(form.status),
                 }
             );
 
@@ -152,51 +175,75 @@ const EditPosition = () => {
         } finally {
 
             setSaving(false);
+
         }
     };
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Loading
+    |--------------------------------------------------------------------------
+    */
+
     if (loading) {
 
         return (
-            <div style={containerStyle}>
+            <div className="management-form-page">
+
                 <h2>
                     Loading position...
                 </h2>
+
             </div>
         );
     }
 
 
-    return (
-        <div style={containerStyle}>
+    /*
+    |--------------------------------------------------------------------------
+    | Page
+    |--------------------------------------------------------------------------
+    */
 
-            <h1>Edit Position</h1>
+    return (
+
+        <div className="management-form-page">
+
+            <h1 className="management-form-title">
+                Edit Position
+            </h1>
+
+
+            {/* Error */}
 
             {error && (
-                <p style={{ color: "red" }}>
+                <div className="management-form-error">
                     {error}
-                </p>
+                </div>
             )}
 
 
-            <form onSubmit={handleSubmit}>
+            <form
+                className="management-form"
+                onSubmit={handleSubmit}
+            >
+
 
                 {/* Title */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
                     <label>
                         Position Title
                     </label>
-
-                    <br />
 
                     <input
                         type="text"
                         name="title"
                         value={form.title}
                         onChange={handleChange}
+                        placeholder="e.g. Software Engineer"
                         required
                     />
 
@@ -205,19 +252,18 @@ const EditPosition = () => {
 
                 {/* Code */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
                     <label>
                         Position Code
                     </label>
-
-                    <br />
 
                     <input
                         type="text"
                         name="code"
                         value={form.code}
                         onChange={handleChange}
+                        placeholder="e.g. SWE"
                         required
                     />
 
@@ -226,19 +272,15 @@ const EditPosition = () => {
 
                 {/* Department */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
                     <label>
                         Department
                     </label>
 
-                    <br />
-
                     <select
                         name="department_id"
-                        value={
-                            form.department_id
-                        }
+                        value={form.department_id}
                         onChange={handleChange}
                         required
                     >
@@ -251,12 +293,8 @@ const EditPosition = () => {
                             (department) => (
 
                                 <option
-                                    key={
-                                        department.id
-                                    }
-                                    value={
-                                        department.id
-                                    }
+                                    key={department.id}
+                                    value={department.id}
                                 >
                                     {department.name}
                                 </option>
@@ -271,20 +309,17 @@ const EditPosition = () => {
 
                 {/* Description */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
                     <label>
                         Description
                     </label>
 
-                    <br />
-
                     <textarea
                         name="description"
-                        value={
-                            form.description
-                        }
+                        value={form.description}
                         onChange={handleChange}
+                        placeholder="Position description"
                         rows="4"
                     />
 
@@ -293,64 +328,56 @@ const EditPosition = () => {
 
                 {/* Status */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-checkbox">
+
+                    <input
+                        type="checkbox"
+                        name="status"
+                        checked={form.status}
+                        onChange={handleChange}
+                    />
 
                     <label>
-
-                        <input
-                            type="checkbox"
-                            name="status"
-                            checked={
-                                form.status
-                            }
-                            onChange={handleChange}
-                        />
-
-                        {" "}Active
-
+                        Active
                     </label>
 
                 </div>
 
 
-                <button
-                    type="submit"
-                    disabled={saving}
-                >
-                    {saving
-                        ? "Updating..."
-                        : "Update Position"}
-                </button>
+                {/* Buttons */}
 
-                {" "}
+                <div className="management-form-actions">
 
-                <button
-                    type="button"
-                    onClick={() =>
-                        navigate(
-                            "/management/positions"
-                        )
-                    }
-                >
-                    Cancel
-                </button>
+                    <button
+                        type="submit"
+                        className="management-btn-primary"
+                        disabled={saving}
+                    >
+                        {saving
+                            ? "Updating..."
+                            : "Update Position"}
+                    </button>
+
+
+                    <button
+                        type="button"
+                        className="management-btn-secondary"
+                        onClick={() =>
+                            navigate(
+                                "/management/positions"
+                            )
+                        }
+                        disabled={saving}
+                    >
+                        Cancel
+                    </button>
+
+                </div>
 
             </form>
 
         </div>
     );
 };
-
-
-const containerStyle = {
-    maxWidth: "700px",
-    margin: "30px auto",
-    padding: "20px",
-};
-
-const fieldStyle = {
-    marginBottom: "20px",
-};
-
 
 export default EditPosition;

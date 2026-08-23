@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 
 const CreateProbationPeriod = () => {
-
     const navigate = useNavigate();
 
     const [employees, setEmployees] = useState([]);
@@ -26,12 +25,10 @@ const CreateProbationPeriod = () => {
 
     const fetchEmployees = async () => {
         try {
-
             const response = await api.get("/users");
 
             const users = response.data.data || [];
 
-            // Only Employee users
             const employeeUsers = users.filter(
                 (user) =>
                     user.role?.name?.toLowerCase() === "employee"
@@ -40,7 +37,6 @@ const CreateProbationPeriod = () => {
             setEmployees(employeeUsers);
 
         } catch (error) {
-
             console.error(error);
 
             setError(
@@ -49,61 +45,46 @@ const CreateProbationPeriod = () => {
             );
 
         } finally {
-
             setLoadingEmployees(false);
-
         }
     };
 
     const handleChange = (e) => {
-
         const { name, value } = e.target;
 
-        setForm((prev) => ({
-            ...prev,
+        setForm((previous) => ({
+            ...previous,
             [name]: value,
         }));
     };
 
     const handleSubmit = async (e) => {
-
         e.preventDefault();
 
         try {
-
             setLoading(true);
             setError("");
 
-            await api.post(
-                "/probation-periods",
-                {
-                    employee_id: Number(form.employee_id),
-                    start_date: form.start_date,
-                    end_date: form.end_date,
-                    status: form.status,
-                    notes: form.notes || null,
-                }
-            );
+            await api.post("/probation-periods", {
+                employee_id: Number(form.employee_id),
+                start_date: form.start_date,
+                end_date: form.end_date,
+                status: form.status,
+                notes: form.notes || null,
+            });
 
-            alert(
-                "Probation period created successfully."
-            );
+            alert("Probation period created successfully.");
 
-            navigate(
-                "/management/probation-periods"
-            );
+            navigate("/management/probation-periods");
 
         } catch (error) {
-
             console.error(error);
 
             if (error.response?.status === 422) {
-
                 const validationErrors =
                     error.response.data.errors;
 
                 if (validationErrors) {
-
                     const messages = Object.values(
                         validationErrors
                     )
@@ -111,17 +92,13 @@ const CreateProbationPeriod = () => {
                         .join("\n");
 
                     setError(messages);
-
                 } else {
-
                     setError(
                         error.response.data.message ||
                         "Validation failed."
                     );
                 }
-
             } else {
-
                 setError(
                     error.response?.data?.message ||
                     "Failed to create probation period."
@@ -129,42 +106,44 @@ const CreateProbationPeriod = () => {
             }
 
         } finally {
-
             setLoading(false);
-
         }
     };
 
     return (
-        <div style={containerStyle}>
+        <div className="management-form-page">
 
-            <h1>Create Probation Period</h1>
+            <h1 className="management-form-title">
+                Create Probation Period
+            </h1>
 
             {error && (
-                <div style={errorStyle}>
+                <div className="management-form-error">
                     {error}
                 </div>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form
+                className="management-form"
+                onSubmit={handleSubmit}
+            >
 
                 {/* Employee */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="employee_id">
                         Employee
                     </label>
 
                     <select
+                        id="employee_id"
                         name="employee_id"
                         value={form.employee_id}
                         onChange={handleChange}
                         required
                         disabled={loadingEmployees}
-                        style={inputStyle}
                     >
-
                         <option value="">
                             {loadingEmployees
                                 ? "Loading employees..."
@@ -172,7 +151,6 @@ const CreateProbationPeriod = () => {
                         </option>
 
                         {employees.map((employee) => (
-
                             <option
                                 key={employee.id}
                                 value={employee.id}
@@ -181,69 +159,63 @@ const CreateProbationPeriod = () => {
                                 {" - "}
                                 {employee.employee_id}
                             </option>
-
                         ))}
-
                     </select>
 
                 </div>
 
-
                 {/* Start Date */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="start_date">
                         Start Date
                     </label>
 
                     <input
+                        id="start_date"
                         type="date"
                         name="start_date"
                         value={form.start_date}
                         onChange={handleChange}
                         required
-                        style={inputStyle}
                     />
 
                 </div>
 
-
                 {/* End Date */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="end_date">
                         End Date
                     </label>
 
                     <input
+                        id="end_date"
                         type="date"
                         name="end_date"
                         value={form.end_date}
                         onChange={handleChange}
                         required
-                        style={inputStyle}
                     />
 
                 </div>
 
-
                 {/* Status */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="status">
                         Status
                     </label>
 
                     <select
+                        id="status"
                         name="status"
                         value={form.status}
                         onChange={handleChange}
-                        style={inputStyle}
                     >
-
                         <option value="active">
                             Active
                         </option>
@@ -259,41 +231,36 @@ const CreateProbationPeriod = () => {
                         <option value="terminated">
                             Terminated
                         </option>
-
                     </select>
 
                 </div>
 
-
                 {/* Notes */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="notes">
                         Notes
                     </label>
 
                     <textarea
+                        id="notes"
                         name="notes"
                         value={form.notes}
                         onChange={handleChange}
                         rows="4"
-                        style={inputStyle}
+                        placeholder="Add any notes about this probation period..."
                     />
 
                 </div>
 
+                {/* Buttons */}
 
-                <div
-                    style={{
-                        display: "flex",
-                        gap: "10px",
-                        marginTop: "20px",
-                    }}
-                >
+                <div className="management-form-actions">
 
                     <button
                         type="submit"
+                        className="management-btn-primary"
                         disabled={loading}
                     >
                         {loading
@@ -303,6 +270,7 @@ const CreateProbationPeriod = () => {
 
                     <button
                         type="button"
+                        className="management-btn-secondary"
                         onClick={() =>
                             navigate(
                                 "/management/probation-periods"
@@ -318,34 +286,6 @@ const CreateProbationPeriod = () => {
 
         </div>
     );
-};
-
-const containerStyle = {
-    maxWidth: "700px",
-    margin: "30px auto",
-    padding: "20px",
-};
-
-const fieldStyle = {
-    marginBottom: "20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-};
-
-const inputStyle = {
-    padding: "10px",
-    border: "1px solid #ccc",
-    borderRadius: "5px",
-};
-
-const errorStyle = {
-    color: "red",
-    background: "#ffe5e5",
-    padding: "10px",
-    borderRadius: "5px",
-    marginBottom: "20px",
-    whiteSpace: "pre-line",
 };
 
 export default CreateProbationPeriod;

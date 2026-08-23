@@ -13,16 +13,29 @@ const EvaluationPeriods = () => {
         fetchPeriods();
     }, []);
 
+    /*
+    |--------------------------------------------------------------------------
+    | Fetch Evaluation Periods
+    |--------------------------------------------------------------------------
+    */
+
     const fetchPeriods = async () => {
         try {
             setLoading(true);
             setError("");
 
-            const response = await api.get("/evaluation-periods");
+            const response = await api.get(
+                "/evaluation-periods"
+            );
 
-            console.log("Evaluation Periods:", response.data);
+            console.log(
+                "Evaluation Periods:",
+                response.data
+            );
 
-            setPeriods(response.data.data || []);
+            setPeriods(
+                response.data.data || []
+            );
 
         } catch (error) {
             console.error(error);
@@ -57,48 +70,46 @@ const EvaluationPeriods = () => {
     */
 
     const formatStatus = (status) => {
-        if (status === null || status === undefined) {
+        if (
+            status === null ||
+            status === undefined
+        ) {
             return "N/A";
         }
 
-        return String(status)
-            .charAt(0)
-            .toUpperCase() +
-            String(status).slice(1);
+        const value = String(status);
+
+        return (
+            value.charAt(0).toUpperCase() +
+            value.slice(1)
+        );
     };
 
     /*
     |--------------------------------------------------------------------------
-    | Status Color
+    | Status Class
     |--------------------------------------------------------------------------
     */
 
-    const getStatusStyle = (status) => {
-        const value = String(status || "").toLowerCase();
+    const getStatusClass = (status) => {
+        const value = String(
+            status || ""
+        ).toLowerCase();
 
         if (value === "active") {
-            return {
-                backgroundColor: "#d4edda",
-                color: "#155724",
-            };
+            return "status-badge status-active";
         }
 
         if (value === "closed") {
-            return {
-                backgroundColor: "#f8d7da",
-                color: "#721c24",
-            };
+            return "status-badge status-inactive";
         }
 
-        return {
-            backgroundColor: "#fff3cd",
-            color: "#856404",
-        };
+        return "status-badge status-draft";
     };
 
     /*
     |--------------------------------------------------------------------------
-    | Delete
+    | Delete Evaluation Period
     |--------------------------------------------------------------------------
     */
 
@@ -112,7 +123,9 @@ const EvaluationPeriods = () => {
         }
 
         try {
-            await api.delete(`/evaluation-periods/${id}`);
+            await api.delete(
+                `/evaluation-periods/${id}`
+            );
 
             alert(
                 "Evaluation period deleted successfully."
@@ -138,14 +151,10 @@ const EvaluationPeriods = () => {
 
     if (loading) {
         return (
-            <div
-                // style={{
-                //     maxWidth: "1200px",
-                //     margin: "30px auto",
-                //     padding: "20px",
-                // }}
-            >
-                <h2>Loading Evaluation Periods...</h2>
+            <div className="management-page">
+                <h2>
+                    Loading Evaluation Periods...
+                </h2>
             </div>
         );
     }
@@ -157,31 +166,28 @@ const EvaluationPeriods = () => {
     */
 
     return (
-        <div
-            style={{
-                // maxWidth: "1200px",
-                // margin: "30px auto",
-                // padding: "20px",
-            }}
-        >
+        <div className="management-page">
 
-            {/* HEADER */}
+            {/* Page Header */}
 
-            <div
-                style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "20px",
-                }}
-            >
+            <div className="page-header">
 
-                <h1>
-                    Evaluation Periods
-                </h1>
+                <div className="page-header-info">
+
+                    <h1 className="page-header-title">
+                        Evaluation Periods
+                    </h1>
+
+                    <p className="page-header-description">
+                        Manage employee evaluation periods
+                        and submission schedules.
+                    </p>
+
+                </div>
 
                 <button
                     type="button"
+                    className="page-header-button"
                     onClick={() =>
                         navigate(
                             "/management/evaluation-periods/create"
@@ -193,213 +199,195 @@ const EvaluationPeriods = () => {
 
             </div>
 
-            {/* ERROR */}
+
+            {/* Error */}
 
             {error && (
-                <div
-                    style={{
-                        color: "red",
-                        background: "#ffe5e5",
-                        padding: "10px",
-                        borderRadius: "5px",
-                        marginBottom: "20px",
-                    }}
-                >
+                <div className="management-error">
                     {error}
                 </div>
             )}
 
-            {/* EMPTY */}
+
+            {/* Empty State */}
 
             {periods.length === 0 ? (
 
-                <p>
-                    No evaluation periods found.
-                </p>
+                <div className="data-table-container">
+
+                    <div className="data-table-empty">
+
+                        <div className="data-table-empty-title">
+                            No evaluation periods found
+                        </div>
+
+                        <div className="data-table-empty-message">
+                            Create an evaluation period
+                            to get started.
+                        </div>
+
+                    </div>
+
+                </div>
 
             ) : (
 
-                <div
-                    style={{
-                        overflowX: "auto",
-                    }}
-                >
+                /* Table */
 
-                    <table
-                        style={{
-                            width: "100%",
-                            borderCollapse: "collapse",
-                        }}
-                    >
+                <div className="data-table-container">
 
-                        <thead>
-                            <tr>
+                    <div className="data-table-wrapper">
 
-                                <th style={thStyle}>
-                                    ID
-                                </th>
+                        <table className="data-table">
 
-                                <th style={thStyle}>
-                                    Name
-                                </th>
+                            <thead>
 
-                                <th style={thStyle}>
-                                    Period Start
-                                </th>
+                                <tr>
 
-                                <th style={thStyle}>
-                                    Period End
-                                </th>
+                                    <th>
+                                        ID
+                                    </th>
 
-                                <th style={thStyle}>
-                                    Submission Start
-                                </th>
+                                    <th>
+                                        Name
+                                    </th>
 
-                                <th style={thStyle}>
-                                    Submission End
-                                </th>
+                                    <th>
+                                        Period Start
+                                    </th>
 
-                                <th style={thStyle}>
-                                    Status
-                                </th>
+                                    <th>
+                                        Period End
+                                    </th>
 
-                                <th style={thStyle}>
-                                    Actions
-                                </th>
+                                    <th>
+                                        Submission Start
+                                    </th>
 
-                            </tr>
-                        </thead>
+                                    <th>
+                                        Submission End
+                                    </th>
 
-                        <tbody>
+                                    <th>
+                                        Status
+                                    </th>
 
-                            {periods.map((period) => {
+                                    <th className="data-table-actions-header">
+                                        Actions
+                                    </th>
 
-                                const statusStyle =
-                                    getStatusStyle(
-                                        period.status
-                                    );
+                                </tr>
 
-                                return (
-                                    <tr key={period.id}>
+                            </thead>
 
-                                        <td style={tdStyle}>
-                                            {period.id}
-                                        </td>
+                            <tbody>
 
-                                        <td style={tdStyle}>
-                                            {period.name}
-                                        </td>
+                                {periods.map(
+                                    (period) => (
 
-                                        <td style={tdStyle}>
-                                            {formatDate(
-                                                period.start_date
-                                            )}
-                                        </td>
+                                        <tr
+                                            key={period.id}
+                                        >
 
-                                        <td style={tdStyle}>
-                                            {formatDate(
-                                                period.end_date
-                                            )}
-                                        </td>
+                                            <td>
+                                                {period.id}
+                                            </td>
 
-                                        <td style={tdStyle}>
-                                            {formatDate(
-                                                period.submission_start_date
-                                            )}
-                                        </td>
+                                            <td>
+                                                {period.name}
+                                            </td>
 
-                                        <td style={tdStyle}>
-                                            {formatDate(
-                                                period.submission_end_date
-                                            )}
-                                        </td>
-
-                                        {/* STATUS */}
-
-                                        <td style={tdStyle}>
-
-                                            <span
-                                                style={{
-                                                    display: "inline-block",
-                                                    padding: "5px 10px",
-                                                    borderRadius: "12px",
-                                                    fontSize: "13px",
-                                                    fontWeight: "bold",
-                                                    backgroundColor:
-                                                        statusStyle.backgroundColor,
-                                                    color:
-                                                        statusStyle.color,
-                                                }}
-                                            >
-                                                {formatStatus(
-                                                    period.status
+                                            <td>
+                                                {formatDate(
+                                                    period.start_date
                                                 )}
-                                            </span>
+                                            </td>
 
-                                        </td>
+                                            <td>
+                                                {formatDate(
+                                                    period.end_date
+                                                )}
+                                            </td>
 
-                                        {/* ACTIONS */}
+                                            <td>
+                                                {formatDate(
+                                                    period.submission_start_date
+                                                )}
+                                            </td>
 
-                                        <td style={tdStyle}>
+                                            <td>
+                                                {formatDate(
+                                                    period.submission_end_date
+                                                )}
+                                            </td>
 
-                                            <div
-                                                style={{
-                                                    display: "flex",
-                                                    gap: "8px",
-                                                }}
-                                            >
+                                            {/* Status */}
 
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        navigate(
-                                                            `/management/evaluation-periods/${period.id}/edit`
-                                                        )
-                                                    }
+                                            <td>
+
+                                                <span
+                                                    className={getStatusClass(
+                                                        period.status
+                                                    )}
                                                 >
-                                                    Edit
-                                                </button>
+                                                    {formatStatus(
+                                                        period.status
+                                                    )}
+                                                </span>
 
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleDelete(
-                                                            period.id
-                                                        )
-                                                    }
-                                                >
-                                                    Delete
-                                                </button>
+                                            </td>
 
-                                            </div>
+                                            {/* Actions */}
 
-                                        </td>
+                                            <td className="data-table-actions">
 
-                                    </tr>
-                                );
-                            })}
+                                                <div className="table-actions">
 
-                        </tbody>
+                                                    <button
+                                                        type="button"
+                                                        className="action-button action-edit"
+                                                        onClick={() =>
+                                                            navigate(
+                                                                `/management/evaluation-periods/${period.id}/edit`
+                                                            )
+                                                        }
+                                                    >
+                                                        Edit
+                                                    </button>
 
-                    </table>
+                                                    <button
+                                                        type="button"
+                                                        className="action-button action-delete"
+                                                        onClick={() =>
+                                                            handleDelete(
+                                                                period.id
+                                                            )
+                                                        }
+                                                    >
+                                                        Delete
+                                                    </button>
+
+                                                </div>
+
+                                            </td>
+
+                                        </tr>
+
+                                    )
+                                )}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
 
                 </div>
+
             )}
 
         </div>
     );
-};
-
-const thStyle = {
-    border: "1px solid #ddd",
-    padding: "10px",
-    textAlign: "left",
-    backgroundColor: "#f5f5f5",
-};
-
-const tdStyle = {
-    border: "1px solid #ddd",
-    padding: "10px",
 };
 
 export default EvaluationPeriods;

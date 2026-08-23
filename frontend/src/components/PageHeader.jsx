@@ -5,26 +5,15 @@ const PageHeader = ({
     onButtonClick,
 }) => {
     return (
-        <div
-            style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "25px",
-            }}
-        >
-            <div>
-                <h1 style={{ margin: 0 }}>
+        <div className="page-header">
+
+            <div className="page-header-info">
+                <h1 className="page-header-title">
                     {title}
                 </h1>
 
                 {description && (
-                    <p
-                        style={{
-                            marginTop: "8px",
-                            color: "#666",
-                        }}
-                    >
+                    <p className="page-header-description">
                         {description}
                     </p>
                 )}
@@ -33,19 +22,13 @@ const PageHeader = ({
             {buttonText && (
                 <button
                     type="button"
+                    className="page-header-button"
                     onClick={onButtonClick}
-                    style={{
-                        padding: "10px 16px",
-                        border: "none",
-                        borderRadius: "6px",
-                        backgroundColor: "#2563eb",
-                        color: "#fff",
-                        cursor: "pointer",
-                    }}
                 >
                     {buttonText}
                 </button>
             )}
+
         </div>
     );
 };

@@ -49,17 +49,12 @@ const CreateEvaluationCategory = () => {
                 error.response?.data?.errors;
 
             if (validationErrors) {
-
                 const messages = Object.values(
                     validationErrors
                 ).flat();
 
-                setError(
-                    messages.join(" ")
-                );
-
+                setError(messages.join(" "));
             } else {
-
                 setError(
                     error.response?.data?.message ||
                     "Failed to create evaluation category."
@@ -72,72 +67,65 @@ const CreateEvaluationCategory = () => {
     };
 
     return (
-        <div style={containerStyle}>
+        <div className="management-form-page">
 
-            <h1>
+            <h1 className="management-form-title">
                 Create Evaluation Category
             </h1>
 
             {error && (
-                <div style={errorStyle}>
+                <div className="management-form-error">
                     {error}
                 </div>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form
+                className="management-form"
+                onSubmit={handleSubmit}
+            >
 
-                {/* NAME */}
+                {/* Category Name */}
 
-                <div style={fieldStyle}>
-
-                    <label>
+                <div className="management-form-field">
+                    <label htmlFor="name">
                         Category Name
                     </label>
 
                     <input
+                        id="name"
                         type="text"
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
                         placeholder="Enter category name"
                         required
-                        style={inputStyle}
                     />
-
                 </div>
 
+                {/* Description */}
 
-                {/* DESCRIPTION */}
-
-                <div style={fieldStyle}>
-
-                    <label>
+                <div className="management-form-field">
+                    <label htmlFor="description">
                         Description
                     </label>
 
                     <textarea
+                        id="description"
                         name="description"
                         value={formData.description}
                         onChange={handleChange}
                         placeholder="Enter category description"
                         rows="5"
-                        style={inputStyle}
                     />
-
                 </div>
 
+                {/* Buttons */}
 
-                {/* BUTTONS */}
-
-                <div
-                    style={{
-                        display: "flex",
-                        gap: "10px",
-                    }}
-                >
+                <div className="management-form-actions">
 
                     <button
                         type="submit"
+                        className="management-btn-primary"
                         disabled={loading}
                     >
                         {loading
@@ -147,6 +135,7 @@ const CreateEvaluationCategory = () => {
 
                     <button
                         type="button"
+                        className="management-btn-secondary"
                         onClick={() =>
                             navigate(
                                 "/management/evaluation-categories"
@@ -159,38 +148,8 @@ const CreateEvaluationCategory = () => {
                 </div>
 
             </form>
-
         </div>
     );
-};
-
-
-const containerStyle = {
-    maxWidth: "700px",
-    margin: "30px auto",
-    padding: "20px",
-};
-
-const fieldStyle = {
-    marginBottom: "20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-};
-
-const inputStyle = {
-    padding: "10px",
-    border: "1px solid #ccc",
-    borderRadius: "5px",
-    fontSize: "15px",
-};
-
-const errorStyle = {
-    color: "red",
-    background: "#ffe5e5",
-    padding: "10px",
-    borderRadius: "5px",
-    marginBottom: "20px",
 };
 
 export default CreateEvaluationCategory;

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 
 const CreatePosition = () => {
-
     const navigate = useNavigate();
 
     const [departments, setDepartments] = useState([]);
@@ -22,25 +21,17 @@ const CreatePosition = () => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
 
-
     useEffect(() => {
         fetchDepartments();
     }, []);
 
-
     const fetchDepartments = async () => {
-
         try {
+            const response = await api.get("/departments");
 
-            const response =
-                await api.get("/departments");
-
-            setDepartments(
-                response.data.data || []
-            );
+            setDepartments(response.data.data || []);
 
         } catch (error) {
-
             console.error(error);
 
             setError(
@@ -49,66 +40,43 @@ const CreatePosition = () => {
             );
 
         } finally {
-
             setLoadingDepartments(false);
         }
     };
 
-
     const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
 
-        const {
-            name,
-            value,
-            type,
-            checked,
-        } = e.target;
-
-        setForm({
-            ...form,
-            [name]:
-                type === "checkbox"
-                    ? checked
-                    : value,
-        });
+        setForm((previous) => ({
+            ...previous,
+            [name]: type === "checkbox" ? checked : value,
+        }));
     };
 
-
     const handleSubmit = async (e) => {
-
         e.preventDefault();
 
         try {
-
             setSaving(true);
             setError("");
 
             await api.post("/positions", {
                 title: form.title,
                 code: form.code,
-                department_id:
-                    form.department_id,
-                description:
-                    form.description,
+                department_id: form.department_id,
+                description: form.description,
                 status: form.status,
             });
 
-            alert(
-                "Position created successfully."
-            );
+            alert("Position created successfully.");
 
-            navigate(
-                "/management/positions"
-            );
+            navigate("/management/positions");
 
         } catch (error) {
-
             console.error(error);
 
             if (error.response?.data?.errors) {
-
-                const errors =
-                    error.response.data.errors;
+                const errors = error.response.data.errors;
 
                 setError(
                     Object.values(errors)
@@ -117,7 +85,6 @@ const CreatePosition = () => {
                 );
 
             } else {
-
                 setError(
                     error.response?.data?.message ||
                     "Failed to create position."
@@ -125,49 +92,46 @@ const CreatePosition = () => {
             }
 
         } finally {
-
             setSaving(false);
         }
     };
 
-
     if (loadingDepartments) {
-
         return (
-            <div style={containerStyle}>
-                <h2>
-                    Loading departments...
-                </h2>
+            <div className="management-form-page">
+                <h2>Loading departments...</h2>
             </div>
         );
     }
 
-
     return (
-        <div style={containerStyle}>
+        <div className="management-form-page">
 
-            <h1>Create Position</h1>
+            <h1 className="management-form-title">
+                Create Position
+            </h1>
 
             {error && (
-                <p style={{ color: "red" }}>
+                <div className="management-form-error">
                     {error}
-                </p>
+                </div>
             )}
 
+            <form
+                className="management-form"
+                onSubmit={handleSubmit}
+            >
 
-            <form onSubmit={handleSubmit}>
+                {/* Position Title */}
 
-                {/* Title */}
+                <div className="management-form-field">
 
-                <div style={fieldStyle}>
-
-                    <label>
+                    <label htmlFor="title">
                         Position Title
                     </label>
 
-                    <br />
-
                     <input
+                        id="title"
                         type="text"
                         name="title"
                         value={form.title}
@@ -178,18 +142,16 @@ const CreatePosition = () => {
 
                 </div>
 
+                {/* Position Code */}
 
-                {/* Code */}
+                <div className="management-form-field">
 
-                <div style={fieldStyle}>
-
-                    <label>
+                    <label htmlFor="code">
                         Position Code
                     </label>
 
-                    <br />
-
                     <input
+                        id="code"
                         type="text"
                         name="code"
                         value={form.code}
@@ -200,67 +162,49 @@ const CreatePosition = () => {
 
                 </div>
 
-
                 {/* Department */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="department_id">
                         Department
                     </label>
 
-                    <br />
-
                     <select
+                        id="department_id"
                         name="department_id"
-                        value={
-                            form.department_id
-                        }
+                        value={form.department_id}
                         onChange={handleChange}
                         required
                     >
-
                         <option value="">
                             Select Department
                         </option>
 
-                        {departments.map(
-                            (department) => (
-
-                                <option
-                                    key={
-                                        department.id
-                                    }
-                                    value={
-                                        department.id
-                                    }
-                                >
-                                    {department.name}
-                                </option>
-
-                            )
-                        )}
-
+                        {departments.map((department) => (
+                            <option
+                                key={department.id}
+                                value={department.id}
+                            >
+                                {department.name}
+                            </option>
+                        ))}
                     </select>
 
                 </div>
 
-
                 {/* Description */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="description">
                         Description
                     </label>
 
-                    <br />
-
                     <textarea
+                        id="description"
                         name="description"
-                        value={
-                            form.description
-                        }
+                        value={form.description}
                         onChange={handleChange}
                         placeholder="Position description"
                         rows="4"
@@ -268,67 +212,53 @@ const CreatePosition = () => {
 
                 </div>
 
-
                 {/* Status */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-checkbox">
 
-                    <label>
+                    <input
+                        id="status"
+                        type="checkbox"
+                        name="status"
+                        checked={form.status}
+                        onChange={handleChange}
+                    />
 
-                        <input
-                            type="checkbox"
-                            name="status"
-                            checked={
-                                form.status
-                            }
-                            onChange={handleChange}
-                        />
-
-                        {" "}Active
-
+                    <label htmlFor="status">
+                        Active
                     </label>
 
                 </div>
 
+                {/* Buttons */}
 
-                <button
-                    type="submit"
-                    disabled={saving}
-                >
-                    {saving
-                        ? "Creating..."
-                        : "Create Position"}
-                </button>
+                <div className="management-form-actions">
 
-                {" "}
+                    <button
+                        type="submit"
+                        className="management-btn-primary"
+                        disabled={saving}
+                    >
+                        {saving
+                            ? "Creating..."
+                            : "Create Position"}
+                    </button>
 
-                <button
-                    type="button"
-                    onClick={() =>
-                        navigate(
-                            "/management/positions"
-                        )
-                    }
-                >
-                    Cancel
-                </button>
+                    <button
+                        type="button"
+                        className="management-btn-secondary"
+                        onClick={() =>
+                            navigate("/management/positions")
+                        }
+                    >
+                        Cancel
+                    </button>
+
+                </div>
 
             </form>
-
         </div>
     );
 };
-
-
-const containerStyle = {
-    maxWidth: "700px",
-    margin: "30px auto",
-    padding: "20px",
-};
-
-const fieldStyle = {
-    marginBottom: "20px",
-};
-
 
 export default CreatePosition;

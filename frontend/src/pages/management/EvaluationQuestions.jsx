@@ -4,14 +4,16 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import PageHeader from "../../components/PageHeader";
 import DataTable from "../../components/DataTable";
-import ActionButtons from "../../components/ActionButtons";
+
 
 const EvaluationQuestions = () => {
+
     const navigate = useNavigate();
 
     const [questions, setQuestions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
 
     /*
     |--------------------------------------------------------------------------
@@ -23,12 +25,16 @@ const EvaluationQuestions = () => {
         fetchQuestions();
     }, []);
 
+
     const fetchQuestions = async () => {
+
         try {
+
             setLoading(true);
             setError("");
 
-            const response = await api.get("/evaluation-questions");
+            const response =
+                await api.get("/evaluation-questions");
 
             console.log(
                 "Evaluation Questions:",
@@ -38,17 +44,23 @@ const EvaluationQuestions = () => {
             setQuestions(
                 response.data.data || []
             );
+
         } catch (error) {
+
             console.error(error);
 
             setError(
                 error.response?.data?.message ||
                 "Failed to load evaluation questions."
             );
+
         } finally {
+
             setLoading(false);
+
         }
     };
+
 
     /*
     |--------------------------------------------------------------------------
@@ -57,6 +69,7 @@ const EvaluationQuestions = () => {
     */
 
     const handleDelete = async (id) => {
+
         const confirmed = window.confirm(
             "Are you sure you want to delete this evaluation question?"
         );
@@ -66,16 +79,25 @@ const EvaluationQuestions = () => {
         }
 
         try {
+
             await api.delete(
                 `/evaluation-questions/${id}`
+            );
+
+            setQuestions(
+                (currentQuestions) =>
+                    currentQuestions.filter(
+                        (question) =>
+                            question.id !== id
+                    )
             );
 
             alert(
                 "Evaluation question deleted successfully."
             );
 
-            fetchQuestions();
         } catch (error) {
+
             console.error(error);
 
             alert(
@@ -85,6 +107,7 @@ const EvaluationQuestions = () => {
         }
     };
 
+
     /*
     |--------------------------------------------------------------------------
     | Loading
@@ -92,14 +115,18 @@ const EvaluationQuestions = () => {
     */
 
     if (loading) {
+
         return (
-            <div style={containerStyle}>
+            <div className="management-page">
+
                 <h2>
                     Loading Evaluation Questions...
                 </h2>
+
             </div>
         );
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -108,7 +135,8 @@ const EvaluationQuestions = () => {
     */
 
     return (
-        <div style={containerStyle}>
+
+        <div className="management-page">
 
             {/* Page Header */}
 
@@ -123,35 +151,39 @@ const EvaluationQuestions = () => {
                 }
             />
 
+
             {/* Error */}
 
             {error && (
-                <div style={errorStyle}>
+
+                <div className="management-error">
                     {error}
                 </div>
+
             )}
+
 
             {/* Empty State */}
 
             {questions.length === 0 ? (
-                <div style={emptyStyle}>
 
-                    <p>
-                        No evaluation questions found.
-                    </p>
+                <div className="data-table-container">
 
-                    <button
-                        type="button"
-                        onClick={() =>
-                            navigate(
-                                "/management/evaluation-questions/create"
-                            )
-                        }
-                    >
-                        Create First Question
-                    </button>
+                    <div className="data-table-empty">
+
+                        <div className="data-table-empty-title">
+                            No evaluation questions found.
+                        </div>
+
+                        <div className="data-table-empty-message">
+                            Create an evaluation question
+                            to get started.
+                        </div>
+
+                    </div>
 
                 </div>
+
             ) : (
 
                 <DataTable
@@ -198,78 +230,89 @@ const EvaluationQuestions = () => {
                         },
                     ]}
 
-                    data={questions.map((question) => ({
+                    data={questions.map(
+                        (question) => ({
 
-                        id: question.id,
+                            id:
+                                question.id,
 
-                        category:
-                            question.category?.name ||
-                            "N/A",
+                            category:
+                                question.category?.name ||
+                                "N/A",
 
-                        question:
-                            question.question ||
-                            "N/A",
+                            question:
+                                question.question ||
+                                "N/A",
 
-                        question_type:
-                            formatQuestionType(
-                                question.question_type
+                            question_type:
+                                formatQuestionType(
+                                    question.question_type
+                                ),
+
+                            max_rating:
+                                question.question_type === "rating"
+                                    ? question.max_rating
+                                    : "N/A",
+
+                            weight:
+                                question.weight ??
+                                "N/A",
+
+                            is_required:
+                                question.is_required
+                                    ? "Yes"
+                                    : "No",
+
+                            sort_order:
+                                question.sort_order ??
+                                0,
+
+                            status: (
+
+                                <span
+                                    className={
+                                        question.status
+                                            ? "status-badge status-active"
+                                            : "status-badge status-inactive"
+                                    }
+                                >
+                                    {question.status
+                                        ? "Active"
+                                        : "Inactive"}
+                                </span>
+
                             ),
 
-                        max_rating:
-                            question.question_type === "rating"
-                                ? question.max_rating
-                                : "N/A",
+                            actions: (
+                                <div className="table-actions">
 
-                        weight:
-                            question.weight ??
-                            "N/A",
+                                    <button
+                                        type="button"
+                                        className="action-button action-edit"
+                                        onClick={() =>
+                                            navigate(
+                                                `/management/evaluation-questions/${question.id}/edit`
+                                            )
+                                        }
+                                    >
+                                        Edit
+                                    </button>
 
-                        is_required:
-                            question.is_required
-                                ? "Yes"
-                                : "No",
+                                    <button
+                                        type="button"
+                                        className="action-button action-delete"
+                                        onClick={() =>
+                                            handleDelete(question.id)
+                                        }
+                                    >
+                                        Delete
+                                    </button>
 
-                        sort_order:
-                            question.sort_order ??
-                            0,
+                                </div>
+                            ),
 
-                        status: (
-                            <span
-                                style={{
-                                    ...statusStyle,
-                                    backgroundColor:
-                                        question.status
-                                            ? "#d4edda"
-                                            : "#f8d7da",
-                                    color:
-                                        question.status
-                                            ? "#155724"
-                                            : "#721c24",
-                                }}
-                            >
-                                {question.status
-                                    ? "Active"
-                                    : "Inactive"}
-                            </span>
-                        ),
-
-                        actions: (
-                            <ActionButtons
-                                onEdit={() =>
-                                    navigate(
-                                        `/management/evaluation-questions/${question.id}/edit`
-                                    )
-                                }
-
-                                onDelete={() =>
-                                    handleDelete(
-                                        question.id
-                                    )
-                                }
-                            />
-                        ),
-
-                    }))}
+                        })
+                    )}
                 />
 
             )}
@@ -286,6 +329,7 @@ const EvaluationQuestions = () => {
 */
 
 const formatQuestionType = (type) => {
+
     switch (type) {
 
         case "rating":
@@ -302,41 +346,5 @@ const formatQuestionType = (type) => {
     }
 };
 
-
-/*
-|--------------------------------------------------------------------------
-| Styles
-|--------------------------------------------------------------------------
-*/
-
-const containerStyle = {
-    maxWidth: "1400px",
-    margin: "30px auto",
-    padding: "20px",
-};
-
-const errorStyle = {
-    color: "red",
-    background: "#ffe5e5",
-    padding: "10px",
-    borderRadius: "5px",
-    marginBottom: "20px",
-};
-
-const emptyStyle = {
-    padding: "30px",
-    textAlign: "center",
-    border: "1px solid #ddd",
-    borderRadius: "8px",
-    backgroundColor: "#fff",
-};
-
-const statusStyle = {
-    display: "inline-block",
-    padding: "5px 10px",
-    borderRadius: "12px",
-    fontSize: "13px",
-    fontWeight: "bold",
-};
 
 export default EvaluationQuestions;

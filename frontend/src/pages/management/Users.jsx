@@ -4,6 +4,7 @@ import api from "../../api/axios";
 import PageHeader from "../../components/PageHeader";
 import DataTable from "../../components/DataTable";
 
+
 const Users = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -82,9 +83,9 @@ const Users = () => {
     |--------------------------------------------------------------------------
     */
 
-    if (loading) {
+  if (loading) {
         return (
-            <div style={containerStyle}>
+            <div className="management-page">
                 <h2>Loading Users...</h2>
             </div>
         );
@@ -97,7 +98,7 @@ const Users = () => {
     */
 
     return (
-        <div style={containerStyle}>
+        <div className="management-page">
 
             {/* Page Header */}
 
@@ -113,7 +114,7 @@ const Users = () => {
             {/* Error */}
 
             {error && (
-                <div style={errorStyle}>
+                <div className="management-error">
                     {error}
                 </div>
             )}
@@ -172,27 +173,13 @@ const Users = () => {
 
                         render: (user) => (
                             <span
-                                style={{
-                                    display: "inline-block",
-                                    padding: "5px 10px",
-                                    borderRadius: "12px",
-                                    fontSize: "13px",
-                                    fontWeight: "600",
-
-                                    backgroundColor:
-                                        user.status
-                                            ? "#d4edda"
-                                            : "#f8d7da",
-
-                                    color:
-                                        user.status
-                                            ? "#155724"
-                                            : "#721c24",
-                                }}
+                                className={
+                                    user.status
+                                        ? "status-badge status-active"
+                                        : "status-badge status-inactive"
+                                }
                             >
-                                {user.status
-                                    ? "Active"
-                                    : "Inactive"}
+                                {user.status ? "Active" : "Inactive"}
                             </span>
                         ),
                     },
@@ -202,18 +189,11 @@ const Users = () => {
                         label: "Actions",
 
                         render: (user) => (
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: "8px",
-                                    flexWrap: "wrap",
-                                }}
-                            >
-
-                                {/* Edit */}
+                            <div className="table-actions">
 
                                 <button
                                     type="button"
+                                    className="action-button action-edit"
                                     onClick={() =>
                                         navigate(
                                             `/management/users/${user.id}/edit`
@@ -223,10 +203,9 @@ const Users = () => {
                                     Edit
                                 </button>
 
-                                {/* Change Password */}
-
-                                <button
+                                {/* <button
                                     type="button"
+                                    className="action-button action-password"
                                     onClick={() =>
                                         navigate(
                                             `/management/users/${user.id}/change-password`
@@ -234,12 +213,11 @@ const Users = () => {
                                     }
                                 >
                                     Change Password
-                                </button>
-
-                                {/* Delete */}
+                                </button> */}
 
                                 <button
                                     type="button"
+                                    className="action-button action-delete"
                                     onClick={() =>
                                         handleDelete(user.id)
                                     }
@@ -259,25 +237,7 @@ const Users = () => {
     );
 };
 
-/*
-|--------------------------------------------------------------------------
-| Styles
-|--------------------------------------------------------------------------
-*/
 
-const containerStyle = {
-    maxWidth: "1400px",
-    margin: "0 auto",
-    padding: "20px",
-};
 
-const errorStyle = {
-    color: "#721c24",
-    backgroundColor: "#f8d7da",
-    border: "1px solid #f5c6cb",
-    borderRadius: "6px",
-    padding: "12px 15px",
-    marginBottom: "20px",
-};
 
 export default Users;

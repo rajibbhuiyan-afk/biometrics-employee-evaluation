@@ -64,96 +64,84 @@ const CreateEvaluationPeriod = () => {
     };
 
     return (
-        <div
-            style={{
-                maxWidth: "700px",
-                margin: "30px auto",
-                padding: "20px",
-            }}
-        >
-            <h1>Create Evaluation Period</h1>
+        <div className="management-form-page">
+
+            <h1 className="management-form-title">
+                Create Evaluation Period
+            </h1>
 
             {error && (
-                <pre
-                    style={{
-                        color: "red",
-                        whiteSpace: "pre-wrap",
-                    }}
-                >
+                <div className="management-form-error">
                     {error}
-                </pre>
+                </div>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form
+                className="management-form"
+                onSubmit={handleSubmit}
+            >
 
-                {/* Name */}
-                <div style={{ marginBottom: "15px" }}>
-                    <label>Evaluation Period Name</label>
+                {/* Evaluation Period Name */}
 
-                    <br />
+                <div className="management-form-field">
+                    <label htmlFor="name">
+                        Evaluation Period Name
+                    </label>
 
                     <input
+                        id="name"
                         type="text"
                         name="name"
                         value={form.name}
                         onChange={handleChange}
                         placeholder="2026 Annual Performance Evaluation"
                         required
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                        }}
                     />
                 </div>
 
-
                 {/* Period Start Date */}
-                <div style={{ marginBottom: "15px" }}>
-                    <label>Period Start Date</label>
 
-                    <br />
+                <div className="management-form-field">
+                    <label htmlFor="start_date">
+                        Period Start Date
+                    </label>
 
                     <input
+                        id="start_date"
                         type="date"
                         name="start_date"
                         value={form.start_date}
                         onChange={handleChange}
                         required
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                        }}
                     />
                 </div>
 
-
                 {/* Period End Date */}
-                <div style={{ marginBottom: "15px" }}>
-                    <label>Period End Date</label>
 
-                    <br />
+                <div className="management-form-field">
+                    <label htmlFor="end_date">
+                        Period End Date
+                    </label>
 
                     <input
+                        id="end_date"
                         type="date"
                         name="end_date"
                         value={form.end_date}
                         onChange={handleChange}
                         required
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                        }}
                     />
                 </div>
 
-
                 {/* Submission Start Date */}
-                <div style={{ marginBottom: "15px" }}>
-                    <label>Submission Start Date</label>
 
-                    <br />
+                <div className="management-form-field">
+                    <label htmlFor="submission_start_date">
+                        Submission Start Date
+                    </label>
 
                     <input
+                        id="submission_start_date"
                         type="date"
                         name="submission_start_date"
                         value={form.submission_start_date}
@@ -161,21 +149,18 @@ const CreateEvaluationPeriod = () => {
                         min={form.start_date || undefined}
                         max={form.end_date || undefined}
                         required
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                        }}
                     />
                 </div>
 
-
                 {/* Submission End Date */}
-                <div style={{ marginBottom: "15px" }}>
-                    <label>Submission End Date</label>
 
-                    <br />
+                <div className="management-form-field">
+                    <label htmlFor="submission_end_date">
+                        Submission End Date
+                    </label>
 
                     <input
+                        id="submission_end_date"
                         type="date"
                         name="submission_end_date"
                         value={form.submission_end_date}
@@ -187,28 +172,21 @@ const CreateEvaluationPeriod = () => {
                         }
                         max={form.end_date || undefined}
                         required
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                        }}
                     />
                 </div>
 
-
                 {/* Status */}
-                <div style={{ marginBottom: "15px" }}>
-                    <label>Status</label>
 
-                    <br />
+                <div className="management-form-field">
+                    <label htmlFor="status">
+                        Status
+                    </label>
 
                     <select
+                        id="status"
                         name="status"
                         value={form.status}
                         onChange={handleChange}
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                        }}
                     >
                         <option value="draft">
                             Draft
@@ -224,51 +202,50 @@ const CreateEvaluationPeriod = () => {
                     </select>
                 </div>
 
-
                 {/* Description */}
-                <div style={{ marginBottom: "20px" }}>
-                    <label>Description</label>
 
-                    <br />
+                <div className="management-form-field">
+                    <label htmlFor="description">
+                        Description
+                    </label>
 
                     <textarea
+                        id="description"
                         name="description"
                         value={form.description}
                         onChange={handleChange}
                         rows="4"
                         placeholder="Evaluation period description..."
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                        }}
                     />
                 </div>
 
+                {/* Buttons */}
 
-                <button
-                    type="submit"
-                    disabled={loading}
-                    style={{
-                        padding: "10px 20px",
-                        marginRight: "10px",
-                    }}
-                >
-                    {loading
-                        ? "Creating..."
-                        : "Create Evaluation Period"}
-                </button>
+                <div className="management-form-actions">
 
-                <button
-                    type="button"
-                    onClick={() =>
-                        navigate("/management/evaluation-periods")
-                    }
-                    style={{
-                        padding: "10px 20px",
-                    }}
-                >
-                    Cancel
-                </button>
+                    <button
+                        type="submit"
+                        className="management-btn-primary"
+                        disabled={loading}
+                    >
+                        {loading
+                            ? "Creating..."
+                            : "Create Evaluation Period"}
+                    </button>
+
+                    <button
+                        type="button"
+                        className="management-btn-secondary"
+                        onClick={() =>
+                            navigate(
+                                "/management/evaluation-periods"
+                            )
+                        }
+                    >
+                        Cancel
+                    </button>
+
+                </div>
 
             </form>
         </div>

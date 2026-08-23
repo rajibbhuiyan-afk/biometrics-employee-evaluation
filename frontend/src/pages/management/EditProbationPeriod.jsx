@@ -21,9 +21,23 @@ const EditProbationPeriod = () => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load Probation Period + Employees
+    |--------------------------------------------------------------------------
+    */
+
     useEffect(() => {
         fetchData();
     }, [id]);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Format Date
+    |--------------------------------------------------------------------------
+    */
 
     const formatDateForInput = (date) => {
 
@@ -34,6 +48,13 @@ const EditProbationPeriod = () => {
         return String(date).substring(0, 10);
     };
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fetch Data
+    |--------------------------------------------------------------------------
+    */
+
     const fetchData = async () => {
 
         try {
@@ -41,17 +62,24 @@ const EditProbationPeriod = () => {
             setLoading(true);
             setError("");
 
-            const [periodResponse, usersResponse] =
-                await Promise.all([
-                    api.get(`/probation-periods/${id}`),
-                    api.get("/users"),
-                ]);
+            const [
+                periodResponse,
+                usersResponse,
+            ] = await Promise.all([
+                api.get(`/probation-periods/${id}`),
+                api.get("/users"),
+            ]);
 
             const period =
                 periodResponse.data.data;
 
             const users =
                 usersResponse.data.data || [];
+
+
+            /*
+            | Only Employee Users
+            */
 
             const employeeUsers = users.filter(
                 (user) =>
@@ -60,21 +88,30 @@ const EditProbationPeriod = () => {
 
             setEmployees(employeeUsers);
 
+
+            /*
+            | Set Existing Data
+            */
+
             setForm({
                 employee_id:
                     period.employee_id || "",
+
                 start_date:
                     formatDateForInput(
                         period.start_date
                     ),
+
                 end_date:
                     formatDateForInput(
                         period.end_date
                     ),
+
                 status:
                     typeof period.status === "string"
                         ? period.status
                         : "active",
+
                 notes:
                     period.notes || "",
             });
@@ -95,15 +132,32 @@ const EditProbationPeriod = () => {
         }
     };
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Handle Change
+    |--------------------------------------------------------------------------
+    */
+
     const handleChange = (e) => {
 
-        const { name, value } = e.target;
+        const {
+            name,
+            value,
+        } = e.target;
 
         setForm((prev) => ({
             ...prev,
             [name]: value,
         }));
     };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Submit
+    |--------------------------------------------------------------------------
+    */
 
     const handleSubmit = async (e) => {
 
@@ -117,11 +171,20 @@ const EditProbationPeriod = () => {
             await api.put(
                 `/probation-periods/${id}`,
                 {
-                    employee_id: Number(form.employee_id),
-                    start_date: form.start_date,
-                    end_date: form.end_date,
-                    status: form.status,
-                    notes: form.notes || null,
+                    employee_id:
+                        Number(form.employee_id),
+
+                    start_date:
+                        form.start_date,
+
+                    end_date:
+                        form.end_date,
+
+                    status:
+                        form.status,
+
+                    notes:
+                        form.notes || null,
                 }
             );
 
@@ -136,6 +199,11 @@ const EditProbationPeriod = () => {
         } catch (error) {
 
             console.error(error);
+
+
+            /*
+            | Validation Error
+            */
 
             if (error.response?.status === 422) {
 
@@ -176,35 +244,60 @@ const EditProbationPeriod = () => {
         }
     };
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Loading
+    |--------------------------------------------------------------------------
+    */
+
     if (loading) {
 
         return (
-            <div style={containerStyle}>
+            <div className="management-form-page">
+
                 <h2>
                     Loading Probation Period...
                 </h2>
+
             </div>
         );
     }
 
-    return (
-        <div style={containerStyle}>
 
-            <h1>
+    /*
+    |--------------------------------------------------------------------------
+    | Page
+    |--------------------------------------------------------------------------
+    */
+
+    return (
+
+        <div className="management-form-page">
+
+            <h1 className="management-form-title">
                 Edit Probation Period
             </h1>
 
+
+            {/* Error */}
+
             {error && (
-                <div style={errorStyle}>
+                <div className="management-form-error">
                     {error}
                 </div>
             )}
 
-            <form onSubmit={handleSubmit}>
+
+            <form
+                className="management-form"
+                onSubmit={handleSubmit}
+            >
+
 
                 {/* Employee */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
                     <label>
                         Employee
@@ -215,25 +308,27 @@ const EditProbationPeriod = () => {
                         value={form.employee_id}
                         onChange={handleChange}
                         required
-                        style={inputStyle}
+                        disabled={saving}
                     >
 
                         <option value="">
                             Select Employee
                         </option>
 
-                        {employees.map((employee) => (
+                        {employees.map(
+                            (employee) => (
 
-                            <option
-                                key={employee.id}
-                                value={employee.id}
-                            >
-                                {employee.name}
-                                {" - "}
-                                {employee.employee_id}
-                            </option>
+                                <option
+                                    key={employee.id}
+                                    value={employee.id}
+                                >
+                                    {employee.name}
+                                    {" - "}
+                                    {employee.employee_id}
+                                </option>
 
-                        ))}
+                            )
+                        )}
 
                     </select>
 
@@ -242,7 +337,7 @@ const EditProbationPeriod = () => {
 
                 {/* Start Date */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
                     <label>
                         Start Date
@@ -254,7 +349,7 @@ const EditProbationPeriod = () => {
                         value={form.start_date}
                         onChange={handleChange}
                         required
-                        style={inputStyle}
+                        disabled={saving}
                     />
 
                 </div>
@@ -262,7 +357,7 @@ const EditProbationPeriod = () => {
 
                 {/* End Date */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
                     <label>
                         End Date
@@ -274,7 +369,7 @@ const EditProbationPeriod = () => {
                         value={form.end_date}
                         onChange={handleChange}
                         required
-                        style={inputStyle}
+                        disabled={saving}
                     />
 
                 </div>
@@ -282,7 +377,7 @@ const EditProbationPeriod = () => {
 
                 {/* Status */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
                     <label>
                         Status
@@ -292,7 +387,7 @@ const EditProbationPeriod = () => {
                         name="status"
                         value={form.status}
                         onChange={handleChange}
-                        style={inputStyle}
+                        disabled={saving}
                     >
 
                         <option value="active">
@@ -318,7 +413,7 @@ const EditProbationPeriod = () => {
 
                 {/* Notes */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
                     <label>
                         Notes
@@ -329,22 +424,20 @@ const EditProbationPeriod = () => {
                         value={form.notes}
                         onChange={handleChange}
                         rows="4"
-                        style={inputStyle}
+                        disabled={saving}
+                        placeholder="Enter notes"
                     />
 
                 </div>
 
 
-                <div
-                    style={{
-                        display: "flex",
-                        gap: "10px",
-                        marginTop: "20px",
-                    }}
-                >
+                {/* Buttons */}
+
+                <div className="management-form-actions">
 
                     <button
                         type="submit"
+                        className="management-btn-primary"
                         disabled={saving}
                     >
                         {saving
@@ -352,13 +445,16 @@ const EditProbationPeriod = () => {
                             : "Update Probation Period"}
                     </button>
 
+
                     <button
                         type="button"
+                        className="management-btn-secondary"
                         onClick={() =>
                             navigate(
                                 "/management/probation-periods"
                             )
                         }
+                        disabled={saving}
                     >
                         Cancel
                     </button>
@@ -369,34 +465,6 @@ const EditProbationPeriod = () => {
 
         </div>
     );
-};
-
-const containerStyle = {
-    maxWidth: "700px",
-    margin: "30px auto",
-    padding: "20px",
-};
-
-const fieldStyle = {
-    marginBottom: "20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-};
-
-const inputStyle = {
-    padding: "10px",
-    border: "1px solid #ccc",
-    borderRadius: "5px",
-};
-
-const errorStyle = {
-    color: "red",
-    background: "#ffe5e5",
-    padding: "10px",
-    borderRadius: "5px",
-    marginBottom: "20px",
-    whiteSpace: "pre-line",
 };
 
 export default EditProbationPeriod;

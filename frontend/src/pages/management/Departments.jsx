@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
+import PageHeader from "../../components/PageHeader";
+import DataTable from "../../components/DataTable";
 
 const Departments = () => {
     const navigate = useNavigate();
@@ -37,7 +39,6 @@ const Departments = () => {
     };
 
     const handleDelete = async (id) => {
-
         const confirmed = window.confirm(
             "Are you sure you want to delete this department?"
         );
@@ -47,7 +48,6 @@ const Departments = () => {
         }
 
         try {
-
             await api.delete(`/departments/${id}`);
 
             alert("Department deleted successfully.");
@@ -55,7 +55,6 @@ const Departments = () => {
             fetchDepartments();
 
         } catch (error) {
-
             console.error(error);
 
             alert(
@@ -67,184 +66,107 @@ const Departments = () => {
 
     if (loading) {
         return (
-            <div style={containerStyle}>
+            <div className="management-page">
                 <h2>Loading departments...</h2>
             </div>
         );
     }
 
     return (
-        <div style={containerStyle}>
+        <div className="management-page">
 
-            <div style={headerStyle}>
-
-                <div>
-                    <h1>Department Management</h1>
-
-                    <p>
-                        Create, view, edit and manage departments.
-                    </p>
-                </div>
-
-                <button
-                    type="button"
-                    onClick={() =>
-                        navigate("/management/departments/create")
-                    }
-                >
-                    + Create Department
-                </button>
-
-            </div>
-
+            <PageHeader
+                title="Department Management"
+                description="Create, view, edit and manage departments."
+                buttonText="+ Create Department"
+                onButtonClick={() =>
+                    navigate("/management/departments/create")
+                }
+            />
 
             {error && (
-                <div style={errorStyle}>
+                <div className="management-error">
                     {error}
                 </div>
             )}
 
+            <DataTable
+                columns={[
+                    {
+                        key: "id",
+                        label: "ID",
+                    },
+                    {
+                        key: "name",
+                        label: "Name",
+                    },
+                    {
+                        key: "code",
+                        label: "Code",
+                    },
+                    {
+                        key: "description",
+                        label: "Description",
+                        render: (department) =>
+                            department.description || "N/A",
+                    },
+                    {
+                        key: "status",
+                        label: "Status",
+                        render: (department) => (
+                            <span
+                                className={
+                                    department.status
+                                        ? "status-badge status-active"
+                                        : "status-badge status-inactive"
+                                }
+                            >
+                                {department.status
+                                    ? "Active"
+                                    : "Inactive"}
+                            </span>
+                        ),
+                    },
+                    {
+                        key: "actions",
+                        label: "Actions",
+                        render: (department) => (
+                            <div className="table-actions">
 
-            {departments.length === 0 ? (
+                                <button
+                                    type="button"
+                                    className="action-button action-edit"
+                                    onClick={() =>
+                                        navigate(
+                                            `/management/departments/${department.id}/edit`
+                                        )
+                                    }
+                                >
+                                    Edit
+                                </button>
 
-                <div>
-                    <p>No departments found.</p>
-                </div>
+                                <button
+                                    type="button"
+                                    className="action-button action-delete"
+                                    onClick={() =>
+                                        handleDelete(
+                                            department.id
+                                        )
+                                    }
+                                >
+                                    Delete
+                                </button>
 
-            ) : (
-
-                <table
-                    border="1"
-                    cellPadding="10"
-                    cellSpacing="0"
-                    style={{
-                        width: "100%",
-                        marginTop: "20px",
-                        borderCollapse: "collapse",
-                    }}
-                >
-
-                    <thead>
-
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Code</th>
-                            <th>Description</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-
-                    </thead>
-
-
-                    <tbody>
-
-                        {departments.map((department) => (
-
-                            <tr key={department.id}>
-
-                                <td>
-                                    {department.id}
-                                </td>
-
-                                <td>
-                                    {department.name}
-                                </td>
-
-                                <td>
-                                    {department.code}
-                                </td>
-
-                                <td>
-                                    {department.description || "N/A"}
-                                </td>
-
-                                <td>
-
-                                    {department.status ? (
-                                        <span
-                                            style={{
-                                                color: "green",
-                                                fontWeight: "bold",
-                                            }}
-                                        >
-                                            Active
-                                        </span>
-                                    ) : (
-                                        <span
-                                            style={{
-                                                color: "red",
-                                                fontWeight: "bold",
-                                            }}
-                                        >
-                                            Inactive
-                                        </span>
-                                    )}
-
-                                </td>
-
-
-                                <td>
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            navigate(
-                                                `/management/departments/${department.id}/edit`
-                                            )
-                                        }
-                                    >
-                                        Edit
-                                    </button>
-
-                                    {" "}
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleDelete(
-                                                department.id
-                                            )
-                                        }
-                                    >
-                                        Delete
-                                    </button>
-
-                                </td>
-
-                            </tr>
-
-                        ))}
-
-                    </tbody>
-
-                </table>
-
-            )}
+                            </div>
+                        ),
+                    },
+                ]}
+                data={departments}
+                emptyMessage="No departments found."
+            />
 
         </div>
     );
 };
-
-
-const containerStyle = {
-    // maxWidth: "1200px",
-    // margin: "30px auto",
-    // padding: "20px",
-};
-
-const headerStyle = {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "20px",
-};
-
-const errorStyle = {
-    color: "red",
-    marginBottom: "20px",
-};
-
 
 export default Departments;

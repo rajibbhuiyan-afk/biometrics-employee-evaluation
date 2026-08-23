@@ -31,14 +31,8 @@ const EditEvaluationPeriod = () => {
             return "";
         }
 
-        // Example:
-        // 2027-06-23T00:00:00.000000Z
-        // becomes:
-        // 2027-06-23
-
         return date.substring(0, 10);
     };
-
 
     /*
     |--------------------------------------------------------------------------
@@ -50,7 +44,6 @@ const EditEvaluationPeriod = () => {
         fetchEvaluationPeriod();
     }, [id]);
 
-
     const fetchEvaluationPeriod = async () => {
         try {
             setLoading(true);
@@ -58,11 +51,6 @@ const EditEvaluationPeriod = () => {
 
             const response = await api.get(
                 `/evaluation-periods/${id}`
-            );
-
-            console.log(
-                "Evaluation Period:",
-                response.data
             );
 
             const period = response.data.data;
@@ -88,8 +76,7 @@ const EditEvaluationPeriod = () => {
 
                 status: period.status || "draft",
 
-                description:
-                    period.description || "",
+                description: period.description || "",
             });
 
         } catch (error) {
@@ -99,11 +86,11 @@ const EditEvaluationPeriod = () => {
                 error.response?.data?.message ||
                 "Failed to load evaluation period."
             );
+
         } finally {
             setLoading(false);
         }
     };
-
 
     /*
     |--------------------------------------------------------------------------
@@ -114,12 +101,11 @@ const EditEvaluationPeriod = () => {
     const handleChange = (e) => {
         const { name, value } = e.target;
 
-        setForm((prev) => ({
-            ...prev,
+        setForm((previous) => ({
+            ...previous,
             [name]: value,
         }));
     };
-
 
     /*
     |--------------------------------------------------------------------------
@@ -134,30 +120,19 @@ const EditEvaluationPeriod = () => {
             setSaving(true);
             setError("");
 
-            const response = await api.put(
+            await api.put(
                 `/evaluation-periods/${id}`,
                 {
                     name: form.name,
-
                     start_date: form.start_date,
-
                     end_date: form.end_date,
-
                     submission_start_date:
                         form.submission_start_date,
-
                     submission_end_date:
                         form.submission_end_date,
-
                     status: form.status,
-
                     description: form.description,
                 }
-            );
-
-            console.log(
-                "Updated:",
-                response.data
             );
 
             alert(
@@ -175,17 +150,13 @@ const EditEvaluationPeriod = () => {
                 error.response?.data?.errors;
 
             if (errors) {
+                const messages = Object.values(errors)
+                    .flat()
+                    .join(" ");
 
-                const messages = Object.values(
-                    errors
-                ).flat();
-
-                setError(
-                    messages.join(" ")
-                );
+                setError(messages);
 
             } else {
-
                 setError(
                     error.response?.data?.message ||
                     "Failed to update evaluation period."
@@ -197,7 +168,6 @@ const EditEvaluationPeriod = () => {
         }
     };
 
-
     /*
     |--------------------------------------------------------------------------
     | Loading
@@ -206,20 +176,11 @@ const EditEvaluationPeriod = () => {
 
     if (loading) {
         return (
-            <div
-                style={{
-                    maxWidth: "800px",
-                    margin: "30px auto",
-                    padding: "20px",
-                }}
-            >
-                <h2>
-                    Loading Evaluation Period...
-                </h2>
+            <div className="management-form-page">
+                <h2>Loading Evaluation Period...</h2>
             </div>
         );
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -228,44 +189,33 @@ const EditEvaluationPeriod = () => {
     */
 
     return (
-        <div
-            style={{
-                maxWidth: "800px",
-                margin: "30px auto",
-                padding: "20px",
-            }}
-        >
+        <div className="management-form-page">
 
-            <h1>
+            <h1 className="management-form-title">
                 Edit Evaluation Period
             </h1>
 
             {error && (
-                <div
-                    style={{
-                        color: "red",
-                        background: "#ffe5e5",
-                        padding: "10px",
-                        marginBottom: "20px",
-                        borderRadius: "5px",
-                    }}
-                >
+                <div className="management-form-error">
                     {error}
                 </div>
             )}
 
-
-            <form onSubmit={handleSubmit}>
+            <form
+                className="management-form"
+                onSubmit={handleSubmit}
+            >
 
                 {/* Name */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="name">
                         Name
                     </label>
 
                     <input
+                        id="name"
                         type="text"
                         name="name"
                         value={form.name}
@@ -275,16 +225,16 @@ const EditEvaluationPeriod = () => {
 
                 </div>
 
-
                 {/* Start Date */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="start_date">
                         Start Date
                     </label>
 
                     <input
+                        id="start_date"
                         type="date"
                         name="start_date"
                         value={form.start_date}
@@ -294,16 +244,16 @@ const EditEvaluationPeriod = () => {
 
                 </div>
 
-
                 {/* End Date */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="end_date">
                         End Date
                     </label>
 
                     <input
+                        id="end_date"
                         type="date"
                         name="end_date"
                         value={form.end_date}
@@ -313,63 +263,58 @@ const EditEvaluationPeriod = () => {
 
                 </div>
 
-
                 {/* Submission Start */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="submission_start_date">
                         Submission Start Date
                     </label>
 
                     <input
+                        id="submission_start_date"
                         type="date"
                         name="submission_start_date"
-                        value={
-                            form.submission_start_date
-                        }
+                        value={form.submission_start_date}
                         onChange={handleChange}
                         required
                     />
 
                 </div>
 
-
                 {/* Submission End */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="submission_end_date">
                         Submission End Date
                     </label>
 
                     <input
+                        id="submission_end_date"
                         type="date"
                         name="submission_end_date"
-                        value={
-                            form.submission_end_date
-                        }
+                        value={form.submission_end_date}
                         onChange={handleChange}
                         required
                     />
 
                 </div>
 
-
                 {/* Status */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="status">
                         Status
                     </label>
 
                     <select
+                        id="status"
                         name="status"
                         value={form.status}
                         onChange={handleChange}
                     >
-
                         <option value="draft">
                             Draft
                         </option>
@@ -381,21 +326,20 @@ const EditEvaluationPeriod = () => {
                         <option value="closed">
                             Closed
                         </option>
-
                     </select>
 
                 </div>
 
-
                 {/* Description */}
 
-                <div style={fieldStyle}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="description">
                         Description
                     </label>
 
                     <textarea
+                        id="description"
                         name="description"
                         value={form.description}
                         onChange={handleChange}
@@ -404,19 +348,13 @@ const EditEvaluationPeriod = () => {
 
                 </div>
 
-
                 {/* Buttons */}
 
-                <div
-                    style={{
-                        display: "flex",
-                        gap: "10px",
-                        marginTop: "20px",
-                    }}
-                >
+                <div className="management-form-actions">
 
                     <button
                         type="submit"
+                        className="management-btn-primary"
                         disabled={saving}
                     >
                         {saving
@@ -424,9 +362,9 @@ const EditEvaluationPeriod = () => {
                             : "Update Evaluation Period"}
                     </button>
 
-
                     <button
                         type="button"
+                        className="management-btn-secondary"
                         onClick={() =>
                             navigate(
                                 "/management/evaluation-periods"
@@ -444,14 +382,5 @@ const EditEvaluationPeriod = () => {
         </div>
     );
 };
-
-
-const fieldStyle = {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-    marginBottom: "18px",
-};
-
 
 export default EditEvaluationPeriod;

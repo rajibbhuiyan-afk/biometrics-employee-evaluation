@@ -34,12 +34,15 @@ const CreateUser = () => {
             setLoading(true);
             setError("");
 
-            const [rolesResponse, departmentsResponse, positionsResponse] =
-                await Promise.all([
-                    api.get("/roles"),
-                    api.get("/departments"),
-                    api.get("/positions"),
-                ]);
+            const [
+                rolesResponse,
+                departmentsResponse,
+                positionsResponse,
+            ] = await Promise.all([
+                api.get("/roles"),
+                api.get("/departments"),
+                api.get("/positions"),
+            ]);
 
             setRoles(rolesResponse.data.data || []);
             setDepartments(departmentsResponse.data.data || []);
@@ -102,37 +105,38 @@ const CreateUser = () => {
     };
 
     if (loading) {
-        return <div>Loading...</div>;
+        return (
+            <div className="management-form-page">
+                <h2>Loading...</h2>
+            </div>
+        );
     }
 
     return (
-        <div
-            style={{
-                maxWidth: "700px",
-                margin: "30px auto",
-                padding: "20px",
-            }}
-        >
-            <h1>Create User</h1>
+        <div className="management-form-page">
+
+            <h1 className="management-form-title">
+                Create User
+            </h1>
 
             {error && (
-                <div
-                    style={{
-                        color: "red",
-                        marginBottom: "20px",
-                        whiteSpace: "pre-line",
-                    }}
-                >
+                <div className="management-form-error">
                     {error}
                 </div>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form
+                className="management-form"
+                onSubmit={handleSubmit}
+            >
 
-                <div style={fieldStyle}>
-                    <label>Employee ID</label>
+                <div className="management-form-field">
+                    <label htmlFor="employee_id">
+                        Employee ID
+                    </label>
 
                     <input
+                        id="employee_id"
                         type="text"
                         name="employee_id"
                         value={form.employee_id}
@@ -141,10 +145,13 @@ const CreateUser = () => {
                     />
                 </div>
 
-                <div style={fieldStyle}>
-                    <label>Name</label>
+                <div className="management-form-field">
+                    <label htmlFor="name">
+                        Name
+                    </label>
 
                     <input
+                        id="name"
                         type="text"
                         name="name"
                         value={form.name}
@@ -153,10 +160,13 @@ const CreateUser = () => {
                     />
                 </div>
 
-                <div style={fieldStyle}>
-                    <label>Email</label>
+                <div className="management-form-field">
+                    <label htmlFor="email">
+                        Email
+                    </label>
 
                     <input
+                        id="email"
                         type="email"
                         name="email"
                         value={form.email}
@@ -165,10 +175,13 @@ const CreateUser = () => {
                     />
                 </div>
 
-                <div style={fieldStyle}>
-                    <label>Password</label>
+                <div className="management-form-field">
+                    <label htmlFor="password">
+                        Password
+                    </label>
 
                     <input
+                        id="password"
                         type="password"
                         name="password"
                         value={form.password}
@@ -177,10 +190,13 @@ const CreateUser = () => {
                     />
                 </div>
 
-                <div style={fieldStyle}>
-                    <label>Confirm Password</label>
+                <div className="management-form-field">
+                    <label htmlFor="password_confirmation">
+                        Confirm Password
+                    </label>
 
                     <input
+                        id="password_confirmation"
                         type="password"
                         name="password_confirmation"
                         value={form.password_confirmation}
@@ -189,10 +205,13 @@ const CreateUser = () => {
                     />
                 </div>
 
-                <div style={fieldStyle}>
-                    <label>Role</label>
+                <div className="management-form-field">
+                    <label htmlFor="role_id">
+                        Role
+                    </label>
 
                     <select
+                        id="role_id"
                         name="role_id"
                         value={form.role_id}
                         onChange={handleChange}
@@ -213,10 +232,13 @@ const CreateUser = () => {
                     </select>
                 </div>
 
-                <div style={fieldStyle}>
-                    <label>Department</label>
+                <div className="management-form-field">
+                    <label htmlFor="department_id">
+                        Department
+                    </label>
 
                     <select
+                        id="department_id"
                         name="department_id"
                         value={form.department_id}
                         onChange={handleChange}
@@ -236,10 +258,13 @@ const CreateUser = () => {
                     </select>
                 </div>
 
-                <div style={fieldStyle}>
-                    <label>Position</label>
+                <div className="management-form-field">
+                    <label htmlFor="position_id">
+                        Position
+                    </label>
 
                     <select
+                        id="position_id"
                         name="position_id"
                         value={form.position_id}
                         onChange={handleChange}
@@ -259,23 +284,25 @@ const CreateUser = () => {
                     </select>
                 </div>
 
-                <div style={fieldStyle}>
-                    <label>
-                        <input
-                            type="checkbox"
-                            name="status"
-                            checked={form.status}
-                            onChange={handleChange}
-                        />
+                <div className="management-form-checkbox">
+                    <input
+                        id="status"
+                        type="checkbox"
+                        name="status"
+                        checked={form.status}
+                        onChange={handleChange}
+                    />
 
-                        {" "}Active
+                    <label htmlFor="status">
+                        Active
                     </label>
                 </div>
 
-                <div style={{ marginTop: "20px" }}>
+                <div className="management-form-actions">
 
                     <button
                         type="submit"
+                        className="management-btn-primary"
                         disabled={saving}
                     >
                         {saving ? "Creating..." : "Create User"}
@@ -283,12 +310,10 @@ const CreateUser = () => {
 
                     <button
                         type="button"
+                        className="management-btn-secondary"
                         onClick={() =>
                             navigate("/management/users")
                         }
-                        style={{
-                            marginLeft: "10px",
-                        }}
                     >
                         Cancel
                     </button>
@@ -298,13 +323,6 @@ const CreateUser = () => {
             </form>
         </div>
     );
-};
-
-const fieldStyle = {
-    display: "flex",
-    flexDirection: "column",
-    marginBottom: "15px",
-    gap: "5px",
 };
 
 export default CreateUser;

@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import api from "../../api/axios";
+import PageHeader from "../../components/PageHeader";
+import DataTable from "../../components/DataTable";
 
 const Positions = () => {
     const navigate = useNavigate();
@@ -8,6 +11,12 @@ const Positions = () => {
     const [positions, setPositions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fetch Positions
+    |--------------------------------------------------------------------------
+    */
 
     useEffect(() => {
         fetchPositions();
@@ -23,7 +32,6 @@ const Positions = () => {
             console.log("Positions:", response.data);
 
             setPositions(response.data.data || []);
-
         } catch (error) {
             console.error(error);
 
@@ -36,8 +44,13 @@ const Positions = () => {
         }
     };
 
-    const handleDelete = async (id) => {
+    /*
+    |--------------------------------------------------------------------------
+    | Delete Position
+    |--------------------------------------------------------------------------
+    */
 
+    const handleDelete = async (id) => {
         const confirmed = window.confirm(
             "Are you sure you want to delete this position?"
         );
@@ -47,7 +60,6 @@ const Positions = () => {
         }
 
         try {
-
             await api.delete(`/positions/${id}`);
 
             setPositions((currentPositions) =>
@@ -57,9 +69,7 @@ const Positions = () => {
             );
 
             alert("Position deleted successfully.");
-
         } catch (error) {
-
             console.error(error);
 
             alert(
@@ -69,190 +79,165 @@ const Positions = () => {
         }
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Loading
+    |--------------------------------------------------------------------------
+    */
+
     if (loading) {
         return (
-            <div style={containerStyle}>
+            <div className="management-page">
                 <h2>Loading positions...</h2>
             </div>
         );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Page
+    |--------------------------------------------------------------------------
+    */
+
     return (
-        <div style={containerStyle}>
+        <div className="management-page">
 
-            <div style={headerStyle}>
+            {/* Page Header */}
 
-                <div>
-                    <h1>Position Management</h1>
+            <PageHeader
+                title="Position Management"
+                description="Create, view, edit and manage positions."
+                buttonText="+ Create Position"
+                onButtonClick={() =>
+                    navigate("/management/positions/create")
+                }
+            />
 
-                    <p>
-                        Create, view, edit and manage positions.
-                    </p>
-                </div>
-
-                <button
-                    type="button"
-                    onClick={() =>
-                        navigate("/management/positions/create")
-                    }
-                >
-                    + Create Position
-                </button>
-
-            </div>
-
+            {/* Error */}
 
             {error && (
-                <div style={errorStyle}>
+                <div className="management-error">
                     {error}
                 </div>
             )}
 
+            {/* Empty State */}
 
             {positions.length === 0 ? (
+                <div className="data-table-container">
 
-                <p>No positions found.</p>
+                    <div className="data-table-empty">
 
+                        <div className="data-table-empty-title">
+                            No positions found.
+                        </div>
+
+                        <div className="data-table-empty-message">
+                            Create a position to get started.
+                        </div>
+
+                    </div>
+
+                </div>
             ) : (
+                <DataTable
+                    columns={[
+                        {
+                            key: "id",
+                            label: "ID",
+                        },
+                        {
+                            key: "title",
+                            label: "Title",
+                        },
+                        {
+                            key: "code",
+                            label: "Code",
+                        },
+                        {
+                            key: "department",
+                            label: "Department",
+                        },
+                        {
+                            key: "description",
+                            label: "Description",
+                        },
+                        {
+                            key: "status",
+                            label: "Status",
+                        },
+                        {
+                            key: "actions",
+                            label: "Actions",
+                        },
+                    ]}
 
-                <table
-                    border="1"
-                    cellPadding="10"
-                    cellSpacing="0"
-                    style={{
-                        width: "100%",
-                        borderCollapse: "collapse",
-                    }}
-                >
+                    data={positions.map((position) => ({
+                        id: position.id,
 
-                    <thead>
+                        title:
+                            position.title ||
+                            "N/A",
 
-                        <tr>
-                            <th>ID</th>
-                            <th>Title</th>
-                            <th>Code</th>
-                            <th>Department</th>
-                            <th>Description</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
+                        code:
+                            position.code ||
+                            "N/A",
 
-                    </thead>
+                        department:
+                            position.department?.name ||
+                            "N/A",
 
+                        description:
+                            position.description ||
+                            "N/A",
 
-                    <tbody>
+                        status: (
+                            <span
+                                className={
+                                    position.status
+                                        ? "status-badge status-active"
+                                        : "status-badge status-inactive"
+                                }
+                            >
+                                {position.status
+                                    ? "Active"
+                                    : "Inactive"}
+                            </span>
+                        ),
 
-                        {positions.map((position) => (
+                        actions: (
+                            <div className="table-actions">
 
-                            <tr key={position.id}>
+                                <button
+                                    type="button"
+                                    className="action-button action-edit"
+                                    onClick={() =>
+                                        navigate(
+                                            `/management/positions/${position.id}/edit`
+                                        )
+                                    }
+                                >
+                                    Edit
+                                </button>
 
-                                <td>
-                                    {position.id}
-                                </td>
+                                <button
+                                    type="button"
+                                    className="action-button action-delete"
+                                    onClick={() =>
+                                        handleDelete(position.id)
+                                    }
+                                >
+                                    Delete
+                                </button>
 
-                                <td>
-                                    {position.title}
-                                </td>
-
-                                <td>
-                                    {position.code}
-                                </td>
-
-                                <td>
-                                    {position.department?.name ||
-                                        "N/A"}
-                                </td>
-
-                                <td>
-                                    {position.description ||
-                                        "N/A"}
-                                </td>
-
-                                <td>
-
-                                    {position.status ? (
-                                        <span
-                                            style={{
-                                                color: "green",
-                                                fontWeight: "bold",
-                                            }}
-                                        >
-                                            Active
-                                        </span>
-                                    ) : (
-                                        <span
-                                            style={{
-                                                color: "red",
-                                                fontWeight: "bold",
-                                            }}
-                                        >
-                                            Inactive
-                                        </span>
-                                    )}
-
-                                </td>
-
-
-                                <td>
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            navigate(
-                                                `/management/positions/${position.id}/edit`
-                                            )
-                                        }
-                                    >
-                                        Edit
-                                    </button>
-
-                                    {" "}
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleDelete(
-                                                position.id
-                                            )
-                                        }
-                                    >
-                                        Delete
-                                    </button>
-
-                                </td>
-
-                            </tr>
-
-                        ))}
-
-                    </tbody>
-
-                </table>
-
+                            </div>
+                        ),
+                    }))}
+                />
             )}
 
         </div>
     );
 };
-
-
-const containerStyle = {
-    // maxWidth: "1200px",
-    // margin: "30px auto",
-    // padding: "20px",
-};
-
-const headerStyle = {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "20px",
-};
-
-const errorStyle = {
-    color: "red",
-    marginBottom: "20px",
-};
-
 
 export default Positions;

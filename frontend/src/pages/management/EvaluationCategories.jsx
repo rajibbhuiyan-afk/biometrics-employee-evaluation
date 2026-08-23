@@ -3,18 +3,29 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 
 const EvaluationCategories = () => {
+
     const navigate = useNavigate();
 
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load Categories
+    |--------------------------------------------------------------------------
+    */
+
     useEffect(() => {
         fetchCategories();
     }, []);
 
+
     const fetchCategories = async () => {
+
         try {
+
             setLoading(true);
             setError("");
 
@@ -32,18 +43,30 @@ const EvaluationCategories = () => {
             );
 
         } catch (error) {
+
             console.error(error);
 
             setError(
                 error.response?.data?.message ||
                 "Failed to load evaluation categories."
             );
+
         } finally {
+
             setLoading(false);
+
         }
     };
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Delete Category
+    |--------------------------------------------------------------------------
+    */
+
     const handleDelete = async (id) => {
+
         const confirmed = window.confirm(
             "Are you sure you want to delete this evaluation category?"
         );
@@ -53,6 +76,7 @@ const EvaluationCategories = () => {
         }
 
         try {
+
             await api.delete(
                 `/evaluation-categories/${id}`
             );
@@ -64,6 +88,7 @@ const EvaluationCategories = () => {
             fetchCategories();
 
         } catch (error) {
+
             console.error(error);
 
             alert(
@@ -73,27 +98,61 @@ const EvaluationCategories = () => {
         }
     };
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Loading
+    |--------------------------------------------------------------------------
+    */
+
     if (loading) {
+
         return (
-            <div style={containerStyle}>
-                <h2>Loading Evaluation Categories...</h2>
+            <div className="management-page">
+
+                <div className="data-table-empty">
+
+                    <div className="data-table-empty-title">
+                        Loading Evaluation Categories...
+                    </div>
+
+                </div>
+
             </div>
         );
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Page
+    |--------------------------------------------------------------------------
+    */
+
     return (
-        <div style={containerStyle}>
 
-            {/* HEADER */}
+        <div className="management-page">
 
-            <div style={headerStyle}>
+            {/* Page Header */}
 
-                <h1>
-                    Evaluation Categories
-                </h1>
+            <div className="page-header">
+
+                <div className="page-header-info">
+
+                    <h1 className="page-header-title">
+                        Evaluation Categories
+                    </h1>
+
+                    <p className="page-header-description">
+                        Manage evaluation categories.
+                    </p>
+
+                </div>
+
 
                 <button
                     type="button"
+                    className="page-header-button"
                     onClick={() =>
                         navigate(
                             "/management/evaluation-categories/create"
@@ -106,122 +165,139 @@ const EvaluationCategories = () => {
             </div>
 
 
-            {/* ERROR */}
+            {/* Error */}
 
             {error && (
-                <div style={errorStyle}>
+                <div className="management-error">
                     {error}
                 </div>
             )}
 
 
-            {/* EMPTY */}
+            {/* Empty */}
 
             {categories.length === 0 ? (
 
-                <p>
-                    No evaluation categories found.
-                </p>
+                <div className="data-table-container">
+
+                    <div className="data-table-empty">
+
+                        <div className="data-table-empty-title">
+                            No evaluation categories found.
+                        </div>
+
+                        <div className="data-table-empty-message">
+                            Create a category to get started.
+                        </div>
+
+                    </div>
+
+                </div>
 
             ) : (
 
-                <div
-                    style={{
-                        overflowX: "auto",
-                    }}
-                >
+                /* Table */
 
-                    <table style={tableStyle}>
+                <div className="data-table-container">
 
-                        <thead>
+                    <div className="data-table-wrapper">
 
-                            <tr>
+                        <table className="data-table">
 
-                                <th style={thStyle}>
-                                    ID
-                                </th>
+                            <thead>
 
-                                <th style={thStyle}>
-                                    Name
-                                </th>
+                                <tr>
 
-                                <th style={thStyle}>
-                                    Description
-                                </th>
+                                    <th>
+                                        ID
+                                    </th>
 
-                                <th style={thStyle}>
-                                    Actions
-                                </th>
+                                    <th>
+                                        Name
+                                    </th>
 
-                            </tr>
+                                    <th>
+                                        Description
+                                    </th>
 
-                        </thead>
+                                    <th className="data-table-actions-header">
+                                        Actions
+                                    </th>
 
-                        <tbody>
+                                </tr>
 
-                            {categories.map(
-                                (category) => (
+                            </thead>
 
-                                    <tr
-                                        key={category.id}
-                                    >
 
-                                        <td style={tdStyle}>
-                                            {category.id}
-                                        </td>
+                            <tbody>
 
-                                        <td style={tdStyle}>
-                                            {category.name}
-                                        </td>
+                                {categories.map(
+                                    (category) => (
 
-                                        <td style={tdStyle}>
-                                            {category.description ||
-                                                "N/A"}
-                                        </td>
+                                        <tr
+                                            key={category.id}
+                                        >
 
-                                        <td style={tdStyle}>
+                                            <td>
+                                                {category.id}
+                                            </td>
 
-                                            <div
-                                                style={{
-                                                    display: "flex",
-                                                    gap: "8px",
-                                                }}
-                                            >
+                                            <td>
+                                                {category.name}
+                                            </td>
 
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        navigate(
-                                                            `/management/evaluation-categories/${category.id}/edit`
-                                                        )
-                                                    }
-                                                >
-                                                    Edit
-                                                </button>
+                                            <td>
+                                                {category.description ||
+                                                    "N/A"}
+                                            </td>
 
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleDelete(
-                                                            category.id
-                                                        )
-                                                    }
-                                                >
-                                                    Delete
-                                                </button>
+                                            <td className="data-table-actions">
 
-                                            </div>
+                                                <div className="table-actions">
 
-                                        </td>
+                                                    {/* Edit */}
 
-                                    </tr>
+                                                    <button
+                                                        type="button"
+                                                        className="action-button action-edit"
+                                                        onClick={() =>
+                                                            navigate(
+                                                                `/management/evaluation-categories/${category.id}/edit`
+                                                            )
+                                                        }
+                                                    >
+                                                        Edit
+                                                    </button>
 
-                                )
-                            )}
 
-                        </tbody>
+                                                    {/* Delete */}
 
-                    </table>
+                                                    <button
+                                                        type="button"
+                                                        className="action-button action-delete"
+                                                        onClick={() =>
+                                                            handleDelete(
+                                                                category.id
+                                                            )
+                                                        }
+                                                    >
+                                                        Delete
+                                                    </button>
+
+                                                </div>
+
+                                            </td>
+
+                                        </tr>
+
+                                    )
+                                )}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
 
                 </div>
 
@@ -229,45 +305,6 @@ const EvaluationCategories = () => {
 
         </div>
     );
-};
-
-
-const containerStyle = {
-    // maxWidth: "1200px",
-    // margin: "30px auto",
-    // padding: "20px",
-};
-
-const headerStyle = {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "20px",
-};
-
-const errorStyle = {
-    color: "red",
-    background: "#ffe5e5",
-    padding: "10px",
-    borderRadius: "5px",
-    marginBottom: "20px",
-};
-
-const tableStyle = {
-    width: "100%",
-    borderCollapse: "collapse",
-};
-
-const thStyle = {
-    border: "1px solid #ddd",
-    padding: "10px",
-    textAlign: "left",
-    backgroundColor: "#f5f5f5",
-};
-
-const tdStyle = {
-    border: "1px solid #ddd",
-    padding: "10px",
 };
 
 export default EvaluationCategories;

@@ -33,6 +33,7 @@ const EditUser = () => {
     const loadData = async () => {
         try {
             setLoading(true);
+            setError("");
 
             const [
                 userResponse,
@@ -79,10 +80,10 @@ const EditUser = () => {
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
 
-        setForm({
-            ...form,
+        setForm((previous) => ({
+            ...previous,
             [name]: type === "checkbox" ? checked : value,
-        });
+        }));
     };
 
     const handleSubmit = async (e) => {
@@ -133,81 +134,113 @@ const EditUser = () => {
     };
 
     if (loading) {
-        return <p>Loading user...</p>;
+        return (
+            <div className="management-form-page">
+                <h2>Loading user...</h2>
+            </div>
+        );
     }
 
     if (!user) {
-        return <p>User not found.</p>;
+        return (
+            <div className="management-form-page">
+                <h2>User not found.</h2>
+
+                <button
+                    type="button"
+                    className="management-btn-secondary"
+                    onClick={() =>
+                        navigate("/management/users")
+                    }
+                >
+                    Back to Users
+                </button>
+            </div>
+        );
     }
 
     return (
-        <div
-            style={{
-                maxWidth: "700px",
-                margin: "30px auto",
-                padding: "20px",
-            }}
-        >
-            <h1>Edit User</h1>
+        <div className="management-form-page">
+
+            <h1 className="management-form-title">
+                Edit User
+            </h1>
 
             {error && (
-                <p style={{ color: "red" }}>
+                <div className="management-form-error">
                     {error}
-                </p>
+                </div>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form
+                className="management-form"
+                onSubmit={handleSubmit}
+            >
 
-                <div>
-                    <label>Employee ID</label>
-                    <br />
+                {/* Employee ID */}
+
+                <div className="management-form-field">
+                    <label htmlFor="employee_id">
+                        Employee ID
+                    </label>
 
                     <input
+                        id="employee_id"
                         type="text"
                         name="employee_id"
                         value={form.employee_id}
                         onChange={handleChange}
+                        required
                     />
                 </div>
 
-                <br />
+                {/* Name */}
 
-                <div>
-                    <label>Name</label>
-                    <br />
+                <div className="management-form-field">
+                    <label htmlFor="name">
+                        Name
+                    </label>
 
                     <input
+                        id="name"
                         type="text"
                         name="name"
                         value={form.name}
                         onChange={handleChange}
+                        required
                     />
                 </div>
 
-                <br />
+                {/* Email */}
 
-                <div>
-                    <label>Email</label>
-                    <br />
+                <div className="management-form-field">
+                    <label htmlFor="email">
+                        Email
+                    </label>
 
                     <input
+                        id="email"
                         type="email"
                         name="email"
                         value={form.email}
                         onChange={handleChange}
+                        required
                     />
                 </div>
 
-                <br />
+                {/* Role */}
 
-                <div>
-                    <label>Role</label>
-                    <br />
+                <div className="management-form-field">
+                    <label htmlFor="role_id">
+                        Role
+                    </label>
 
                     <select
+                        id="role_id"
                         name="role_id"
                         value={form.role_id}
                         onChange={handleChange}
+                        required
                     >
                         <option value="">
                             Select Role
@@ -224,13 +257,15 @@ const EditUser = () => {
                     </select>
                 </div>
 
-                <br />
+                {/* Department */}
 
-                <div>
-                    <label>Department</label>
-                    <br />
+                <div className="management-form-field">
+                    <label htmlFor="department_id">
+                        Department
+                    </label>
 
                     <select
+                        id="department_id"
                         name="department_id"
                         value={form.department_id}
                         onChange={handleChange}
@@ -250,13 +285,15 @@ const EditUser = () => {
                     </select>
                 </div>
 
-                <br />
+                {/* Position */}
 
-                <div>
-                    <label>Position</label>
-                    <br />
+                <div className="management-form-field">
+                    <label htmlFor="position_id">
+                        Position
+                    </label>
 
                     <select
+                        id="position_id"
                         name="position_id"
                         value={form.position_id}
                         onChange={handleChange}
@@ -276,53 +313,59 @@ const EditUser = () => {
                     </select>
                 </div>
 
-                <br />
+                {/* Status */}
 
-                <div>
-                    <label>
-                        <input
-                            type="checkbox"
-                            name="status"
-                            checked={form.status}
-                            onChange={handleChange}
-                        />
+                <div className="management-form-checkbox">
+                    <input
+                        id="status"
+                        type="checkbox"
+                        name="status"
+                        checked={form.status}
+                        onChange={handleChange}
+                    />
 
-                        {" "}Active
+                    <label htmlFor="status">
+                        Active
                     </label>
                 </div>
 
-                <br />
+                {/* Actions */}
 
-                <button
-                    type="submit"
-                    disabled={saving}
-                >
-                    {saving ? "Updating..." : "Update User"}
-                </button>
+                <div className="management-form-actions">
 
-                {" "}
+                    <button
+                        type="submit"
+                        className="management-btn-primary"
+                        disabled={saving}
+                    >
+                        {saving
+                            ? "Updating..."
+                            : "Update User"}
+                    </button>
 
-                <button
-                    type="button"
-                    onClick={() =>
-                        navigate(
-                            `/management/users/${id}/change-password`
-                        )
-                    }
-                >
-                    Change Password
-                </button>
+                    {/* <button
+                        type="button"
+                        className="management-btn-secondary"
+                        onClick={() =>
+                            navigate(
+                                `/management/users/${id}/change-password`
+                            )
+                        }
+                    >
+                        Change Password
+                    </button> */}
 
-                {" "}
+                    <button
+                        type="button"
+                        className="management-btn-secondary"
+                        onClick={() =>
+                            navigate("/management/users")
+                        }
+                    >
+                        Cancel
+                    </button>
 
-                <button
-                    type="button"
-                    onClick={() =>
-                        navigate("/management/users")
-                    }
-                >
-                    Cancel
-                </button>
+                </div>
 
             </form>
         </div>

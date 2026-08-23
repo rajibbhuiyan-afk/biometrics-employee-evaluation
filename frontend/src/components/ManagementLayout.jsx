@@ -1,9 +1,15 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import "../styles/managementlayout.css";
 
 const ManagementLayout = () => {
     const navigate = useNavigate();
 
     const menuItems = [
+        {
+            label: "Dashboard",
+            path: "/management",
+            end: true,
+        },
         {
             label: "Users",
             path: "/management/users",
@@ -34,83 +40,126 @@ const ManagementLayout = () => {
         },
     ];
 
+    const handleLogout = () => {
+        /*
+         * Temporary logout handler.
+         *
+         * Once we check your AuthContext.jsx,
+         * we can connect this with your actual logout function.
+         */
+
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        navigate("/login");
+    };
+
     return (
-        <div
-            style={{
-                display: "flex",
-                minHeight: "100vh",
-                backgroundColor: "#f5f6f8",
-            }}
-        >
-            {/* Sidebar */}
+        <div className="management-layout">
 
-            <aside
-                style={{
-                    width: "240px",
-                    backgroundColor: "#1f2937",
-                    color: "#fff",
-                    padding: "20px",
-                    boxSizing: "border-box",
-                }}
-            >
-                <h2
-                    style={{
-                        marginBottom: "30px",
-                        fontSize: "20px",
-                    }}
-                >
-                    Management
-                </h2>
+            {/* =========================
+                Sidebar
+            ========================== */}
 
-                <nav>
+            <aside className="management-sidebar">
+
+                {/* Logo / Brand */}
+
+                <div className="sidebar-brand">
+                    <div className="brand-title">
+                        Employee Evaluation
+                    </div>
+
+                    <div className="brand-subtitle">
+                        Management Panel
+                    </div>
+                </div>
+
+
+                {/* Navigation */}
+
+                <nav className="sidebar-navigation">
+
                     {menuItems.map((item) => (
                         <NavLink
                             key={item.path}
                             to={item.path}
-                            style={({ isActive }) => ({
-                                display: "block",
-                                padding: "12px 14px",
-                                marginBottom: "6px",
-                                borderRadius: "6px",
-                                textDecoration: "none",
-                                color: "#fff",
-                                backgroundColor: isActive
-                                    ? "#374151"
-                                    : "transparent",
-                            })}
+                            end={item.end}
+                            className={({ isActive }) =>
+                                `sidebar-link ${
+                                    isActive ? "active" : ""
+                                }`
+                            }
                         >
                             {item.label}
                         </NavLink>
                     ))}
+
                 </nav>
 
-                <button
-                    type="button"
-                    onClick={() => navigate("/management")}
-                    style={{
-                        marginTop: "25px",
-                        width: "100%",
-                        padding: "10px",
-                        border: "none",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                    }}
-                >
-                    Management Home
-                </button>
+
+                {/* Sidebar Bottom */}
+
+                <div className="sidebar-footer">
+
+                    <button
+                        type="button"
+                        className="sidebar-logout"
+                        onClick={handleLogout}
+                    >
+                        Logout
+                    </button>
+
+                </div>
+
             </aside>
 
-            {/* Main Content */}
 
-            <main
-                style={{
-                    flex: 1,
-                    padding: "30px",
-                    boxSizing: "border-box",
-                }}
-            >
-                <Outlet />
-            </main>
+            {/* =========================
+                Main Area
+            ========================== */}
+
+            <div className="management-main">
+
+                {/* Top Header */}
+
+                <header className="management-header">
+
+                    <div className="header-title">
+                        Employee Evaluation System
+                    </div>
+
+                    <div className="header-user">
+
+                        <span className="user-name">
+                            Management
+                        </span>
+
+                        <button
+                            type="button"
+                            className="header-logout"
+                            onClick={handleLogout}
+                        >
+                            Logout
+                        </button>
+
+                    </div>
+
+                </header>
+
+
+                {/* Page Content */}
+
+                <main className="management-content">
+
+                    <div className="management-content-card">
+                        <Outlet />
+                    </div>
+
+                </main>
+
+            </div>
+
         </div>
     );
 };
