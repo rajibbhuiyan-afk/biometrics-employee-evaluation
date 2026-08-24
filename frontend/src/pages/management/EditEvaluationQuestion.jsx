@@ -298,13 +298,7 @@ const EditEvaluationQuestion = () => {
                             Rating
                         </option>
 
-                        <option value="text">
-                            Text
-                        </option>
-
-                        <option value="yes_no">
-                            Yes / No
-                        </option>
+                        
 
                     </select>
 

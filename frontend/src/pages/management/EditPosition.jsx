@@ -255,7 +255,7 @@ const EditPosition = () => {
                 <div className="management-form-field">
 
                     <label>
-                        Position Code
+                        Position Code (Short Name )
                     </label>
 
                     <input

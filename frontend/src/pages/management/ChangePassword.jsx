@@ -1,56 +1,45 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 
 const ChangePassword = () => {
-
-    const { id } = useParams();
     const navigate = useNavigate();
 
     const [password, setPassword] = useState("");
-    const [passwordConfirmation, setPasswordConfirmation] = useState("");
+    const [passwordConfirmation, setPasswordConfirmation] =
+        useState("");
 
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
     const handleSubmit = async (e) => {
-
         e.preventDefault();
 
         setError("");
         setSuccess("");
 
         if (password.length < 8) {
-
             setError(
                 "Password must be at least 8 characters."
             );
-
             return;
         }
 
         if (password !== passwordConfirmation) {
-
             setError(
                 "Password and confirm password do not match."
             );
-
             return;
         }
 
         try {
-
             setSaving(true);
 
-            await api.post(
-                `/users/${id}/change-password`,
-                {
-                    password: password,
-                    password_confirmation:
-                        passwordConfirmation,
-                }
-            );
+            await api.post("/change-password", {
+                password,
+                password_confirmation: passwordConfirmation,
+            });
 
             setSuccess(
                 "Password changed successfully."
@@ -60,22 +49,22 @@ const ChangePassword = () => {
             setPasswordConfirmation("");
 
         } catch (error) {
-
-            console.error(error);
+            console.error(
+                "Change password error:",
+                error
+            );
 
             if (error.response?.data?.errors) {
-
-                const errors =
-                    error.response.data.errors;
-
-                setError(
-                    Object.values(errors)
+                const validationErrors =
+                    Object.values(
+                        error.response.data.errors
+                    )
                         .flat()
-                        .join(" ")
-                );
+                        .join(" ");
+
+                setError(validationErrors);
 
             } else {
-
                 setError(
                     error.response?.data?.message ||
                     "Failed to change password."
@@ -83,66 +72,64 @@ const ChangePassword = () => {
             }
 
         } finally {
-
             setSaving(false);
         }
     };
 
     return (
-        <div
-            style={{
-                maxWidth: "500px",
-                margin: "40px auto",
-                padding: "25px",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-            }}
-        >
+        <div className="management-form-page">
 
-            <h1>Change Password</h1>
+            <div className="page-header">
 
-            <p>
-                Change password for user ID: {id}
-            </p>
+                <div className="page-header-info">
+
+                    <h1 className="page-header-title">
+                        Change Password
+                    </h1>
+
+                    <p className="page-header-description">
+                        Update your account password.
+                    </p>
+
+                </div>
+
+            </div>
 
             {error && (
-                <p style={{ color: "red" }}>
+                <div className="management-form-error">
                     {error}
-                </p>
+                </div>
             )}
 
             {success && (
-                <p style={{ color: "green" }}>
+                <div className="management-form-success">
                     {success}
-                </p>
+                </div>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form
+                className="management-form"
+                onSubmit={handleSubmit}
+            >
 
                 {/* New Password */}
 
-                <div style={{ marginBottom: "20px" }}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="password">
                         New Password
                     </label>
 
-                    <br />
-
                     <input
+                        id="password"
                         type="password"
                         value={password}
                         onChange={(e) =>
-                            setPassword(
-                                e.target.value
-                            )
+                            setPassword(e.target.value)
                         }
                         placeholder="Enter new password"
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                            marginTop: "5px",
-                        }}
+                        minLength={8}
+                        disabled={saving}
                         required
                     />
 
@@ -151,59 +138,56 @@ const ChangePassword = () => {
 
                 {/* Confirm Password */}
 
-                <div style={{ marginBottom: "20px" }}>
+                <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="password_confirmation">
                         Confirm New Password
                     </label>
 
-                    <br />
-
                     <input
+                        id="password_confirmation"
                         type="password"
-                        value={
-                            passwordConfirmation
-                        }
+                        value={passwordConfirmation}
                         onChange={(e) =>
                             setPasswordConfirmation(
                                 e.target.value
                             )
                         }
                         placeholder="Confirm new password"
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                            marginTop: "5px",
-                        }}
+                        minLength={8}
+                        disabled={saving}
                         required
                     />
 
                 </div>
 
 
-                {/* Buttons */}
+                {/* Actions */}
 
-                <button
-                    type="submit"
-                    disabled={saving}
-                >
-                    {saving
-                        ? "Updating..."
-                        : "Update Password"}
-                </button>
+                <div className="management-form-actions">
 
-                {" "}
+                    <button
+                        type="submit"
+                        className="management-btn-primary"
+                        disabled={saving}
+                    >
+                        {saving
+                            ? "Updating..."
+                            : "Update Password"}
+                    </button>
 
-                <button
-                    type="button"
-                    onClick={() =>
-                        navigate(
-                            `/management/users/${id}/edit`
-                        )
-                    }
-                >
-                    Back to Edit
-                </button>
+                    <button
+                        type="button"
+                        className="management-btn-secondary"
+                        onClick={() =>
+                            navigate("/management")
+                        }
+                        disabled={saving}
+                    >
+                        Cancel
+                    </button>
+
+                </div>
 
             </form>
 

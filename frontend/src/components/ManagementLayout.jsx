@@ -43,6 +43,8 @@ const ManagementLayout = () => {
             ],
         },
 
+      
+
 
         // ==========================================================
         // Admin + HR
@@ -112,9 +114,7 @@ const ManagementLayout = () => {
         },
 
 
-        // ==========================================================
-        // Employee
-        // ==========================================================
+      
 
         // ==========================================================
         // Employee
@@ -123,12 +123,14 @@ const ManagementLayout = () => {
         {
             label: "Create Evaluation",
             path: "/management/employee/evaluations/create",
+            end: true,
             roles: ["Employee"],
         },
 
         {
             label: "My Evaluations",
             path: "/management/employee/evaluations",
+            end: true,
             roles: ["Employee"],
         },
 
@@ -143,6 +145,18 @@ const ManagementLayout = () => {
             roles: [
                 "Manager",
                 // "HR",
+            ],
+        },
+
+          {
+            label: "Change Password",
+            path: "/management/change-password",
+            end: true,
+            roles: [
+                "Admin",
+                "HR",
+                "Manager",
+                "Employee",
             ],
         },
 

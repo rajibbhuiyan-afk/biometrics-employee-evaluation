@@ -266,14 +266,7 @@ const CreateEvaluationQuestion = () => {
                         <option value="rating">
                             Rating
                         </option>
-
-                        <option value="text">
-                            Text
-                        </option>
-
-                        <option value="yes_no">
-                            Yes / No
-                        </option>
+                        
                     </select>
 
                 </div>

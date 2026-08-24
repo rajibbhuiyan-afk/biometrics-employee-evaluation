@@ -372,30 +372,29 @@ class UserController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        public function changePassword(
-            Request $request,
-            User $user
-        ): JsonResponse {
+      public function changePassword(Request $request): JsonResponse
+{
+    $validated = $request->validate([
+        'password' => [
+            'required',
+            'string',
+            'min:8',
+            'confirmed',
+        ],
+    ]);
 
-            $validated = $request->validate([
-                'password' => [
-                    'required',
-                    'string',
-                    'min:8',
-                    'confirmed',
-                ],
-            ]);
+    $user = $request->user();
 
-            $user->update([
-                'password' => Hash::make(
-                    $validated['password']
-                ),
-            ]);
+    $user->update([
+        'password' => Hash::make(
+            $validated['password']
+        ),
+    ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'User password changed successfully.',
-            ]);
-        }
+    return response()->json([
+        'success' => true,
+        'message' => 'Password changed successfully.',
+    ]);
+}
 
 }

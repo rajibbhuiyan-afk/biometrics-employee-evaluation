@@ -50,6 +50,11 @@ Route::middleware('auth:sanctum')->group(function () {
         [EvaluationPeriodController::class, 'active']
     );
 
+   Route::post(
+        '/change-password',
+        [UserController::class, 'changePassword']
+    );
+
 
     // ======================================
     // ADMIN ONLY
@@ -84,10 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
             'users',
             UserController::class
         );
-        Route::post(
-            '/users/{user}/change-password',
-            [UserController::class, 'changePassword']
-        );
+       
         // Departments
         Route::apiResource(
             'departments',

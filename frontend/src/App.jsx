@@ -238,7 +238,7 @@ function App() {
                     />
 
                     <Route
-                        path="users/:id/change-password"
+                        path="change-password"
                         element={<ChangePassword />}
                     />
 
