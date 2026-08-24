@@ -31,19 +31,35 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Get managers for user assignment.
+     */
+    public function managers(): JsonResponse
+    {
+        $managers = User::with('role')
+            ->where('status', true)
+            ->orderBy('name')
+            ->get([
+                'id',
+                'employee_id',
+                'name',
+                'email',
+                'role_id',
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $managers,
+        ]);
+    }
+
 
     /**
      * Store a newly created user.
      */
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'employee_id' => [
-                'required',
-                'string',
-                'max:50',
-                'unique:users,employee_id',
-            ],
+        $validated = $request->validate([            
 
             'name' => [
                 'required',
@@ -100,30 +116,45 @@ class UserController extends Controller
             ],
         ]);
 
+        $lastEmployee = User::orderByDesc('id')->first();
+
+        $nextNumber = $lastEmployee
+            ? $lastEmployee->id + 1
+            : 1;
+
+        $employeeId = 'EMP-' . str_pad(
+            $nextNumber,
+            4,
+            '0',
+            STR_PAD_LEFT
+        );
+
+        $validated['employee_id'] = $employeeId;
+
         /*
         |--------------------------------------------------------------------------
         | Validate Manager
         |--------------------------------------------------------------------------
         */
 
-        if (!empty($validated['manager_id'])) {
+        // if (!empty($validated['manager_id'])) {
 
-            $manager = User::with('role')->find(
-                $validated['manager_id']
-            );
+        //     $manager = User::with('role')->find(
+        //         $validated['manager_id']
+        //     );
 
-            if (
-                !$manager ||
-                !$manager->role ||
-                $manager->role->name !== 'Manager'
-            ) {
+        //     if (
+        //         !$manager ||
+        //         !$manager->role ||
+        //         $manager->role->name !== 'Manager'
+        //     ) {
 
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Selected user is not a Manager.',
-                ], 422);
-            }
-        }
+        //         return response()->json([
+        //             'success' => false,
+        //             'message' => 'Selected user is not a Manager.',
+        //         ], 422);
+        //     }
+        // }
 
         /*
         |--------------------------------------------------------------------------
@@ -188,6 +219,7 @@ class UserController extends Controller
     }
 
 
+        
     /**
      * Update the specified user.
      */
@@ -197,13 +229,6 @@ class UserController extends Controller
     ): JsonResponse {
 
         $validated = $request->validate([
-            'employee_id' => [
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('users', 'employee_id')
-                    ->ignore($user->id),
-            ],
 
             'name' => [
                 'required',
@@ -218,13 +243,6 @@ class UserController extends Controller
                 Rule::unique('users', 'email')
                     ->ignore($user->id),
             ],
-
-            // 'password' => [
-            //     'nullable',
-            //     'string',
-            //     'min:8',
-            //     'confirmed',
-            // ],
 
             'role_id' => [
                 'required',
@@ -244,6 +262,16 @@ class UserController extends Controller
                 'exists:positions,id',
             ],
 
+            /*
+            |--------------------------------------------------------------------------
+            | Reporting Person
+            |--------------------------------------------------------------------------
+            |
+            | Any user can be selected as reporting person.
+            | The user cannot report to himself/herself.
+            |
+            */
+
             'manager_id' => [
                 'nullable',
                 'integer',
@@ -255,53 +283,13 @@ class UserController extends Controller
                 'nullable',
                 'boolean',
             ],
+
             'joining_date' => [
                 'nullable',
                 'date',
             ],
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Validate selected manager
-        |--------------------------------------------------------------------------
-        */
-
-        if (!empty($validated['manager_id'])) {
-
-            $manager = User::with('role')->find(
-                $validated['manager_id']
-            );
-
-            if (
-                !$manager ||
-                !$manager->role ||
-                $manager->role->name !== 'Manager'
-            ) {
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Selected user is not a Manager.',
-                ], 422);
-            }
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Password
-        |--------------------------------------------------------------------------
-        */
-
-        if (!empty($validated['password'])) {
-
-            $validated['password'] = Hash::make(
-                $validated['password']
-            );
-
-        } else {
-
-            unset($validated['password']);
-        }
 
         /*
         |--------------------------------------------------------------------------
@@ -310,6 +298,13 @@ class UserController extends Controller
         */
 
         $user->update($validated);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Response
+        |--------------------------------------------------------------------------
+        */
 
         return response()->json([
             'success' => true,
@@ -322,6 +317,7 @@ class UserController extends Controller
             ]),
         ]);
     }
+
 
 
     /**

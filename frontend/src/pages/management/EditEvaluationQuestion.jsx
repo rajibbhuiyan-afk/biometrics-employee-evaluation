@@ -429,12 +429,15 @@ const EditEvaluationQuestion = () => {
 
                 </div>
 
+                
+
                 {/* Actions */}
 
                 <div className="management-form-actions">
 
                     <button
                         type="submit"
+                        className="management-btn-primary"
                         disabled={saving}
                     >
                         {saving
@@ -444,6 +447,7 @@ const EditEvaluationQuestion = () => {
 
                     <button
                         type="button"
+                        className="management-btn-secondary"
                         onClick={() =>
                             navigate(
                                 "/management/evaluation-questions"

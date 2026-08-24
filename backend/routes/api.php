@@ -79,6 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
             RoleController::class
         );
          // Users
+        Route::get('/users/managers', [UserController::class, 'managers']);
         Route::apiResource(
             'users',
             UserController::class
