@@ -1168,7 +1168,908 @@
     color: #08060d;
 }
 
+/* =========================================================
+   EVALUATION DETAILS PAGE
+   ========================================================= */
 
+
+/* =========================================================
+   Summary Card
+   ========================================================= */
+
+.evaluation-summary {
+    margin-bottom: 28px;
+    padding: 24px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+
+    box-sizing: border-box;
+}
+
+.evaluation-summary-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding-bottom: 20px;
+
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.evaluation-summary-label {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: #6b7280;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.evaluation-summary-header h2 {
+    margin: 0;
+
+    color: #111827;
+
+    font-size: 22px;
+    font-weight: 650;
+}
+
+
+/* =========================================================
+   Evaluation Status
+   ========================================================= */
+
+.evaluation-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 6px 12px;
+
+    border-radius: 999px;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    text-transform: capitalize;
+
+    white-space: nowrap;
+}
+
+.evaluation-status.draft {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.evaluation-status.submitted {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.evaluation-status.reviewed {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.evaluation-status.approved {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.evaluation-status.rejected {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.evaluation-status.returned {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+
+/* =========================================================
+   Summary Grid
+   ========================================================= */
+
+.evaluation-summary-grid {
+    display: grid;
+
+    grid-template-columns:
+        160px
+        160px
+        minmax(200px, 1fr);
+
+    gap: 20px;
+
+    padding-top: 20px;
+}
+
+.evaluation-summary-item {
+    display: flex;
+    flex-direction: column;
+
+    gap: 6px;
+}
+
+.evaluation-summary-item span {
+    color: #6b7280;
+
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.evaluation-summary-item strong {
+    color: #111827;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   Evaluation Section
+   ========================================================= */
+
+.evaluation-section {
+    margin-bottom: 28px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+
+    overflow: hidden;
+}
+
+.evaluation-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 22px 24px;
+
+    background: #f9fafb;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.evaluation-section-header h2 {
+    margin: 0;
+
+    color: #111827;
+
+    font-size: 20px;
+    font-weight: 650;
+}
+
+.evaluation-section-header p {
+    margin: 6px 0 0;
+
+    color: #6b7280;
+
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.evaluation-question-count {
+    flex-shrink: 0;
+
+    padding: 6px 11px;
+
+    background: #eff6ff;
+
+    border: 1px solid #dbeafe;
+    border-radius: 999px;
+
+    color: #1d4ed8;
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   Question List
+   ========================================================= */
+
+.evaluation-question-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 16px;
+
+    padding: 20px;
+}
+
+
+/* =========================================================
+   Question Card
+   ========================================================= */
+
+.evaluation-question-card {
+    padding: 22px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.evaluation-question-card:hover {
+    border-color: #d1d5db;
+
+    box-shadow:
+        0 3px 12px rgba(0, 0, 0, 0.04);
+}
+
+
+/* =========================================================
+   Question Header
+   ========================================================= */
+
+.evaluation-question-header {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 12px;
+
+    margin-bottom: 22px;
+}
+
+.evaluation-question-number {
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 30px;
+    height: 30px;
+
+    border-radius: 7px;
+
+    background: #eff6ff;
+
+    color: #2563eb;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.evaluation-question-title {
+    padding-top: 3px;
+
+    color: #111827;
+
+    font-size: 15px;
+    font-weight: 600;
+
+    line-height: 1.6;
+}
+
+
+/* =========================================================
+   Question Form
+   ========================================================= */
+
+.evaluation-question-card
+.management-form-field {
+    margin-bottom: 18px;
+}
+
+.evaluation-question-card
+.management-form-field:last-child {
+    margin-bottom: 0;
+}
+
+.evaluation-question-card
+.management-form-field textarea {
+    min-height: 120px;
+
+    resize: vertical;
+
+    line-height: 1.6;
+}
+
+.evaluation-question-card
+.management-form-field select {
+    max-width: 360px;
+
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   Disabled Fields
+   ========================================================= */
+
+.evaluation-question-card
+.management-form-field textarea:disabled,
+.evaluation-question-card
+.management-form-field select:disabled {
+    background: #f9fafb;
+
+    color: #6b7280;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   Action Area
+   ========================================================= */
+
+.evaluation-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    margin-top: 24px;
+
+    padding-top: 20px;
+
+    border-top: 1px solid #e5e7eb;
+
+    flex-wrap: wrap;
+}
+
+
+/* =========================================================
+   Save Button
+   ========================================================= */
+
+.evaluation-save-button {
+    padding: 10px 18px;
+
+    border: 1px solid #2563eb;
+    border-radius: 7px;
+
+    background: #ffffff;
+    color: #2563eb;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+.evaluation-save-button:hover:not(:disabled) {
+    background: #eff6ff;
+}
+
+
+/* =========================================================
+   Submit Button
+   ========================================================= */
+
+.evaluation-submit-button {
+    padding: 10px 18px;
+
+    border: 1px solid #2563eb;
+    border-radius: 7px;
+
+    background: #2563eb;
+    color: #ffffff;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.evaluation-submit-button:hover:not(:disabled) {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+}
+
+
+/* =========================================================
+   Back Button
+   ========================================================= */
+
+.evaluation-back-button {
+    padding: 10px 18px;
+
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+
+    background: #ffffff;
+    color: #374151;
+
+    font-size: 14px;
+    font-weight: 500;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.evaluation-back-button:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #9ca3af;
+}
+
+
+/* =========================================================
+   Locked Message
+   ========================================================= */
+
+.evaluation-locked-message {
+    padding: 10px 14px;
+
+    background: #f9fafb;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 7px;
+
+    color: #6b7280;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   Disabled Buttons
+   ========================================================= */
+
+.evaluation-save-button:disabled,
+.evaluation-submit-button:disabled,
+.evaluation-back-button:disabled {
+    opacity: 0.6;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+    .evaluation-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .evaluation-summary {
+        padding: 18px;
+    }
+
+    .evaluation-summary-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .evaluation-summary-header h2 {
+        font-size: 19px;
+    }
+
+    .evaluation-summary-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .evaluation-section-header {
+        align-items: flex-start;
+        flex-direction: column;
+
+        padding: 18px;
+    }
+
+    .evaluation-question-list {
+        padding: 12px;
+    }
+
+    .evaluation-question-card {
+        padding: 17px;
+    }
+
+    .evaluation-question-title {
+        font-size: 14px;
+    }
+
+    .evaluation-question-card
+    .management-form-field select {
+        max-width: 100%;
+    }
+
+    .evaluation-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .evaluation-save-button,
+    .evaluation-submit-button,
+    .evaluation-back-button {
+        width: 100%;
+    }
+
+}
+
+/* =========================================================
+   Evaluation Review
+========================================================= */
+
+.management-form-section {
+    width: 100%;
+    margin-bottom: 24px;
+
+    padding: 24px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+
+    box-sizing: border-box;
+}
+
+.management-form-section-header {
+    margin-bottom: 22px;
+
+    padding-bottom: 16px;
+
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.management-form-section-header h2 {
+    margin: 0;
+
+    color: #111827;
+
+    font-size: 18px;
+    font-weight: 650;
+}
+
+.management-form-section-header p {
+    margin: 7px 0 0;
+
+    color: #6b7280;
+
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   Information Grid
+========================================================= */
+
+.management-form-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 18px;
+}
+
+.management-form-info {
+    display: flex;
+    flex-direction: column;
+
+    gap: 6px;
+
+    padding: 14px 16px;
+
+    background: #f8fafc;
+
+    border: 1px solid #eef2f7;
+    border-radius: 8px;
+}
+
+.management-form-info-label {
+    color: #6b7280;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.management-form-info-value {
+    color: #111827;
+
+    font-size: 14px;
+    font-weight: 500;
+
+    word-break: break-word;
+}
+
+
+/* =========================================================
+   Employee Comment
+========================================================= */
+
+.evaluation-review-comment {
+    padding: 16px 18px;
+
+    background: #f8fafc;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+
+    color: #4b5563;
+
+    font-size: 14px;
+    line-height: 1.7;
+
+    white-space: pre-line;
+}
+
+
+/* =========================================================
+   Review Questions
+========================================================= */
+
+.evaluation-review-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 16px;
+}
+
+.evaluation-review-card {
+    padding: 20px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.evaluation-review-card:hover {
+    border-color: #d1d5db;
+
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.evaluation-review-question {
+    display: flex;
+    gap: 10px;
+
+    margin-bottom: 18px;
+
+    color: #111827;
+
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.evaluation-review-question > span {
+    flex-shrink: 0;
+
+    color: #2563eb;
+
+    font-weight: 700;
+}
+
+.evaluation-review-answer {
+    margin-top: 15px;
+}
+
+.evaluation-review-answer p {
+    margin: 7px 0 0;
+
+    padding: 13px 15px;
+
+    background: #f8fafc;
+
+    border: 1px solid #f1f5f9;
+    border-radius: 7px;
+
+    color: #4b5563;
+
+    font-size: 14px;
+    line-height: 1.7;
+
+    white-space: pre-line;
+}
+
+.evaluation-review-label {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: #6b7280;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.evaluation-review-rating {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    margin-top: 16px;
+}
+
+
+/* =========================================================
+   Review History
+========================================================= */
+
+.evaluation-review-history {
+    display: flex;
+    flex-direction: column;
+
+    gap: 14px;
+}
+
+.evaluation-history-card {
+    padding: 18px;
+
+    background: #f8fafc;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.evaluation-history-header {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    margin-bottom: 15px;
+}
+
+.evaluation-history-comment {
+    margin-bottom: 14px;
+}
+
+.evaluation-history-comment p {
+    margin: 6px 0 0;
+
+    color: #4b5563;
+
+    font-size: 14px;
+    line-height: 1.6;
+
+    white-space: pre-line;
+}
+
+.evaluation-history-date {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    color: #6b7280;
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   Form Improvements
+========================================================= */
+
+.management-form-section .management-form {
+    max-width: 800px;
+}
+
+.management-form-section
+.management-form-field {
+    margin-bottom: 20px;
+}
+
+.management-form-section
+.management-form-field label {
+    color: #374151;
+
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.management-form-section
+.management-form-field select,
+.management-form-section
+.management-form-field textarea {
+    background: #ffffff;
+}
+
+.management-form-section
+.management-form-field textarea {
+    min-height: 130px;
+
+    resize: vertical;
+
+    line-height: 1.6;
+}
+
+
+/* =========================================================
+   Responsive
+========================================================= */
+
+@media (max-width: 768px) {
+
+    .management-form-section {
+        padding: 18px;
+    }
+
+    .management-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .evaluation-review-rating {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .evaluation-history-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .management-form-section {
+        padding: 16px;
+    }
+
+    .evaluation-review-card {
+        padding: 16px;
+    }
+
+    .management-form-actions {
+        flex-wrap: wrap;
+    }
+
+    .management-form-actions button {
+        width: 100%;
+    }
+
+}
 
 
 

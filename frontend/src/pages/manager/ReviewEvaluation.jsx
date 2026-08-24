@@ -2,10 +2,16 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
+import { formatDateTime } from "../../utils/dateUtils";
 
 const ReviewEvaluation = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
+
+    // ==========================================================
+    // State
+    // ==========================================================
 
     const [evaluation, setEvaluation] = useState(null);
     const [answers, setAnswers] = useState([]);
@@ -19,7 +25,22 @@ const ReviewEvaluation = () => {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
-    const { user } = useAuth();
+    // ==========================================================
+    // Back Navigation
+    // ==========================================================
+
+    const handleBack = () => {
+        if (user?.role?.name === "HR") {
+            navigate("/management");
+            return;
+        }
+
+        navigate("/management/manager/reviews");
+    };
+
+    // ==========================================================
+    // Fetch Evaluation
+    // ==========================================================
 
     useEffect(() => {
         if (id) {
@@ -32,77 +53,124 @@ const ReviewEvaluation = () => {
             setLoading(true);
             setError("");
 
-            const response = await api.get(`/evaluations/${id}`);
+            const response = await api.get(
+                `/evaluations/${id}`
+            );
 
-            console.log("Evaluation Details:", response.data);
+            console.log(
+                "Evaluation Details:",
+                response.data
+            );
 
-            if (response.data.success) {
-                const data = response.data.data;
+            if (!response.data.success) {
+                setEvaluation(null);
+                setAnswers([]);
 
-                setEvaluation(data);
-                setAnswers(data.answers || []);
-
-                // Existing manager review থাকলে
-                if (data.reviews && data.reviews.length > 0) {
-                    const latestReview =
-                        data.reviews[data.reviews.length - 1];
-
-                    setRating(
-                        latestReview.rating
-                            ? String(latestReview.rating)
-                            : ""
-                    );
-
-                    setComment(
-                        latestReview.comment || ""
-                    );
-                }
-            } else {
                 setError(
                     response.data.message ||
                     "Failed to load evaluation."
                 );
+
+                return;
             }
+
+            const data = response.data.data;
+
+            if (!data) {
+                setEvaluation(null);
+                setAnswers([]);
+
+                setError(
+                    "Evaluation not found."
+                );
+
+                return;
+            }
+
+            setEvaluation(data);
+            setAnswers(data.answers || []);
+
+            // Existing review
+            if (
+                data.reviews &&
+                data.reviews.length > 0
+            ) {
+                const latestReview =
+                    data.reviews[
+                        data.reviews.length - 1
+                    ];
+
+                setRating(
+                    latestReview.rating !== null &&
+                    latestReview.rating !== undefined
+                        ? String(latestReview.rating)
+                        : ""
+                );
+
+                setComment(
+                    latestReview.comment || ""
+                );
+            } else {
+                setRating("");
+                setComment("");
+            }
+
         } catch (error) {
-            console.error("Fetch evaluation error:", error);
+            console.error(
+                "Fetch evaluation error:",
+                error
+            );
+
+            setEvaluation(null);
+            setAnswers([]);
 
             setError(
                 error.response?.data?.message ||
                 "Failed to load evaluation."
             );
+
         } finally {
             setLoading(false);
         }
     };
+
+    // ==========================================================
+    // Review Action
+    // ==========================================================
+
     const handleReviewAction = async (action) => {
+        // Clear previous messages
+        setError("");
+        setSuccess("");
 
-        console.log("ACTION:", action);
-        console.log("EVALUATION ID:", id);
-        console.log("RATING:", rating);
-        console.log("COMMENT:", comment);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Validate Rating & Comment
-        |--------------------------------------------------------------------------
-        */
-
+        // Validate rating
         if (!rating) {
-            setError("Please select a rating.");
+            setError(
+                "Please select a rating."
+            );
+
             return;
         }
 
+        // Validate comment
         if (!comment.trim()) {
-            setError("Please enter a comment.");
+            setError(
+                "Please enter a comment."
+            );
+
             return;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Confirmation
-        |--------------------------------------------------------------------------
-        */
+        // Check logged-in user
+        if (!user?.id) {
+            setError(
+                "Logged-in user information not found."
+            );
 
+            return;
+        }
+
+        // Confirmation
         const confirmed = window.confirm(
             `Are you sure you want to ${action} this evaluation?`
         );
@@ -113,25 +181,14 @@ const ReviewEvaluation = () => {
 
         try {
             setActionLoading(true);
-            setError("");
-            setSuccess("");
-
-            if (!user?.id) {
-                setError("Logged-in user information not found.");
-                return;
-            }
-
-            const reviewerId = user.id;
-
-            console.log("Reviewer ID:", reviewerId);
 
             const response = await api.post(
                 "/evaluation-reviews",
                 {
                     evaluation_id: Number(id),
-                    reviewer_id: reviewerId,
+                    reviewer_id: user.id,
                     rating: Number(rating),
-                    comment: comment,
+                    comment: comment.trim(),
                     action: action,
                 }
             );
@@ -147,10 +204,17 @@ const ReviewEvaluation = () => {
                     `Evaluation ${action} successfully.`
                 );
 
+                // Reload evaluation
                 await fetchEvaluation();
 
+                // Clear form
                 setRating("");
                 setComment("");
+            } else {
+                setError(
+                    response.data.message ||
+                    "Failed to process evaluation."
+                );
             }
 
         } catch (error) {
@@ -173,488 +237,945 @@ const ReviewEvaluation = () => {
             setActionLoading(false);
         }
     };
+
+    // ==========================================================
+    // Loading State
+    // ==========================================================
+
     if (loading) {
         return (
-            <div style={{ padding: "30px" }}>
-                <h2>Loading Evaluation...</h2>
+            <div className="management-page">
+
+                <div className="page-header">
+
+                    <div className="page-header-info">
+
+                        <h1 className="page-header-title">
+                            Review Evaluation
+                        </h1>
+
+                        <p className="page-header-description">
+                            Loading employee evaluation...
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div className="data-table-container">
+
+                    <div className="data-table-empty">
+
+                        <div className="data-table-empty-title">
+                            Loading Evaluation...
+                        </div>
+
+                        <div className="data-table-empty-message">
+                            Please wait while the evaluation
+                            details are being loaded.
+                        </div>
+
+                    </div>
+
+                </div>
+
             </div>
         );
     }
+
+    // ==========================================================
+    // Error State
+    // ==========================================================
 
     if (error && !evaluation) {
         return (
-            <div style={{ padding: "30px" }}>
-                <p style={{ color: "red" }}>
-                    {error}
-                </p>
+            <div className="management-page">
 
-                <button onClick={handleBack}>
-                    {user?.role?.name === "HR"
-                        ? "Back to HR Dashboard"
-                        : "Back to Manager Dashboard"}
-                </button>
+                <div className="page-header">
+
+                    <div className="page-header-info">
+
+                        <h1 className="page-header-title">
+                            Review Evaluation
+                        </h1>
+
+                        <p className="page-header-description">
+                            Unable to load the requested
+                            evaluation.
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div className="management-form-error">
+                    {error}
+                </div>
+
+                <div className="management-form-actions">
+
+                    <button
+                        type="button"
+                        className="management-btn-secondary"
+                        onClick={handleBack}
+                    >
+                        Back to Dashboard
+                    </button>
+
+                </div>
+
             </div>
         );
     }
+
+    // ==========================================================
+    // Evaluation Not Found
+    // ==========================================================
 
     if (!evaluation) {
         return (
-            <div style={{ padding: "30px" }}>
-                <p>Evaluation not found.</p>
+            <div className="management-page">
 
-                <button onClick={handleBack}>
-                    {user?.role?.name === "HR"
-                        ? "Back to HR Dashboard"
-                        : "Back to Manager Dashboard"}
-                </button>
+                <div className="page-header">
+
+                    <div className="page-header-info">
+
+                        <h1 className="page-header-title">
+                            Review Evaluation
+                        </h1>
+
+                        <p className="page-header-description">
+                            Evaluation details
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div className="data-table-container">
+
+                    <div className="data-table-empty">
+
+                        <div className="data-table-empty-title">
+                            Evaluation Not Found
+                        </div>
+
+                        <div className="data-table-empty-message">
+                            The requested evaluation could
+                            not be found or is not available
+                            for review.
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div className="management-form-actions">
+
+                    <button
+                        type="button"
+                        className="management-btn-secondary"
+                        onClick={handleBack}
+                    >
+                        Back to Dashboard
+                    </button>
+
+                </div>
+
             </div>
         );
     }
 
+    // ==========================================================
+    // Evaluation Data
+    // ==========================================================
+
     const employee = evaluation.employee;
+
     const evaluationPeriod =
         evaluation.evaluation_period;
 
-    const handleBack = () => {
-        if (user?.role?.name === "HR") {
-            navigate("/hr/dashboard");
-            return;
-        }
-
-        navigate("/manager/dashboard");
-    };
+    // ==========================================================
+    // Page
+    // ==========================================================
 
     return (
-        <div
-            style={{
-                maxWidth: "1000px",
-                margin: "0 auto",
-                padding: "30px",
-            }}
-        >
-            <h1>Review Evaluation</h1>
+        <div className="management-page">
+
+            {/* ==================================================
+                Page Header
+            ================================================== */}
+
+            <div className="page-header">
+
+                <div className="page-header-info">
+
+                    <h1 className="page-header-title">
+                        Review Evaluation
+                    </h1>
+
+                    <p className="page-header-description">
+                        Review the employee's self-evaluation
+                        and provide your assessment.
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    className="page-header-button"
+                    onClick={handleBack}
+                >
+                    Back
+                </button>
+
+            </div>
+
+
+            {/* ==================================================
+                Messages
+            ================================================== */}
 
             {error && (
-                <div
-                    style={{
-                        color: "red",
-                        background: "#ffe5e5",
-                        padding: "10px",
-                        marginBottom: "20px",
-                    }}
-                >
+                <div className="management-form-error">
                     {error}
                 </div>
             )}
 
             {success && (
-                <div
-                    style={{
-                        color: "green",
-                        background: "#e5ffe5",
-                        padding: "10px",
-                        marginBottom: "20px",
-                    }}
-                >
+                <div className="management-form-success">
                     {success}
                 </div>
             )}
 
-            <hr />
-
-            {/* Evaluation Information */}
-
-            <h2>
-                {evaluationPeriod?.name ||
-                    "Evaluation Period"}
-            </h2>
-
-            <p>
-                <strong>Evaluation ID:</strong>{" "}
-                {evaluation.id}
-            </p>
-
-            <p>
-                <strong>Employee:</strong>{" "}
-                {employee?.name || "N/A"}
-            </p>
-
-            <p>
-                <strong>Employee ID:</strong>{" "}
-                {employee?.employee_id || "N/A"}
-            </p>
-
-            <p>
-                <strong>Email:</strong>{" "}
-                {employee?.email || "N/A"}
-            </p>
-
-            <p>
-                <strong>Department:</strong>{" "}
-                {employee?.department?.name || "N/A"}
-            </p>
-
-            <p>
-                <strong>Position:</strong>{" "}
-                {employee?.position?.title || "N/A"}
-            </p>
-
-            <p>
-                <strong>Status:</strong>{" "}
-                {evaluation.status}
-            </p>
-
-            <p>
-                <strong>Employee Comment:</strong>
-            </p>
-
-            <div
-                style={{
-                    padding: "15px",
-                    background: "#f5f5f5",
-                    border: "1px solid #ddd",
-                    marginBottom: "30px",
-                }}
-            >
-                {evaluation.employee_comment ||
-                    "No comment provided."}
-            </div>
-
-            <hr />
-
-            {/* Evaluation Questions */}
-
-            <h2>Evaluation Questions</h2>
-
-            {answers.length === 0 ? (
-                <p>No questions/answers found.</p>
-            ) : (
-                answers.map((item, index) => (
-                    <div
-                        key={item.id || index}
-                        style={{
-                            marginBottom: "20px",
-                            padding: "15px",
-                            border: "1px solid #ddd",
-                            borderRadius: "5px",
-                        }}
-                    >
-                        <p>
-                            <strong>
-                                {index + 1}.{" "}
-                                {item.question?.question ||
-                                    "Question not found"}
-                            </strong>
-                        </p>
-
-                        <p>
-                            <strong>
-                                Employee Answer:
-                            </strong>{" "}
-                            {item.answer ||
-                                "No answer"}
-                        </p>
-
-                        <p>
-                            <strong>
-                                Employee Rating:
-                            </strong>{" "}
-                            {item.rating !== null &&
-                            item.rating !== undefined
-                                ? item.rating
-                                : "Not provided"}
-                        </p>
-
-                        {item.comment && (
-                            <p>
-                                <strong>
-                                    Employee Comment:
-                                </strong>{" "}
-                                {item.comment}
-                            </p>
-                        )}
-                    </div>
-                ))
-            )}
-
-            <hr />
-
-            {/* Existing Reviews */}
-
-            <h2>Manager Review History</h2>
-
-            {evaluation.reviews &&
-            evaluation.reviews.length > 0 ? (
-                evaluation.reviews.map((review) => (
-                    <div
-                        key={review.id}
-                        style={{
-                            padding: "15px",
-                            border: "1px solid #ddd",
-                            marginBottom: "15px",
-                        }}
-                    >
-                        <p>
-                            <strong>
-                                Rating:
-                            </strong>{" "}
-                            {review.rating}
-                        </p>
-
-                        <p>
-                            <strong>
-                                Comment:
-                            </strong>{" "}
-                            {review.comment}
-                        </p>
-
-                        <p>
-                            <strong>
-                                Action:
-                            </strong>{" "}
-                            {review.action}
-                        </p>
-
-                        <p>
-                            <strong>
-                                Reviewed At:
-                            </strong>{" "}
-                            {review.reviewed_at}
-                        </p>
-                    </div>
-                ))
-            ) : (
-                <p>No reviews yet.</p>
-            )}
-
-            <hr />
 
             {/* ==================================================
-                FIRST REVIEW
+                Evaluation Information
+            ================================================== */}
+
+            <div className="management-form-section">
+
+                <div className="management-form-section-header">
+
+                    <h2>
+                        Evaluation Information
+                    </h2>
+
+                    <p>
+                        Basic information about this employee
+                        evaluation.
+                    </p>
+
+                </div>
+
+
+                <div className="management-form-grid">
+
+                    <div className="management-form-info">
+
+                        <span className="management-form-info-label">
+                            Evaluation ID
+                        </span>
+
+                        <span className="management-form-info-value">
+                            #{evaluation.id}
+                        </span>
+
+                    </div>
+
+
+                    <div className="management-form-info">
+
+                        <span className="management-form-info-label">
+                            Evaluation Period
+                        </span>
+
+                        <span className="management-form-info-value">
+                            {evaluationPeriod?.name || "-"}
+                        </span>
+
+                    </div>
+
+
+                    <div className="management-form-info">
+
+                        <span className="management-form-info-label">
+                            Status
+                        </span>
+
+                        <span className="management-form-info-value">
+
+                            <span
+                                className={`status-badge ${
+                                    evaluation.status ===
+                                    "submitted"
+                                        ? "status-active"
+                                        : evaluation.status ===
+                                          "approved"
+                                        ? "status-completed"
+                                        : evaluation.status ===
+                                          "rejected"
+                                        ? "status-inactive"
+                                        : "status-extended"
+                                }`}
+                            >
+                                {evaluation.status}
+                            </span>
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                Employee Information
+            ================================================== */}
+
+            <div className="management-form-section">
+
+                <div className="management-form-section-header">
+
+                    <h2>
+                        Employee Information
+                    </h2>
+
+                    <p>
+                        Information about the employee who
+                        submitted this evaluation.
+                    </p>
+
+                </div>
+
+
+                <div className="management-form-grid">
+
+                    <div className="management-form-info">
+
+                        <span className="management-form-info-label">
+                            Employee Name
+                        </span>
+
+                        <span className="management-form-info-value">
+                            {employee?.name || "N/A"}
+                        </span>
+
+                    </div>
+
+
+                    <div className="management-form-info">
+
+                        <span className="management-form-info-label">
+                            Employee ID
+                        </span>
+
+                        <span className="management-form-info-value">
+                            {employee?.employee_id || "N/A"}
+                        </span>
+
+                    </div>
+
+
+                    <div className="management-form-info">
+
+                        <span className="management-form-info-label">
+                            Email
+                        </span>
+
+                        <span className="management-form-info-value">
+                            {employee?.email || "N/A"}
+                        </span>
+
+                    </div>
+
+
+                    <div className="management-form-info">
+
+                        <span className="management-form-info-label">
+                            Department
+                        </span>
+
+                        <span className="management-form-info-value">
+                            {employee?.department?.name ||
+                                "N/A"}
+                        </span>
+
+                    </div>
+
+
+                    <div className="management-form-info">
+
+                        <span className="management-form-info-label">
+                            Position
+                        </span>
+
+                        <span className="management-form-info-value">
+                            {employee?.position?.title ||
+                                "N/A"}
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                Employee Comment
+            ================================================== */}
+
+            <div className="management-form-section">
+
+                <div className="management-form-section-header">
+
+                    <h2>
+                        Employee Comment
+                    </h2>
+
+                    <p>
+                        Comment provided by the employee.
+                    </p>
+
+                </div>
+
+                <div className="evaluation-review-comment">
+
+                    {evaluation.employee_comment ||
+                        "No comment provided."}
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                Employee Answers
+            ================================================== */}
+
+            <div className="management-form-section">
+
+                <div className="management-form-section-header">
+
+                    <h2>
+                        Evaluation Questions & Answers
+                    </h2>
+
+                    <p>
+                        Review the answers and ratings provided
+                        by the employee.
+                    </p>
+
+                </div>
+
+
+                {answers.length === 0 ? (
+
+                    <div className="data-table-empty">
+
+                        <div className="data-table-empty-title">
+                            No Answers Found
+                        </div>
+
+                        <div className="data-table-empty-message">
+                            The employee has not provided any
+                            answers yet.
+                        </div>
+
+                    </div>
+
+                ) : (
+
+                    <div className="evaluation-review-list">
+
+                        {answers.map(
+                            (item, index) => (
+
+                                <div
+                                    key={
+                                        item.id ||
+                                        index
+                                    }
+                                    className="evaluation-review-card"
+                                >
+
+                                    <div className="evaluation-review-question">
+
+                                        <span>
+                                            {index + 1}.
+                                        </span>
+
+                                        <strong>
+                                            {
+                                                item.question
+                                                    ?.question ||
+                                                "Question not found"
+                                            }
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div className="evaluation-review-answer">
+
+                                        <span className="evaluation-review-label">
+                                            Employee Answer
+                                        </span>
+
+                                        <p>
+                                            {item.answer ||
+                                                "No answer provided."}
+                                        </p>
+
+                                    </div>
+
+
+                                    <div className="evaluation-review-rating">
+
+                                        <span className="evaluation-review-label">
+                                            Employee Rating
+                                        </span>
+
+                                        <span className="status-badge status-active">
+                                            {item.rating !==
+                                                null &&
+                                            item.rating !==
+                                                undefined
+                                                ? `${item.rating} / 5`
+                                                : "Not provided"}
+                                        </span>
+
+                                    </div>
+
+
+                                    {item.comment && (
+
+                                        <div className="evaluation-review-answer">
+
+                                            <span className="evaluation-review-label">
+                                                Employee Comment
+                                            </span>
+
+                                            <p>
+                                                {item.comment}
+                                            </p>
+
+                                        </div>
+
+                                    )}
+
+                                </div>
+
+                            )
+                        )}
+
+                    </div>
+
+                )}
+
+            </div>
+
+
+            {/* ==================================================
+                Review History
+            ================================================== */}
+
+            <div className="management-form-section">
+
+                <div className="management-form-section-header">
+
+                    <h2>
+                        Manager Review History
+                    </h2>
+
+                    <p>
+                        Previous review actions for this
+                        evaluation.
+                    </p>
+
+                </div>
+
+
+                {evaluation.reviews &&
+                evaluation.reviews.length > 0 ? (
+
+                    <div className="evaluation-review-history">
+
+                        {evaluation.reviews.map(
+                            (review) => (
+
+                                <div
+                                    key={review.id}
+                                    className="evaluation-history-card"
+                                >
+
+                                    <div className="evaluation-history-header">
+
+                                        <span className="status-badge status-completed">
+                                            Rating:{" "}
+                                            {review.rating}
+                                            / 5
+                                        </span>
+
+                                        <span className="status-badge status-active">
+                                            {review.action}
+                                        </span>
+
+                                    </div>
+
+
+                                    <div className="evaluation-history-comment">
+
+                                        <span className="evaluation-review-label">
+                                            Comment
+                                        </span>
+
+                                        <p>
+                                            {review.comment ||
+                                                "-"}
+                                        </p>
+
+                                    </div>
+
+
+                                    <div className="evaluation-history-date">
+
+                                        <span className="evaluation-review-label">
+                                            Reviewed At
+                                        </span>
+
+                                        <span>
+                                            {formatDateTime(review.reviewed_at)}
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                            )
+                        )}
+
+                    </div>
+
+                ) : (
+
+                    <div className="data-table-empty">
+
+                        <div className="data-table-empty-title">
+                            No Reviews Yet
+                        </div>
+
+                        <div className="data-table-empty-message">
+                            This evaluation has not been
+                            reviewed yet.
+                        </div>
+
+                    </div>
+
+                )}
+
+            </div>
+
+
+            {/* ==================================================
+                Manager Review
             ================================================== */}
 
             {evaluation.status === "submitted" && (
-                <>
-                    <h2>Manager Review</h2>
 
-                    <div>
-                        <label>
-                            <strong>Rating:</strong>
-                        </label>
+                <div className="management-form-section">
 
-                        <br />
+                    <div className="management-form-section-header">
 
-                        <select
-                            value={rating}
-                            onChange={(e) =>
-                                setRating(
-                                    e.target.value
-                                )
-                            }
-                            disabled={actionLoading}
-                        >
-                            <option value="">
-                                Select Rating
-                            </option>
+                        <h2>
+                            Manager Review
+                        </h2>
 
-                            <option value="1">
-                                1 - Poor
-                            </option>
+                        <p>
+                            Provide your rating and comments
+                            before marking this evaluation as
+                            reviewed.
+                        </p>
 
-                            <option value="2">
-                                2 - Needs Improvement
-                            </option>
-
-                            <option value="3">
-                                3 - Meets Expectations
-                            </option>
-
-                            <option value="4">
-                                4 - Very Good
-                            </option>
-
-                            <option value="5">
-                                5 - Excellent
-                            </option>
-                        </select>
                     </div>
 
-                    <br />
 
-                    <div>
-                        <label>
-                            <strong>
-                                Comment:
-                            </strong>
-                        </label>
+                    <div className="management-form">
 
-                        <br />
+                        <div className="management-form-field">
 
-                        <textarea
-                            value={comment}
-                            onChange={(e) =>
-                                setComment(
-                                    e.target.value
-                                )
-                            }
-                            rows="5"
-                            cols="50"
-                            disabled={actionLoading}
-                            placeholder="Enter manager comment..."
-                        />
+                            <label htmlFor="manager-rating">
+                                Rating
+                            </label>
+
+                            <select
+                                id="manager-rating"
+                                value={rating}
+                                onChange={(e) =>
+                                    setRating(
+                                        e.target.value
+                                    )
+                                }
+                                disabled={
+                                    actionLoading
+                                }
+                            >
+
+                                <option value="">
+                                    Select Rating
+                                </option>
+
+                                <option value="1">
+                                    1 - Poor
+                                </option>
+
+                                <option value="2">
+                                    2 - Needs Improvement
+                                </option>
+
+                                <option value="3">
+                                    3 - Meets Expectations
+                                </option>
+
+                                <option value="4">
+                                    4 - Very Good
+                                </option>
+
+                                <option value="5">
+                                    5 - Excellent
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div className="management-form-field">
+
+                            <label htmlFor="manager-comment">
+                                Manager Comment
+                            </label>
+
+                            <textarea
+                                id="manager-comment"
+                                value={comment}
+                                onChange={(e) =>
+                                    setComment(
+                                        e.target.value
+                                    )
+                                }
+                                rows="6"
+                                disabled={
+                                    actionLoading
+                                }
+                                placeholder="Enter your review comments..."
+                            />
+
+                        </div>
+
+
+                        <div className="management-form-actions">
+
+                            <button
+                                type="button"
+                                className="management-btn-primary"
+                                disabled={
+                                    actionLoading
+                                }
+                                onClick={() =>
+                                    handleReviewAction(
+                                        "reviewed"
+                                    )
+                                }
+                            >
+                                {actionLoading
+                                    ? "Processing..."
+                                    : "Submit Review"}
+                            </button>
+
+                            <button
+                                type="button"
+                                className="management-btn-secondary"
+                                disabled={
+                                    actionLoading
+                                }
+                                onClick={handleBack}
+                            >
+                                Cancel
+                            </button>
+
+                        </div>
+
                     </div>
 
-                    <br />
+                </div>
 
-                    <button
-                        type="button"
-                        disabled={actionLoading}
-                        onClick={() =>
-                            handleReviewAction(
-                                "reviewed"
-                            )
-                        }
-                    >
-                        {actionLoading
-                            ? "Processing..."
-                            : "Review"}
-                    </button>
-                </>
             )}
 
+
             {/* ==================================================
-                APPROVE / REJECT / RETURN
+                Final Manager Action
             ================================================== */}
 
             {evaluation.status === "reviewed" && (
-                <>
-                    <h2>Manager Action</h2>
 
-                    <div>
-                        <label>
-                            <strong>Rating:</strong>
-                        </label>
+                <div className="management-form-section">
 
-                        <br />
+                    <div className="management-form-section-header">
 
-                        <select
-                            value={rating}
-                            onChange={(e) =>
-                                setRating(
-                                    e.target.value
-                                )
-                            }
-                            disabled={actionLoading}
-                        >
-                            <option value="">
-                                Select Rating
-                            </option>
+                        <h2>
+                            Final Manager Action
+                        </h2>
 
-                            <option value="1">
-                                1 - Poor
-                            </option>
+                        <p>
+                            Select a rating and provide comments
+                            before approving, rejecting or
+                            returning the evaluation.
+                        </p>
 
-                            <option value="2">
-                                2 - Needs Improvement
-                            </option>
-
-                            <option value="3">
-                                3 - Meets Expectations
-                            </option>
-
-                            <option value="4">
-                                4 - Very Good
-                            </option>
-
-                            <option value="5">
-                                5 - Excellent
-                            </option>
-                        </select>
                     </div>
 
-                    <br />
 
-                    <div>
-                        <label>
-                            <strong>
-                                Comment:
-                            </strong>
-                        </label>
+                    <div className="management-form">
 
-                        <br />
+                        <div className="management-form-field">
 
-                        <textarea
-                            value={comment}
-                            onChange={(e) =>
-                                setComment(
-                                    e.target.value
-                                )
-                            }
-                            rows="5"
-                            cols="50"
-                            disabled={actionLoading}
-                            placeholder="Enter manager comment..."
-                        />
+                            <label htmlFor="action-rating">
+                                Rating
+                            </label>
+
+                            <select
+                                id="action-rating"
+                                value={rating}
+                                onChange={(e) =>
+                                    setRating(
+                                        e.target.value
+                                    )
+                                }
+                                disabled={
+                                    actionLoading
+                                }
+                            >
+
+                                <option value="">
+                                    Select Rating
+                                </option>
+
+                                <option value="1">
+                                    1 - Poor
+                                </option>
+
+                                <option value="2">
+                                    2 - Needs Improvement
+                                </option>
+
+                                <option value="3">
+                                    3 - Meets Expectations
+                                </option>
+
+                                <option value="4">
+                                    4 - Very Good
+                                </option>
+
+                                <option value="5">
+                                    5 - Excellent
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div className="management-form-field">
+
+                            <label htmlFor="action-comment">
+                                Manager Comment
+                            </label>
+
+                            <textarea
+                                id="action-comment"
+                                value={comment}
+                                onChange={(e) =>
+                                    setComment(
+                                        e.target.value
+                                    )
+                                }
+                                rows="6"
+                                disabled={
+                                    actionLoading
+                                }
+                                placeholder="Enter your final decision comments..."
+                            />
+
+                        </div>
+
+
+                        <div className="management-form-actions">
+
+                            <button
+                                type="button"
+                                className="management-btn-primary"
+                                disabled={
+                                    actionLoading
+                                }
+                                onClick={() =>
+                                    handleReviewAction(
+                                        "approved"
+                                    )
+                                }
+                            >
+                                {actionLoading
+                                    ? "Processing..."
+                                    : "Approve"}
+                            </button>
+
+
+                            <button
+                                type="button"
+                                className="action-button action-delete"
+                                disabled={
+                                    actionLoading
+                                }
+                                onClick={() =>
+                                    handleReviewAction(
+                                        "rejected"
+                                    )
+                                }
+                            >
+                                {actionLoading
+                                    ? "Processing..."
+                                    : "Reject"}
+                            </button>
+
+
+                            <button
+                                type="button"
+                                className="action-button action-password"
+                                disabled={
+                                    actionLoading
+                                }
+                                onClick={() =>
+                                    handleReviewAction(
+                                        "returned"
+                                    )
+                                }
+                            >
+                                {actionLoading
+                                    ? "Processing..."
+                                    : "Return"}
+                            </button>
+
+                        </div>
+
                     </div>
 
-                    <br />
+                </div>
 
-                    <button
-                        type="button"
-                        disabled={actionLoading}
-                        onClick={() =>
-                            handleReviewAction(
-                                "approved"
-                            )
-                        }
-                    >
-                        {actionLoading
-                            ? "Processing..."
-                            : "Approve"}
-                    </button>
-
-                    {" "}
-
-                    <button
-                        type="button"
-                        disabled={actionLoading}
-                        onClick={() =>
-                            handleReviewAction(
-                                "rejected"
-                            )
-                        }
-                    >
-                        {actionLoading
-                            ? "Processing..."
-                            : "Reject"}
-                    </button>
-
-                    {" "}
-
-                    <button
-                        type="button"
-                        disabled={actionLoading}
-                        onClick={() =>
-                            handleReviewAction(
-                                "returned"
-                            )
-                        }
-                    >
-                        {actionLoading
-                            ? "Processing..."
-                            : "Return"}
-                    </button>
-                </>
             )}
 
-            <br />
-            <br />
-
-            <button onClick={handleBack}>
-                {user?.role?.name === "HR"
-                    ? "Back to HR Dashboard"
-                    : "Back to Manager Dashboard"}
-            </button>
         </div>
     );
 };

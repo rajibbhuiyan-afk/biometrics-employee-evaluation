@@ -65,17 +65,21 @@ const MyEvaluations = () => {
 
     if (loading) {
         return (
-            <div className="management-form-container">
+            <div className="management-page">
 
-                <div className="data-table-empty">
+                <div className="data-table-container">
 
-                    <div className="data-table-empty-title">
-                        Loading Evaluations...
-                    </div>
+                    <div className="data-table-empty">
 
-                    <div className="data-table-empty-message">
-                        Please wait while your evaluations
-                        are being loaded.
+                        <div className="data-table-empty-title">
+                            Loading Evaluations...
+                        </div>
+
+                        <div className="data-table-empty-message">
+                            Please wait while your evaluations
+                            are being loaded.
+                        </div>
+
                     </div>
 
                 </div>
@@ -108,78 +112,200 @@ const MyEvaluations = () => {
 
 
     // ==========================================================
-    // Render Status Action
+    // Status Badge
     // ==========================================================
 
-    const renderAction = (evaluation) => {
-        switch (evaluation.status) {
+    const renderStatus = (status) => {
+
+        switch (status) {
 
             case "draft":
                 return (
-                    <button
-                        type="button"
-                        onClick={() =>
-                            handleViewEvaluation(
-                                evaluation.id
-                            )
-                        }
-                    >
-                        Continue
-                    </button>
+                    <span className="status-badge status-draft">
+                        Draft
+                    </span>
                 );
 
             case "submitted":
                 return (
-                    <span>
+                    <span className="status-badge status-submitted">
                         Submitted
                     </span>
                 );
 
             case "reviewed":
                 return (
-                    <span>
+                    <span className="status-badge status-reviewed">
                         Reviewed
                     </span>
                 );
 
             case "approved":
                 return (
-                    <span>
+                    <span className="status-badge status-approved">
                         Approved
                     </span>
                 );
 
             case "rejected":
                 return (
-                    <button
-                        type="button"
-                        onClick={() =>
-                            handleViewEvaluation(
-                                evaluation.id
-                            )
-                        }
-                    >
-                        Edit & Resubmit
-                    </button>
+                    <span className="status-badge status-rejected">
+                        Rejected
+                    </span>
                 );
 
             case "returned":
                 return (
-                    <button
-                        type="button"
-                        onClick={() =>
-                            handleViewEvaluation(
-                                evaluation.id
-                            )
-                        }
-                    >
-                        Edit & Resubmit
-                    </button>
+                    <span className="status-badge status-returned">
+                        Returned
+                    </span>
                 );
 
             default:
                 return (
-                    <span>
+                    <span className="status-badge status-inactive">
+                        {status || "-"}
+                    </span>
+                );
+        }
+    };
+
+
+    // ==========================================================
+    // Action Button
+    // ==========================================================
+
+    const renderAction = (evaluation) => {
+
+        switch (evaluation.status) {
+
+            // --------------------------------------------------
+            // Draft
+            // --------------------------------------------------
+
+            case "draft":
+                return (
+                    <div className="table-actions">
+
+                        <button
+                            type="button"
+                            className="
+                                action-button
+                                evaluation-action-button
+                                action-continue
+                            "
+                            onClick={() =>
+                                handleViewEvaluation(
+                                    evaluation.id
+                                )
+                            }
+                        >
+                            Continue
+                        </button>
+
+                    </div>
+                );
+
+
+            // --------------------------------------------------
+            // Submitted
+            // --------------------------------------------------
+
+            case "submitted":
+                return (
+                    <span className="action-status-text">
+                        Waiting for Review
+                    </span>
+                );
+
+
+            // --------------------------------------------------
+            // Reviewed
+            // --------------------------------------------------
+
+            case "reviewed":
+                return (
+                    <span className="action-status-text">
+                        Under Approval
+                    </span>
+                );
+
+
+            // --------------------------------------------------
+            // Approved
+            // --------------------------------------------------
+
+            case "approved":
+                return (
+                    <span className="action-status-text">
+                        Completed
+                    </span>
+                );
+
+
+            // --------------------------------------------------
+            // Rejected
+            // --------------------------------------------------
+
+            case "rejected":
+                return (
+                    <div className="table-actions">
+
+                        <button
+                            type="button"
+                            className="
+                                action-button
+                                evaluation-action-button
+                                action-resubmit
+                            "
+                            onClick={() =>
+                                handleViewEvaluation(
+                                    evaluation.id
+                                )
+                            }
+                        >
+                            Edit & Resubmit
+                        </button>
+
+                    </div>
+                );
+
+
+            // --------------------------------------------------
+            // Returned
+            // --------------------------------------------------
+
+            case "returned":
+                return (
+                    <div className="table-actions">
+
+                        <button
+                            type="button"
+                            className="
+                                action-button
+                                evaluation-action-button
+                                action-resubmit
+                            "
+                            onClick={() =>
+                                handleViewEvaluation(
+                                    evaluation.id
+                                )
+                            }
+                        >
+                            Edit & Resubmit
+                        </button>
+
+                    </div>
+                );
+
+
+            // --------------------------------------------------
+            // Default
+            // --------------------------------------------------
+
+            default:
+                return (
+                    <span className="action-status-text">
                         -
                     </span>
                 );
@@ -195,7 +321,7 @@ const MyEvaluations = () => {
         <div className="management-page">
 
             {/* ==================================================
-                Header
+                Page Header
             ================================================== */}
 
             <div className="page-header">
@@ -212,6 +338,7 @@ const MyEvaluations = () => {
                     </p>
 
                 </div>
+
 
                 <button
                     type="button"
@@ -258,82 +385,119 @@ const MyEvaluations = () => {
 
                 ) : (
 
-                    <table className="data-table">
+                    <div className="data-table-wrapper">
 
-                        <thead>
+                        <table className="data-table">
 
-                            <tr>
-                                <th>ID</th>
+                            <thead>
 
-                                <th>
-                                    Evaluation Period
-                                </th>
+                                <tr>
 
-                                <th>
-                                    Status
-                                </th>
+                                    <th>
+                                        ID
+                                    </th>
 
-                                <th>
-                                    Comment
-                                </th>
+                                    <th>
+                                        Evaluation Period
+                                    </th>
 
-                                <th>
-                                    Action
-                                </th>
-                            </tr>
+                                    <th>
+                                        Status
+                                    </th>
 
-                        </thead>
+                                    <th>
+                                        Comment
+                                    </th>
 
-                        <tbody>
+                                    <th className="data-table-actions-header">
+                                        Action
+                                    </th>
 
-                            {evaluations.map(
-                                (evaluation) => (
+                                </tr>
 
-                                    <tr
-                                        key={
-                                            evaluation.id
-                                        }
-                                    >
+                            </thead>
 
-                                        <td>
-                                            {evaluation.id}
-                                        </td>
 
-                                        <td>
-                                            {
-                                                evaluation
-                                                    .evaluation_period
-                                                    ?.name ||
-                                                "-"
+                            <tbody>
+
+                                {evaluations.map(
+                                    (evaluation) => (
+
+                                        <tr
+                                            key={
+                                                evaluation.id
                                             }
-                                        </td>
+                                        >
 
-                                        <td>
-                                            {evaluation.status}
-                                        </td>
+                                            {/* ID */}
 
-                                        <td>
-                                            {
-                                                evaluation
-                                                    .employee_comment ||
-                                                "-"
-                                            }
-                                        </td>
+                                            <td>
+                                                <strong>
+                                                    #{evaluation.id}
+                                                </strong>
+                                            </td>
 
-                                        <td>
-                                            {renderAction(
-                                                evaluation
-                                            )}
-                                        </td>
 
-                                    </tr>
+                                            {/* Evaluation Period */}
 
-                                )
-                            )}
+                                            <td>
+                                                <span className="evaluation-period-name">
+                                                    {
+                                                        evaluation
+                                                            .evaluation_period
+                                                            ?.name ||
+                                                        "-"
+                                                    }
+                                                </span>
+                                            </td>
 
-                        </tbody>
 
-                    </table>
+                                            {/* Status */}
+
+                                            <td>
+                                                {renderStatus(
+                                                    evaluation.status
+                                                )}
+                                            </td>
+
+
+                                            {/* Comment */}
+
+                                            <td>
+
+                                                <div className="evaluation-comment">
+
+                                                    {
+                                                        evaluation
+                                                            .employee_comment ||
+                                                        "-"
+                                                    }
+
+                                                </div>
+
+                                            </td>
+
+
+                                            {/* Action */}
+
+                                            <td className="data-table-actions">
+
+                                                {renderAction(
+                                                    evaluation
+                                                )}
+
+                                            </td>
+
+                                        </tr>
+
+                                    )
+                                )}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
 
                 )}
 

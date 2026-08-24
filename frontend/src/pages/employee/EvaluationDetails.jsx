@@ -1,15 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
 import api from "../../api/axios";
 
 const EvaluationDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-
-    // ==========================================================
-    // State
-    // ==========================================================
 
     const [evaluation, setEvaluation] = useState(null);
     const [questions, setQuestions] = useState([]);
@@ -22,9 +17,9 @@ const EvaluationDetails = () => {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
-    // ==========================================================
+    // =========================================================
     // Load Evaluation
-    // ==========================================================
+    // =========================================================
 
     useEffect(() => {
         loadEvaluation();
@@ -35,10 +30,6 @@ const EvaluationDetails = () => {
             setLoading(true);
             setError("");
 
-            // --------------------------------------------------
-            // Evaluation
-            // --------------------------------------------------
-
             const evaluationResponse = await api.get(
                 `/evaluations/${id}`
             );
@@ -48,10 +39,6 @@ const EvaluationDetails = () => {
 
             setEvaluation(evaluationData);
 
-            // --------------------------------------------------
-            // Questions
-            // --------------------------------------------------
-
             const questionsResponse = await api.get(
                 "/evaluation-questions"
             );
@@ -60,10 +47,6 @@ const EvaluationDetails = () => {
                 questionsResponse.data.data || [];
 
             setQuestions(questionsData);
-
-            // --------------------------------------------------
-            // Existing Answers
-            // --------------------------------------------------
 
             const existingAnswers = {};
 
@@ -97,17 +80,13 @@ const EvaluationDetails = () => {
         }
     };
 
-    // ==========================================================
-    // Answer Handlers
-    // ==========================================================
+    // =========================================================
+    // Answer Change
+    // =========================================================
 
-    const handleAnswerChange = (
-        questionId,
-        value
-    ) => {
+    const handleAnswerChange = (questionId, value) => {
         setAnswers((previous) => ({
             ...previous,
-
             [questionId]: {
                 ...previous[questionId],
                 answer: value,
@@ -115,32 +94,29 @@ const EvaluationDetails = () => {
         }));
     };
 
-    const handleRatingChange = (
-        questionId,
-        value
-    ) => {
+    // =========================================================
+    // Rating Change
+    // =========================================================
+
+    const handleRatingChange = (questionId, value) => {
         setAnswers((previous) => ({
             ...previous,
-
             [questionId]: {
                 ...previous[questionId],
-                rating: value
-                    ? Number(value)
-                    : "",
+                rating: value ? Number(value) : "",
             },
         }));
     };
 
-    // ==========================================================
+    // =========================================================
     // Save Answers
-    // ==========================================================
+    // =========================================================
 
     const saveAnswers = async () => {
         for (const question of questions) {
             const currentAnswer =
                 answers[question.id];
 
-            // Skip unanswered questions
             if (
                 !currentAnswer ||
                 (
@@ -165,9 +141,9 @@ const EvaluationDetails = () => {
         }
     };
 
-    // ==========================================================
-    // Save Button
-    // ==========================================================
+    // =========================================================
+    // Save
+    // =========================================================
 
     const handleSaveAnswers = async () => {
         try {
@@ -178,17 +154,13 @@ const EvaluationDetails = () => {
             await saveAnswers();
 
             setSuccess(
-                "Answers saved successfully."
+                "Your answers have been saved successfully."
             );
 
-            // Reload latest data
             await loadEvaluation();
 
         } catch (error) {
-            console.error(
-                "Failed to save answers:",
-                error
-            );
+            console.error(error);
 
             setError(
                 error.response?.data?.message ||
@@ -199,13 +171,13 @@ const EvaluationDetails = () => {
         }
     };
 
-    // ==========================================================
-    // Submit Evaluation
-    // ==========================================================
+    // =========================================================
+    // Submit
+    // =========================================================
 
     const handleSubmitEvaluation = async () => {
         const confirmed = window.confirm(
-            "Are you sure you want to submit this evaluation? You cannot edit it after submission."
+            "Are you sure you want to submit this evaluation? You will not be able to edit it after submission."
         );
 
         if (!confirmed) {
@@ -217,29 +189,18 @@ const EvaluationDetails = () => {
             setError("");
             setSuccess("");
 
-            // --------------------------------------------------
-            // Save answers first
-            // --------------------------------------------------
-
             await saveAnswers();
-
-            // --------------------------------------------------
-            // Submit evaluation
-            // --------------------------------------------------
 
             const response = await api.post(
                 `/evaluations/${id}/submit`
             );
 
-            setEvaluation(
-                response.data.data
-            );
+            setEvaluation(response.data.data);
 
             setSuccess(
-                "Evaluation submitted successfully."
+                "Your evaluation has been submitted successfully."
             );
 
-            // Redirect after success
             setTimeout(() => {
                 navigate(
                     "/management/employee/evaluations"
@@ -247,10 +208,7 @@ const EvaluationDetails = () => {
             }, 1200);
 
         } catch (error) {
-            console.error(
-                "Failed to submit evaluation:",
-                error
-            );
+            console.error(error);
 
             setError(
                 error.response?.data?.message ||
@@ -261,23 +219,27 @@ const EvaluationDetails = () => {
         }
     };
 
-    // ==========================================================
+    // =========================================================
     // Loading
-    // ==========================================================
+    // =========================================================
 
     if (loading) {
         return (
-            <div className="management-form-container">
+            <div className="management-page">
 
-                <div className="data-table-empty">
+                <div className="data-table-container">
 
-                    <div className="data-table-empty-title">
-                        Loading Evaluation...
-                    </div>
+                    <div className="data-table-empty">
 
-                    <div className="data-table-empty-message">
-                        Please wait while the evaluation
-                        details are being loaded.
+                        <div className="data-table-empty-title">
+                            Loading Evaluation...
+                        </div>
+
+                        <div className="data-table-empty-message">
+                            Please wait while the evaluation
+                            details are being loaded.
+                        </div>
+
                     </div>
 
                 </div>
@@ -286,54 +248,55 @@ const EvaluationDetails = () => {
         );
     }
 
-    // ==========================================================
-    // Error Without Evaluation
-    // ==========================================================
+    // =========================================================
+    // Error
+    // =========================================================
 
     if (error && !evaluation) {
         return (
-            <div className="management-form-container">
+            <div className="management-page">
 
-                <div className="management-form-error">
+                <div className="management-error">
                     {error}
                 </div>
 
-                <div className="management-form-actions">
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            navigate(
-                                "/management/employee/evaluations"
-                            )
-                        }
-                    >
-                        Back to My Evaluations
-                    </button>
-
-                </div>
+                <button
+                    type="button"
+                    className="management-btn-secondary"
+                    onClick={() =>
+                        navigate(
+                            "/management/employee/evaluations"
+                        )
+                    }
+                >
+                    Back to My Evaluations
+                </button>
 
             </div>
         );
     }
 
-    // ==========================================================
-    // Evaluation Not Found
-    // ==========================================================
+    // =========================================================
+    // Not Found
+    // =========================================================
 
     if (!evaluation) {
         return (
-            <div className="management-form-container">
+            <div className="management-page">
 
-                <div className="data-table-empty">
+                <div className="data-table-container">
 
-                    <div className="data-table-empty-title">
-                        Evaluation Not Found
-                    </div>
+                    <div className="data-table-empty">
 
-                    <div className="data-table-empty-message">
-                        The requested evaluation could not
-                        be found.
+                        <div className="data-table-empty-title">
+                            Evaluation Not Found
+                        </div>
+
+                        <div className="data-table-empty-message">
+                            The requested evaluation could not
+                            be found.
+                        </div>
+
                     </div>
 
                 </div>
@@ -342,25 +305,51 @@ const EvaluationDetails = () => {
         );
     }
 
-    // ==========================================================
+    // =========================================================
     // Edit Permission
-    // ==========================================================
+    // =========================================================
 
     const canEdit =
         evaluation.status === "draft" ||
         evaluation.status === "returned" ||
         evaluation.status === "rejected";
 
-    // ==========================================================
+    // =========================================================
+    // Status Class
+    // =========================================================
+
+    const getStatusClass = (status) => {
+        switch (status) {
+            case "approved":
+                return "evaluation-status approved";
+
+            case "submitted":
+                return "evaluation-status submitted";
+
+            case "reviewed":
+                return "evaluation-status reviewed";
+
+            case "rejected":
+                return "evaluation-status rejected";
+
+            case "returned":
+                return "evaluation-status returned";
+
+            default:
+                return "evaluation-status draft";
+        }
+    };
+
+    // =========================================================
     // Page
-    // ==========================================================
+    // =========================================================
 
     return (
-        <div className="management-form-container">
+        <div className="management-page">
 
-            {/* ==================================================
+            {/* =================================================
                 Page Header
-            ================================================== */}
+            ================================================= */}
 
             <div className="page-header">
 
@@ -371,18 +360,30 @@ const EvaluationDetails = () => {
                     </h1>
 
                     <p className="page-header-description">
-                        Complete and submit your employee
-                        self-evaluation.
+                        Complete your self-evaluation and submit
+                        it for review.
                     </p>
 
                 </div>
 
+                <button
+                    type="button"
+                    className="page-header-button"
+                    onClick={() =>
+                        navigate(
+                            "/management/employee/evaluations"
+                        )
+                    }
+                >
+                    My Evaluations
+                </button>
+
             </div>
 
 
-            {/* ==================================================
+            {/* =================================================
                 Messages
-            ================================================== */}
+            ================================================= */}
 
             {error && (
                 <div className="management-form-error">
@@ -397,72 +398,74 @@ const EvaluationDetails = () => {
             )}
 
 
-            {/* ==================================================
-                Evaluation Information
-            ================================================== */}
+            {/* =================================================
+                Evaluation Summary
+            ================================================= */}
 
-            <div className="management-form-section">
+            <div className="evaluation-summary">
 
-                <div className="management-form-section-header">
+                <div className="evaluation-summary-header">
 
-                    <h2>
-                        Evaluation Information
-                    </h2>
-
-                </div>
-
-                <div className="management-form-grid">
-
-                    <div className="management-form-info">
-
-                        <span className="management-form-info-label">
+                    <div>
+                        <span className="evaluation-summary-label">
                             Evaluation Period
                         </span>
 
-                        <span className="management-form-info-value">
+                        <h2>
                             {evaluation.evaluation_period?.name ||
-                                "-"}
-                        </span>
-
+                                "Evaluation"}
+                        </h2>
                     </div>
 
+                    <span
+                        className={getStatusClass(
+                            evaluation.status
+                        )}
+                    >
+                        {evaluation.status}
+                    </span>
 
-                    <div className="management-form-info">
+                </div>
 
-                        <span className="management-form-info-label">
+
+                <div className="evaluation-summary-grid">
+
+                    <div className="evaluation-summary-item">
+
+                        <span>
                             Evaluation ID
                         </span>
 
-                        <span className="management-form-info-value">
+                        <strong>
                             #{evaluation.id}
-                        </span>
+                        </strong>
 
                     </div>
 
 
-                    <div className="management-form-info">
+                    <div className="evaluation-summary-item">
 
-                        <span className="management-form-info-label">
+                        <span>
                             Status
                         </span>
 
-                        <span className="management-form-info-value">
+                        <strong>
                             {evaluation.status}
-                        </span>
+                        </strong>
 
                     </div>
 
 
-                    <div className="management-form-info">
+                    <div className="evaluation-summary-item">
 
-                        <span className="management-form-info-label">
+                        <span>
                             Employee Comment
                         </span>
 
-                        <span className="management-form-info-value">
+                        <strong>
                             {evaluation.employee_comment ||
-                                "-"}
-                        </span>
+                                "No comment provided"}
+                        </strong>
 
                     </div>
 
@@ -471,22 +474,30 @@ const EvaluationDetails = () => {
             </div>
 
 
-            {/* ==================================================
-                Evaluation Questions
-            ================================================== */}
+            {/* =================================================
+                Questions
+            ================================================= */}
 
-            <div className="management-form-section">
+            <div className="evaluation-section">
 
-                <div className="management-form-section-header">
+                <div className="evaluation-section-header">
 
-                    <h2>
-                        Evaluation Questions
-                    </h2>
+                    <div>
 
-                    <p>
-                        Answer each question and provide
-                        an appropriate rating.
-                    </p>
+                        <h2>
+                            Self-Evaluation
+                        </h2>
+
+                        <p>
+                            Please answer all applicable questions
+                            and provide a rating from 1 to 5.
+                        </p>
+
+                    </div>
+
+                    <span className="evaluation-question-count">
+                        {questions.length} Questions
+                    </span>
 
                 </div>
 
@@ -500,8 +511,8 @@ const EvaluationDetails = () => {
                         </div>
 
                         <div className="data-table-empty-message">
-                            No evaluation questions are
-                            currently available.
+                            There are currently no evaluation
+                            questions available.
                         </div>
 
                     </div>
@@ -519,22 +530,23 @@ const EvaluationDetails = () => {
                                     ] || {};
 
                                 return (
+
                                     <div
                                         key={question.id}
                                         className="evaluation-question-card"
                                     >
 
-                                        {/* Question */}
+                                        {/* Question Header */}
 
-                                        <div className="evaluation-question-title">
+                                        <div className="evaluation-question-header">
 
-                                            <span>
-                                                {index + 1}.
-                                            </span>
+                                            <div className="evaluation-question-number">
+                                                {index + 1}
+                                            </div>
 
-                                            <strong>
+                                            <div className="evaluation-question-title">
                                                 {question.question}
-                                            </strong>
+                                            </div>
 
                                         </div>
 
@@ -567,7 +579,7 @@ const EvaluationDetails = () => {
                                                         e.target.value
                                                     )
                                                 }
-                                                placeholder="Write your answer..."
+                                                placeholder="Write your answer here..."
                                             />
 
                                         </div>
@@ -580,7 +592,7 @@ const EvaluationDetails = () => {
                                             <label
                                                 htmlFor={`rating-${question.id}`}
                                             >
-                                                Rating
+                                                Performance Rating
                                             </label>
 
                                             <select
@@ -636,23 +648,23 @@ const EvaluationDetails = () => {
                         )}
 
                     </div>
+
                 )}
 
             </div>
 
 
-            {/* ==================================================
+            {/* =================================================
                 Actions
-            ================================================== */}
+            ================================================= */}
 
-            <div className="management-form-actions">
+            <div className="evaluation-actions">
 
-                {canEdit && (
-
+                {canEdit ? (
                     <>
-
                         <button
                             type="button"
+                            className="evaluation-save-button"
                             disabled={
                                 saving ||
                                 submitting
@@ -666,9 +678,9 @@ const EvaluationDetails = () => {
                                 : "Save Answers"}
                         </button>
 
-
                         <button
                             type="button"
+                            className="evaluation-submit-button"
                             disabled={
                                 saving ||
                                 submitting
@@ -681,13 +693,9 @@ const EvaluationDetails = () => {
                                 ? "Submitting..."
                                 : "Submit Evaluation"}
                         </button>
-
                     </>
-                )}
-
-
-                {!canEdit && (
-                    <div className="management-form-info-message">
+                ) : (
+                    <div className="evaluation-locked-message">
                         This evaluation is currently{" "}
                         <strong>
                             {evaluation.status}
@@ -696,9 +704,9 @@ const EvaluationDetails = () => {
                     </div>
                 )}
 
-
                 <button
                     type="button"
+                    className="evaluation-back-button"
                     disabled={
                         saving ||
                         submitting
@@ -709,7 +717,7 @@ const EvaluationDetails = () => {
                         )
                     }
                 >
-                    Back to My Evaluations
+                    Back
                 </button>
 
             </div>

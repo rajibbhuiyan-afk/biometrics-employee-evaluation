@@ -3,14 +3,12 @@ import { useNavigate } from "react-router-dom";
 
 import api from "../../api/axios";
 
-
 const CreateEvaluation = () => {
-
     const navigate = useNavigate();
 
-    // --------------------------------------------------------------------------
+    // ==========================================================
     // State
-    // --------------------------------------------------------------------------
+    // ==========================================================
 
     const [periods, setPeriods] = useState([]);
     const [selectedPeriod, setSelectedPeriod] = useState("");
@@ -21,25 +19,22 @@ const CreateEvaluation = () => {
 
     const [error, setError] = useState("");
 
-
-    // --------------------------------------------------------------------------
+    // ==========================================================
     // Fetch Active Evaluation Periods
-    // --------------------------------------------------------------------------
+    // ==========================================================
 
     useEffect(() => {
         fetchEvaluationPeriods();
     }, []);
 
-
     const fetchEvaluationPeriods = async () => {
-
         try {
-
             setLoading(true);
             setError("");
 
-            const response =
-                await api.get("/evaluation-periods/active");
+            const response = await api.get(
+                "/evaluation-periods/active"
+            );
 
             console.log(
                 "Active Evaluation Periods:",
@@ -51,8 +46,10 @@ const CreateEvaluation = () => {
             );
 
         } catch (error) {
-
-            console.error(error);
+            console.error(
+                "Failed to load evaluation periods:",
+                error
+            );
 
             setError(
                 error.response?.data?.message ||
@@ -60,28 +57,20 @@ const CreateEvaluation = () => {
             );
 
         } finally {
-
             setLoading(false);
-
         }
     };
 
-
-    // --------------------------------------------------------------------------
+    // ==========================================================
     // Create Evaluation
-    // --------------------------------------------------------------------------
+    // ==========================================================
 
     const handleCreateEvaluation = async (e) => {
-
         e.preventDefault();
 
-        // Clear previous error
         setError("");
 
-
-        // Validate evaluation period
         if (!selectedPeriod) {
-
             setError(
                 "Please select an evaluation period."
             );
@@ -89,39 +78,34 @@ const CreateEvaluation = () => {
             return;
         }
 
-
         try {
-
             setSubmitting(true);
 
-            const response =
-                await api.post(
-                    "/evaluations",
-                    {
-                        evaluation_period_id:
-                            Number(selectedPeriod),
+            const response = await api.post(
+                "/evaluations",
+                {
+                    evaluation_period_id:
+                        Number(selectedPeriod),
 
-                        employee_comment:
-                            comment,
-                    }
-                );
+                    employee_comment:
+                        comment.trim() || null,
+                }
+            );
 
             console.log(
                 "Evaluation Created:",
                 response.data
             );
 
-            alert(
-                "Evaluation created successfully."
-            );
-
             navigate(
-                "/employee/evaluations"
+                "/management/employee/evaluations"
             );
 
         } catch (error) {
-
-            console.error(error);
+            console.error(
+                "Failed to create evaluation:",
+                error
+            );
 
             setError(
                 error.response?.data?.message ||
@@ -129,19 +113,15 @@ const CreateEvaluation = () => {
             );
 
         } finally {
-
             setSubmitting(false);
-
         }
     };
 
-
-    // --------------------------------------------------------------------------
-    // Loading State
-    // --------------------------------------------------------------------------
+    // ==========================================================
+    // Loading
+    // ==========================================================
 
     if (loading) {
-
         return (
             <div className="management-form-page">
 
@@ -162,18 +142,16 @@ const CreateEvaluation = () => {
         );
     }
 
-
-    // --------------------------------------------------------------------------
+    // ==========================================================
     // Page
-    // --------------------------------------------------------------------------
+    // ==========================================================
 
     return (
-
         <div className="management-form-page">
 
-            {/* ------------------------------------------------------------------
+            {/* ==================================================
                 Header
-            ------------------------------------------------------------------ */}
+            ================================================== */}
 
             <div className="page-header">
 
@@ -193,29 +171,29 @@ const CreateEvaluation = () => {
             </div>
 
 
-            {/* ------------------------------------------------------------------
+            {/* ==================================================
                 Error
-            ------------------------------------------------------------------ */}
+            ================================================== */}
 
             {error && (
-
                 <div className="management-form-error">
                     {error}
                 </div>
-
             )}
 
 
-            {/* ------------------------------------------------------------------
+            {/* ==================================================
                 Form
-            ------------------------------------------------------------------ */}
+            ================================================== */}
 
             <form
                 onSubmit={handleCreateEvaluation}
                 className="management-form"
             >
 
-                {/* Evaluation Period */}
+                {/* ==================================================
+                    Evaluation Period
+                ================================================== */}
 
                 <div className="management-form-field">
 
@@ -240,14 +218,12 @@ const CreateEvaluation = () => {
                         </option>
 
                         {periods.map((period) => (
-
                             <option
                                 key={period.id}
                                 value={period.id}
                             >
                                 {period.name}
                             </option>
-
                         ))}
 
                     </select>
@@ -255,7 +231,9 @@ const CreateEvaluation = () => {
                 </div>
 
 
-                {/* Employee Comment */}
+                {/* ==================================================
+                    Employee Comment
+                ================================================== */}
 
                 <div className="management-form-field">
 
@@ -271,22 +249,35 @@ const CreateEvaluation = () => {
                                 e.target.value
                             )
                         }
-                        placeholder="Enter your comment"
-                        rows="5"
+                        placeholder="Enter your comment..."
+                        rows="6"
                         disabled={submitting}
                     />
+
+                    <small
+                        style={{
+                            color: "#6b7280",
+                            fontSize: "13px",
+                        }}
+                    >
+                        You can provide any additional
+                        information about your evaluation.
+                    </small>
 
                 </div>
 
 
-                {/* ----------------------------------------------------------------
+                {/* ==================================================
                     Actions
-                ---------------------------------------------------------------- */}
+                ================================================== */}
 
                 <div className="management-form-actions">
 
+                    {/* Create Button */}
+
                     <button
                         type="submit"
+                        className="management-btn-primary"
                         disabled={submitting}
                     >
                         {submitting
@@ -295,11 +286,14 @@ const CreateEvaluation = () => {
                     </button>
 
 
+                    {/* Cancel Button */}
+
                     <button
                         type="button"
+                        className="management-btn-secondary"
                         onClick={() =>
                             navigate(
-                                "/employee/evaluations"
+                                "/management/employee/evaluations"
                             )
                         }
                         disabled={submitting}
@@ -314,6 +308,5 @@ const CreateEvaluation = () => {
         </div>
     );
 };
-
 
 export default CreateEvaluation;

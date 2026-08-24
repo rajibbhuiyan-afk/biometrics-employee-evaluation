@@ -68,6 +68,9 @@ import ProbationPeriods from "./pages/management/ProbationPeriods";
 import CreateProbationPeriod from "./pages/management/CreateProbationPeriod";
 import EditProbationPeriod from "./pages/management/EditProbationPeriod";
 
+import ManagerDashboard from "./pages/manager/ManagerDashboard";
+import HRDashboard from "./pages/hr/HRDashboard";
+
 
 function App() {
 
@@ -140,20 +143,7 @@ function App() {
                         EMPLOYEE
                     ================================================== */}
 
-                    {/* <Route
-                        path="employee/evaluations/create"
-                        element={<CreateEvaluation />}
-                    />
-
-                    <Route
-                        path="employee/evaluations"
-                        element={<MyEvaluations />}
-                    />
-
-                    <Route
-                        path="employee/evaluations/:id"
-                        element={<EvaluationDetails />}
-                    /> */}
+                  
 
                      <Route
                         path="employee/evaluations/create"
@@ -175,13 +165,55 @@ function App() {
                         MANAGER
                     ================================================== */}
 
-                    <Route
+                    {/* <Route
                         path="manager/reviews"
                         element={<ReviewEvaluation />}
                     />
 
                     <Route
                         path="manager/evaluations/:id"
+                        element={<ReviewEvaluation />}
+                    /> */}
+                    {/* =================================================
+                        HR
+                    ================================================== */}
+
+                    {/* <Route
+                        path="hr/reviews"
+                        element={<ReviewEvaluation />}
+                    />
+
+                    <Route
+                        path="hr/evaluations/:id"
+                        element={<ReviewEvaluation />}
+                    /> */}
+
+                    {/* =================================================
+                        MANAGER
+                    ================================================== */}
+
+                    <Route
+                        path="manager/reviews"
+                        element={<ManagerDashboard />}
+                    />
+
+                    <Route
+                        path="manager/evaluations/:id"
+                        element={<ReviewEvaluation />}
+                    />
+
+
+                    {/* =================================================
+                        HR
+                    ================================================== */}
+
+                    <Route
+                        path="hr/reviews"
+                        element={<HRDashboard />}
+                    />
+
+                    <Route
+                        path="hr/evaluations/:id"
                         element={<ReviewEvaluation />}
                     />
 

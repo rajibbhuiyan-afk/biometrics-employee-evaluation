@@ -117,20 +117,20 @@ const ManagementLayout = () => {
         // ==========================================================
 
         // ==========================================================
-// Employee
-// ==========================================================
+        // Employee
+        // ==========================================================
 
-{
-    label: "Create Evaluation",
-    path: "/management/employee/evaluations/create",
-    roles: ["Employee"],
-},
+        {
+            label: "Create Evaluation",
+            path: "/management/employee/evaluations/create",
+            roles: ["Employee"],
+        },
 
-{
-    label: "My Evaluations",
-    path: "/management/employee/evaluations",
-    roles: ["Employee"],
-},
+        {
+            label: "My Evaluations",
+            path: "/management/employee/evaluations",
+            roles: ["Employee"],
+        },
 
 
         // ==========================================================
@@ -142,6 +142,7 @@ const ManagementLayout = () => {
             path: "/management/manager/reviews",
             roles: [
                 "Manager",
+                // "HR",
             ],
         },
 

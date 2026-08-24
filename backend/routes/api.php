@@ -57,11 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:Admin')->group(function () {
 
-        // Roles
-        Route::apiResource(
-            'roles',
-            RoleController::class
-        );
+       
 
        
          // Admin Dashboard
@@ -77,6 +73,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // ======================================
 
     Route::middleware('role:Admin,HR')->group(function () {
+         // Roles
+        Route::apiResource(
+            'roles',
+            RoleController::class
+        );
          // Users
         Route::apiResource(
             'users',
