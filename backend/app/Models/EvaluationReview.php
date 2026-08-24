@@ -12,6 +12,7 @@ class EvaluationReview extends Model
     protected $fillable = [
         'evaluation_id',
         'reviewer_id',
+        'reviewer_role',
         'rating',
         'comment',
         'action',

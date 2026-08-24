@@ -72,6 +72,8 @@ import ManagerDashboard from "./pages/manager/ManagerDashboard";
 import HRDashboard from "./pages/hr/HRDashboard";
 
 
+
+
 function App() {
 
     return (
@@ -161,32 +163,9 @@ function App() {
                     />
 
 
-                    {/* =================================================
-                        MANAGER
-                    ================================================== */}
+                  
 
-                    {/* <Route
-                        path="manager/reviews"
-                        element={<ReviewEvaluation />}
-                    />
-
-                    <Route
-                        path="manager/evaluations/:id"
-                        element={<ReviewEvaluation />}
-                    /> */}
-                    {/* =================================================
-                        HR
-                    ================================================== */}
-
-                    {/* <Route
-                        path="hr/reviews"
-                        element={<ReviewEvaluation />}
-                    />
-
-                    <Route
-                        path="hr/evaluations/:id"
-                        element={<ReviewEvaluation />}
-                    /> */}
+                   
 
                     {/* =================================================
                         MANAGER
@@ -197,10 +176,7 @@ function App() {
                         element={<ManagerDashboard />}
                     />
 
-                    <Route
-                        path="manager/evaluations/:id"
-                        element={<ReviewEvaluation />}
-                    />
+                    
 
 
                     {/* =================================================
@@ -211,9 +187,18 @@ function App() {
                         path="hr/reviews"
                         element={<HRDashboard />}
                     />
+                    <Route
+                        path="manager/evaluations/:id"
+                        element={<ReviewEvaluation />}
+                    />
 
                     <Route
                         path="hr/evaluations/:id"
+                        element={<ReviewEvaluation />}
+                    />
+
+                    <Route
+                        path="admin/evaluations/:id"
                         element={<ReviewEvaluation />}
                     />
 

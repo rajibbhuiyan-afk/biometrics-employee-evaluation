@@ -34,7 +34,7 @@ class StoreEvaluationReviewRequest extends FormRequest
 
             'action' => [
                 'required',
-                'in:reviewed,approved,rejected,returned',
+                'in:approved,rejected,returned',
             ],
 
             'reviewed_at' => [

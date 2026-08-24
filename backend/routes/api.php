@@ -1,5 +1,8 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+
+// Controllers
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DepartmentController;
@@ -11,137 +14,178 @@ use App\Http\Controllers\EvaluationQuestionController;
 use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\EvaluationAnswerController;
 use App\Http\Controllers\EvaluationReviewController;
-
-use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\ProbationPeriodController;
 
 
-// ==========================================
+// ==========================================================================
 // PUBLIC ROUTES
-// ==========================================
+// ==========================================================================
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [
+    AuthController::class,
+    'login'
+]);
 
 
-// ==========================================
+// ==========================================================================
 // AUTHENTICATED ROUTES
-// ==========================================
+// ==========================================================================
 
 Route::middleware('auth:sanctum')->group(function () {
 
 
-    // ======================================
+    // ======================================================================
     // AUTHENTICATION
-    // ======================================
+    // ======================================================================
 
-    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/logout', [
+        AuthController::class,
+        'logout'
+    ]);
 
-    Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/me', [
+        AuthController::class,
+        'me'
+    ]);
 
 
-    // ======================================
+    // ======================================================================
+    // CHANGE PASSWORD
+    // All authenticated users
+    // ======================================================================
+
+    Route::post('/change-password', [
+        UserController::class,
+        'changePassword'
+    ]);
+
+
+    // ======================================================================
     // ACTIVE EVALUATION PERIOD
-    // ======================================
+    // All authenticated users
+    // ======================================================================
 
     Route::get(
         '/evaluation-periods/active',
         [EvaluationPeriodController::class, 'active']
     );
 
-   Route::post(
-        '/change-password',
-        [UserController::class, 'changePassword']
-    );
 
-
-    // ======================================
+    // ======================================================================
     // ADMIN ONLY
-    // ======================================
+    // ======================================================================
 
     Route::middleware('role:Admin')->group(function () {
 
-       
+        // --------------------------------------------------------------
+        // Admin Dashboard
+        // --------------------------------------------------------------
 
-       
-         // Admin Dashboard
         Route::get(
             '/admin/dashboard',
             [AdminDashboardController::class, 'index']
         );
+
     });
 
 
-    // ======================================
+    // ======================================================================
     // ADMIN + HR
-    // ======================================
+    // ======================================================================
 
     Route::middleware('role:Admin,HR')->group(function () {
-         // Roles
+
+        // --------------------------------------------------------------
+        // Roles
+        // --------------------------------------------------------------
+
         Route::apiResource(
             'roles',
             RoleController::class
         );
-         // Users
-        Route::get('/users/managers', [UserController::class, 'managers']);
+
+
+        // --------------------------------------------------------------
+        // Users
+        // --------------------------------------------------------------
+
+        Route::get(
+            '/users/managers',
+            [UserController::class, 'managers']
+        );
+
         Route::apiResource(
             'users',
             UserController::class
         );
-       
+
+
+        // --------------------------------------------------------------
         // Departments
+        // --------------------------------------------------------------
+
         Route::apiResource(
             'departments',
             DepartmentController::class
         );
 
+
+        // --------------------------------------------------------------
         // Positions
+        // --------------------------------------------------------------
+
         Route::apiResource(
             'positions',
             PositionController::class
         );
 
+
+        // --------------------------------------------------------------
         // Evaluation Periods
+        // --------------------------------------------------------------
+
         Route::apiResource(
             'evaluation-periods',
             EvaluationPeriodController::class
         );
 
+
+        // --------------------------------------------------------------
         // Evaluation Categories
+        // --------------------------------------------------------------
+
         Route::apiResource(
             'evaluation-categories',
             EvaluationCategoryController::class
         );
 
-        // Probation Periods active route
+
+        // --------------------------------------------------------------
+        // Probation Periods
+        // --------------------------------------------------------------
+
         Route::get(
-        '/probation-periods/active',
+            '/probation-periods/active',
             [ProbationPeriodController::class, 'active']
         );
-        // Probation Periods
+
         Route::apiResource(
             'probation-periods',
             ProbationPeriodController::class
         );
+
     });
 
 
-    // ======================================
+    // ======================================================================
     // EVALUATION QUESTIONS
-    // ======================================
+    // ======================================================================
 
-    /*
-    |--------------------------------------------------------------------------
-    | VIEW QUESTIONS
-    |--------------------------------------------------------------------------
-    |
-    | Employee যখন evaluation form খুলবে,
-    | তখন questions দেখতে পারবে।
-    |
-    | তাই GET routes শুধু auth:sanctum-এর মধ্যে থাকবে।
-    |
-    */
+    // ----------------------------------------------------------------------
+    // View Questions
+    // All authenticated users
+    // ----------------------------------------------------------------------
 
     Route::get(
         '/evaluation-questions',
@@ -154,15 +198,10 @@ Route::middleware('auth:sanctum')->group(function () {
     );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | MANAGE QUESTIONS
-    |--------------------------------------------------------------------------
-    |
-    | Question create/update/delete শুধুমাত্র
-    | Admin এবং HR করতে পারবে।
-    |
-    */
+    // ----------------------------------------------------------------------
+    // Manage Questions
+    // Admin + HR
+    // ----------------------------------------------------------------------
 
     Route::middleware('role:Admin,HR')->group(function () {
 
@@ -185,68 +224,77 @@ Route::middleware('auth:sanctum')->group(function () {
             '/evaluation-questions/{evaluationQuestion}',
             [EvaluationQuestionController::class, 'destroy']
         );
+
     });
 
 
-    // ======================================
+    // ======================================================================
     // EMPLOYEE EVALUATIONS
-    // ======================================
+    // ======================================================================
 
     Route::middleware('role:Employee')->group(function () {
 
-        // Create evaluation
+        // --------------------------------------------------------------
+        // Create Evaluation
+        // --------------------------------------------------------------
+
         Route::post(
             '/evaluations',
             [EvaluationController::class, 'store']
         );
 
-        // Update draft / returned / rejected evaluation
+
+        // --------------------------------------------------------------
+        // Update Evaluation
+        // Draft / Returned / Rejected
+        // --------------------------------------------------------------
+
         Route::put(
             '/evaluations/{evaluation}',
             [EvaluationController::class, 'update']
         );
 
-        // Submit / Resubmit evaluation
+
+        // --------------------------------------------------------------
+        // Submit / Resubmit Evaluation
+        // --------------------------------------------------------------
+
         Route::post(
             '/evaluations/{evaluation}/submit',
             [EvaluationController::class, 'submit']
         );
+
     });
 
 
-    // ======================================
+    // ======================================================================
     // EMPLOYEE ANSWERS
-    // ======================================
+    // ======================================================================
 
     Route::middleware('role:Employee')->group(function () {
 
-        // Create / save answer
+        // Create / Save Answer
         Route::post(
             '/evaluation-answers',
             [EvaluationAnswerController::class, 'store']
         );
 
-        // Update answer
+
+        // Update Answer
         Route::put(
             '/evaluation-answers/{evaluationAnswer}',
             [EvaluationAnswerController::class, 'update']
         );
+
     });
 
 
-    // ======================================
+    // ======================================================================
     // EVALUATIONS - VIEW
-    // ======================================
+    // ======================================================================
 
-    /*
-    |--------------------------------------------------------------------------
-    | All authenticated users can view evaluations.
-    |--------------------------------------------------------------------------
-    |
-    | EvaluationController@index() এবং show() এর ভিতরে
-    | প্রয়োজনীয় business/ownership logic থাকবে।
-    |
-    */
+    // All authenticated users
+    // Controller handles ownership/access rules
 
     Route::get(
         '/evaluations',
@@ -259,9 +307,9 @@ Route::middleware('auth:sanctum')->group(function () {
     );
 
 
-    // ======================================
+    // ======================================================================
     // EVALUATION ANSWERS - VIEW
-    // ======================================
+    // ======================================================================
 
     Route::get(
         '/evaluation-answers',
@@ -274,32 +322,128 @@ Route::middleware('auth:sanctum')->group(function () {
     );
 
 
-    // ======================================
+    // ======================================================================
+    // MANAGER REVIEW
+    // ======================================================================
+
+    /*
+    |--------------------------------------------------------------------------
+    | Manager can:
+    |
+    | submitted -> reviewed
+    | submitted -> returned
+    | submitted -> rejected
+    |
+    | Manager CANNOT give final approval.
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('role:Manager')->group(function () {
+
+        Route::get(
+            '/manager/evaluation-reviews',
+            [EvaluationReviewController::class, 'index']
+        );
+
+        Route::get(
+            '/manager/evaluation-reviews/{evaluationReview}',
+            [EvaluationReviewController::class, 'show']
+        );
+
+        Route::post(
+            '/manager/evaluation-reviews',
+            [EvaluationReviewController::class, 'store']
+        );
+
+        Route::put(
+            '/manager/evaluation-reviews/{evaluationReview}',
+            [EvaluationReviewController::class, 'update']
+        );
+
+        Route::delete(
+            '/manager/evaluation-reviews/{evaluationReview}',
+            [EvaluationReviewController::class, 'destroy']
+        );
+
+    });
+
+
+    // ======================================================================
+    // ADMIN FINAL APPROVAL
+    // ======================================================================
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin can:
+    |
+    | reviewed -> approved
+    | reviewed -> returned
+    | reviewed -> rejected
+    |
+    | This is the FINAL approval stage.
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('role:Admin')->group(function () {
+
+        Route::get(
+            '/admin/evaluation-reviews',
+            [EvaluationReviewController::class, 'index']
+        );
+
+        Route::get(
+            '/admin/evaluation-reviews/{evaluationReview}',
+            [EvaluationReviewController::class, 'show']
+        );
+
+        Route::post(
+            '/admin/evaluation-reviews',
+            [EvaluationReviewController::class, 'store']
+        );
+
+        Route::put(
+            '/admin/evaluation-reviews/{evaluationReview}',
+            [EvaluationReviewController::class, 'update']
+        );
+
+        Route::delete(
+            '/admin/evaluation-reviews/{evaluationReview}',
+            [EvaluationReviewController::class, 'destroy']
+        );
+
+    });
+
+    // ==========================================
     // EVALUATION REVIEWS
-    // ======================================
+    // ==========================================
 
-        Route::middleware('role:Manager,HR')->group(function () {
+    Route::middleware('role:Manager,HR,Admin')->group(function () {
 
+        // Review history
         Route::get(
             '/evaluation-reviews',
             [EvaluationReviewController::class, 'index']
         );
 
+        // Single review
         Route::get(
             '/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'show']
         );
 
+        // Create Manager/Admin review
         Route::post(
             '/evaluation-reviews',
             [EvaluationReviewController::class, 'store']
         );
 
+        // Update review
         Route::put(
             '/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'update']
         );
 
+        // Delete review
         Route::delete(
             '/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'destroy']

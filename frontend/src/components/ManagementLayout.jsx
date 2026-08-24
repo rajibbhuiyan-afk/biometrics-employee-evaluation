@@ -43,6 +43,13 @@ const ManagementLayout = () => {
             ],
         },
 
+          {
+            label: "Final Evaluations",
+            path: "/management/admin/reviews",
+            end: true,
+            roles: ["Admin"],
+        },
+
       
 
 
@@ -143,8 +150,7 @@ const ManagementLayout = () => {
             label: "Evaluation Reviews",
             path: "/management/manager/reviews",
             roles: [
-                "Manager",
-                // "HR",
+                "Manager",                
             ],
         },
 
@@ -159,6 +165,8 @@ const ManagementLayout = () => {
                 "Employee",
             ],
         },
+
+      
 
     ];
 

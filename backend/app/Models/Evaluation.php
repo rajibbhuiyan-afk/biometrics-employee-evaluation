@@ -15,15 +15,33 @@ class Evaluation extends Model
         'status',
         'overall_rating',
         'employee_comment',
+
         'submitted_at',
+
         'reviewed_at',
+
+        'manager_reviewed_at',
+        'manager_approved_at',
+
+        'admin_reviewed_at',
+        'admin_approved_at',
+
         'approved_at',
     ];
 
     protected $casts = [
         'overall_rating' => 'decimal:2',
+
         'submitted_at' => 'datetime',
+
         'reviewed_at' => 'datetime',
+
+        'manager_reviewed_at' => 'datetime',
+        'manager_approved_at' => 'datetime',
+
+        'admin_reviewed_at' => 'datetime',
+        'admin_approved_at' => 'datetime',
+
         'approved_at' => 'datetime',
     ];
 

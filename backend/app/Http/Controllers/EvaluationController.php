@@ -324,13 +324,14 @@ class EvaluationController extends Controller
 
         if (!in_array($evaluation->status, [
             'draft',
-            'returned',
-            'rejected',
+            'manager_returned',
+            'manager_rejected',
+            'admin_returned',
         ])) {
 
             return response()->json([
                 'success' => false,
-                'message' => 'Only draft, returned, or rejected evaluations can be submitted.',
+                'message' => 'Only draft, returned, rejected, or admin-returned evaluations can be submitted.',
             ], 422);
         }
 
@@ -391,8 +392,9 @@ class EvaluationController extends Controller
 
         if (!in_array($evaluation->status, [
             'draft',
-            'returned',
-            'rejected',
+            'manager_returned',
+            'manager_rejected',
+            'admin_returned',
         ])) {
 
             return response()->json([

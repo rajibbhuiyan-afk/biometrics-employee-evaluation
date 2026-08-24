@@ -21,18 +21,26 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
 
-            $table->decimal('rating', 5, 2)->nullable();
+            $table->enum('reviewer_role', [
+                'Manager',
+                'HR',
+                'Admin',
+            ]);
 
-            $table->text('comment')->nullable();
+            $table->decimal('rating', 5, 2)
+                ->nullable();
+
+            $table->text('comment')
+                ->nullable();
 
             $table->enum('action', [
-                'reviewed',
                 'approved',
                 'rejected',
                 'returned',
             ]);
 
-            $table->timestamp('reviewed_at')->nullable();
+            $table->timestamp('reviewed_at')
+                ->nullable();
 
             $table->timestamps();
         });
