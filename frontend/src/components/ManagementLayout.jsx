@@ -1,78 +1,228 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
 import "../styles/managementlayout.css";
 
+
 const ManagementLayout = () => {
+
     const navigate = useNavigate();
 
+    const { user, logout } = useAuth();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Role
+    |--------------------------------------------------------------------------
+    */
+
+    const role = user?.role?.name || "";
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Menu Items
+    |--------------------------------------------------------------------------
+    */
+
     const menuItems = [
+
+        // ==========================================================
+        // Dashboard
+        // ==========================================================
+
         {
             label: "Dashboard",
             path: "/management",
             end: true,
+            roles: [
+                "Admin",
+                "HR",
+                "Manager",
+                "Employee",
+            ],
         },
+
+
+        // ==========================================================
+        // Admin + HR
+        // ==========================================================
+
         {
             label: "Users",
             path: "/management/users",
+            roles: [
+                "Admin",
+                "HR",
+            ],
         },
+
         {
             label: "Departments",
             path: "/management/departments",
+            roles: [
+                "Admin",
+                "HR",
+            ],
         },
+
         {
             label: "Positions",
             path: "/management/positions",
+            roles: [
+                "Admin",
+                "HR",
+            ],
         },
+
         {
             label: "Evaluation Categories",
             path: "/management/evaluation-categories",
+            roles: [
+                "Admin",
+                "HR",
+            ],
         },
+
         {
             label: "Evaluation Questions",
             path: "/management/evaluation-questions",
+            roles: [
+                "Admin",
+                "HR",
+            ],
         },
+
         {
             label: "Evaluation Periods",
             path: "/management/evaluation-periods",
+            roles: [
+                "Admin",
+                "HR",
+            ],
         },
+
         {
             label: "Probation Periods",
             path: "/management/probation-periods",
+            roles: [
+                "Admin",
+                "HR",
+            ],
         },
+
+
+        // ==========================================================
+        // Employee
+        // ==========================================================
+
+        // ==========================================================
+// Employee
+// ==========================================================
+
+{
+    label: "Create Evaluation",
+    path: "/management/employee/evaluations/create",
+    roles: ["Employee"],
+},
+
+{
+    label: "My Evaluations",
+    path: "/management/employee/evaluations",
+    roles: ["Employee"],
+},
+
+
+        // ==========================================================
+        // Manager
+        // ==========================================================
+
+        {
+            label: "Evaluation Reviews",
+            path: "/management/manager/reviews",
+            roles: [
+                "Manager",
+            ],
+        },
+
     ];
 
-    const handleLogout = () => {
-        /*
-         * Temporary logout handler.
-         *
-         * Once we check your AuthContext.jsx,
-         * we can connect this with your actual logout function.
-         */
 
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+    /*
+    |--------------------------------------------------------------------------
+    | Filter Menu By Role
+    |--------------------------------------------------------------------------
+    */
 
-        navigate("/login");
+    const visibleMenuItems = menuItems.filter((item) =>
+        item.roles.includes(role)
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Logout
+    |--------------------------------------------------------------------------
+    */
+
+    const handleLogout = async () => {
+
+        try {
+
+            if (logout) {
+                await logout();
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Logout error:",
+                error
+            );
+
+        } finally {
+
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+
+            navigate("/login", {
+                replace: true,
+            });
+
+        }
     };
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Layout
+    |--------------------------------------------------------------------------
+    */
+
     return (
+
         <div className="management-layout">
 
-            {/* =========================
-                Sidebar
-            ========================== */}
+
+            {/* ==========================================================
+                SIDEBAR
+            ========================================================== */}
 
             <aside className="management-sidebar">
 
-                {/* Logo / Brand */}
+
+                {/* Brand */}
 
                 <div className="sidebar-brand">
+
                     <div className="brand-title">
                         Employee Evaluation
                     </div>
 
                     <div className="brand-subtitle">
-                        Management Panel
+                        {role || "Management Panel"}
                     </div>
+
                 </div>
 
 
@@ -80,25 +230,29 @@ const ManagementLayout = () => {
 
                 <nav className="sidebar-navigation">
 
-                    {menuItems.map((item) => (
+                    {visibleMenuItems.map((item) => (
+
                         <NavLink
                             key={item.path}
                             to={item.path}
                             end={item.end}
                             className={({ isActive }) =>
                                 `sidebar-link ${
-                                    isActive ? "active" : ""
+                                    isActive
+                                        ? "active"
+                                        : ""
                                 }`
                             }
                         >
                             {item.label}
                         </NavLink>
+
                     ))}
 
                 </nav>
 
 
-                {/* Sidebar Bottom */}
+                {/* Sidebar Footer */}
 
                 <div className="sidebar-footer">
 
@@ -115,13 +269,14 @@ const ManagementLayout = () => {
             </aside>
 
 
-            {/* =========================
-                Main Area
-            ========================== */}
+            {/* ==========================================================
+                MAIN
+            ========================================================== */}
 
             <div className="management-main">
 
-                {/* Top Header */}
+
+                {/* Header */}
 
                 <header className="management-header">
 
@@ -129,11 +284,21 @@ const ManagementLayout = () => {
                         Employee Evaluation System
                     </div>
 
+
                     <div className="header-user">
 
-                        <span className="user-name">
-                            Management
-                        </span>
+                        <div className="header-user-info">
+
+                            <span className="user-name">
+                                {user?.name || "User"}
+                            </span>
+
+                            <span className="user-role">
+                                {role}
+                            </span>
+
+                        </div>
+
 
                         <button
                             type="button"
@@ -148,12 +313,14 @@ const ManagementLayout = () => {
                 </header>
 
 
-                {/* Page Content */}
+                {/* Content */}
 
                 <main className="management-content">
 
                     <div className="management-content-card">
+
                         <Outlet />
+
                     </div>
 
                 </main>
@@ -163,5 +330,6 @@ const ManagementLayout = () => {
         </div>
     );
 };
+
 
 export default ManagementLayout;

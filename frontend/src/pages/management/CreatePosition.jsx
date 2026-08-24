@@ -1,115 +1,181 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import api from "../../api/axios";
 
-const CreatePosition = () => {
+const CreateEvaluation = () => {
     const navigate = useNavigate();
 
-    const [departments, setDepartments] = useState([]);
+    // ==========================================================
+    // State
+    // ==========================================================
 
-    const [form, setForm] = useState({
-        title: "",
-        code: "",
-        department_id: "",
-        description: "",
-        status: true,
-    });
+    const [periods, setPeriods] = useState([]);
+    const [selectedPeriod, setSelectedPeriod] = useState("");
+    const [comment, setComment] = useState("");
 
-    const [loadingDepartments, setLoadingDepartments] =
-        useState(true);
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
 
-    const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
 
+
+    // ==========================================================
+    // Fetch Active Evaluation Periods
+    // ==========================================================
+
     useEffect(() => {
-        fetchDepartments();
+        fetchEvaluationPeriods();
     }, []);
 
-    const fetchDepartments = async () => {
+    const fetchEvaluationPeriods = async () => {
         try {
-            const response = await api.get("/departments");
+            setLoading(true);
+            setError("");
 
-            setDepartments(response.data.data || []);
+            const response = await api.get(
+                "/evaluation-periods/active"
+            );
+
+            setPeriods(response.data.data || []);
 
         } catch (error) {
-            console.error(error);
+            console.error(
+                "Failed to load evaluation periods:",
+                error
+            );
 
             setError(
                 error.response?.data?.message ||
-                "Failed to load departments."
+                "Failed to load evaluation periods."
             );
 
         } finally {
-            setLoadingDepartments(false);
+            setLoading(false);
         }
     };
 
-    const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
 
-        setForm((previous) => ({
-            ...previous,
-            [name]: type === "checkbox" ? checked : value,
-        }));
-    };
+    // ==========================================================
+    // Handle Form Submit
+    // ==========================================================
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        setError("");
+
+        // Validate evaluation period
+        if (!selectedPeriod) {
+            setError(
+                "Please select an evaluation period."
+            );
+            return;
+        }
+
         try {
-            setSaving(true);
-            setError("");
+            setSubmitting(true);
 
-            await api.post("/positions", {
-                title: form.title,
-                code: form.code,
-                department_id: form.department_id,
-                description: form.description,
-                status: form.status,
-            });
+            const response = await api.post(
+                "/evaluations",
+                {
+                    evaluation_period_id:
+                        Number(selectedPeriod),
 
-            alert("Position created successfully.");
+                    employee_comment:
+                        comment.trim(),
+                }
+            );
 
-            navigate("/management/positions");
+            console.log(
+                "Evaluation Created:",
+                response.data
+            );
+
+            alert(
+                "Evaluation created successfully."
+            );
+
+            // Common ManagementLayout path
+            navigate(
+                "/management/employee/evaluations"
+            );
 
         } catch (error) {
-            console.error(error);
+            console.error(
+                "Failed to create evaluation:",
+                error
+            );
 
-            if (error.response?.data?.errors) {
-                const errors = error.response.data.errors;
-
-                setError(
-                    Object.values(errors)
-                        .flat()
-                        .join(" ")
-                );
-
-            } else {
-                setError(
-                    error.response?.data?.message ||
-                    "Failed to create position."
-                );
-            }
+            setError(
+                error.response?.data?.message ||
+                "Failed to create evaluation."
+            );
 
         } finally {
-            setSaving(false);
+            setSubmitting(false);
         }
     };
 
-    if (loadingDepartments) {
+
+    // ==========================================================
+    // Loading State
+    // ==========================================================
+
+    if (loading) {
         return (
-            <div className="management-form-page">
-                <h2>Loading departments...</h2>
+            <div className="management-form-container">
+
+                <div className="data-table-empty">
+
+                    <div className="data-table-empty-title">
+                        Loading Evaluation Periods...
+                    </div>
+
+                    <div className="data-table-empty-message">
+                        Please wait while active evaluation
+                        periods are being loaded.
+                    </div>
+
+                </div>
+
             </div>
         );
     }
 
-    return (
-        <div className="management-form-page">
 
-            <h1 className="management-form-title">
-                Create Position
-            </h1>
+    // ==========================================================
+    // Page
+    // ==========================================================
+
+    return (
+        <div className="management-form-container">
+
+            {/* ==================================================
+                Header
+            ================================================== */}
+
+            <div className="page-header">
+
+                <div className="page-header-info">
+
+                    <h1 className="page-header-title">
+                        Create Evaluation
+                    </h1>
+
+                    <p className="page-header-description">
+                        Start a new employee self-evaluation
+                        for an active evaluation period.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                Error Message
+            ================================================== */}
 
             {error && (
                 <div className="management-form-error">
@@ -117,139 +183,99 @@ const CreatePosition = () => {
                 </div>
             )}
 
+
+            {/* ==================================================
+                Form
+            ================================================== */}
+
             <form
-                className="management-form"
                 onSubmit={handleSubmit}
+                className="management-form"
             >
 
-                {/* Position Title */}
+                {/* Evaluation Period */}
 
                 <div className="management-form-field">
 
-                    <label htmlFor="title">
-                        Position Title
-                    </label>
-
-                    <input
-                        id="title"
-                        type="text"
-                        name="title"
-                        value={form.title}
-                        onChange={handleChange}
-                        placeholder="e.g. Software Engineer"
-                        required
-                    />
-
-                </div>
-
-                {/* Position Code */}
-
-                <div className="management-form-field">
-
-                    <label htmlFor="code">
-                        Position Code
-                    </label>
-
-                    <input
-                        id="code"
-                        type="text"
-                        name="code"
-                        value={form.code}
-                        onChange={handleChange}
-                        placeholder="e.g. SWE"
-                        required
-                    />
-
-                </div>
-
-                {/* Department */}
-
-                <div className="management-form-field">
-
-                    <label htmlFor="department_id">
-                        Department
+                    <label htmlFor="evaluation_period">
+                        Evaluation Period
                     </label>
 
                     <select
-                        id="department_id"
-                        name="department_id"
-                        value={form.department_id}
-                        onChange={handleChange}
+                        id="evaluation_period"
+                        value={selectedPeriod}
+                        onChange={(e) =>
+                            setSelectedPeriod(
+                                e.target.value
+                            )
+                        }
+                        disabled={submitting}
                         required
                     >
+
                         <option value="">
-                            Select Department
+                            Select Evaluation Period
                         </option>
 
-                        {departments.map((department) => (
+                        {periods.map((period) => (
                             <option
-                                key={department.id}
-                                value={department.id}
+                                key={period.id}
+                                value={period.id}
                             >
-                                {department.name}
+                                {period.name}
                             </option>
                         ))}
+
                     </select>
 
                 </div>
 
-                {/* Description */}
+
+                {/* Employee Comment */}
 
                 <div className="management-form-field">
 
-                    <label htmlFor="description">
-                        Description
+                    <label htmlFor="employee_comment">
+                        Employee Comment
                     </label>
 
                     <textarea
-                        id="description"
-                        name="description"
-                        value={form.description}
-                        onChange={handleChange}
-                        placeholder="Position description"
-                        rows="4"
+                        id="employee_comment"
+                        value={comment}
+                        onChange={(e) =>
+                            setComment(e.target.value)
+                        }
+                        placeholder="Enter your comment"
+                        rows={5}
+                        disabled={submitting}
                     />
 
                 </div>
 
-                {/* Status */}
 
-                <div className="management-form-checkbox">
-
-                    <input
-                        id="status"
-                        type="checkbox"
-                        name="status"
-                        checked={form.status}
-                        onChange={handleChange}
-                    />
-
-                    <label htmlFor="status">
-                        Active
-                    </label>
-
-                </div>
-
-                {/* Buttons */}
+                {/* ==================================================
+                    Actions
+                ================================================== */}
 
                 <div className="management-form-actions">
 
                     <button
                         type="submit"
-                        className="management-btn-primary"
-                        disabled={saving}
+                        disabled={submitting}
                     >
-                        {saving
+                        {submitting
                             ? "Creating..."
-                            : "Create Position"}
+                            : "Create Evaluation"}
                     </button>
 
                     <button
                         type="button"
-                        className="management-btn-secondary"
                         onClick={() =>
-                            navigate("/management/positions")
+                            navigate(
+                                "/management/employee/evaluations"
+                            )
                         }
+                        disabled={submitting}
                     >
                         Cancel
                     </button>
@@ -257,8 +283,9 @@ const CreatePosition = () => {
                 </div>
 
             </form>
+
         </div>
     );
 };
 
-export default CreatePosition;
+export default CreateEvaluation;

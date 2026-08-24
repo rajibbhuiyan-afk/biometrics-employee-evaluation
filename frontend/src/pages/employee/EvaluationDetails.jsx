@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+
 import api from "../../api/axios";
 
 const EvaluationDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+
+    // ==========================================================
+    // State
+    // ==========================================================
 
     const [evaluation, setEvaluation] = useState(null);
     const [questions, setQuestions] = useState([]);
@@ -17,6 +22,10 @@ const EvaluationDetails = () => {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
+    // ==========================================================
+    // Load Evaluation
+    // ==========================================================
+
     useEffect(() => {
         loadEvaluation();
     }, [id]);
@@ -26,18 +35,23 @@ const EvaluationDetails = () => {
             setLoading(true);
             setError("");
 
-            // Load evaluation
+            // --------------------------------------------------
+            // Evaluation
+            // --------------------------------------------------
+
             const evaluationResponse = await api.get(
                 `/evaluations/${id}`
             );
 
-            const evaluationData = evaluationResponse.data.data;
-
-            console.log("Evaluation:", evaluationData);
+            const evaluationData =
+                evaluationResponse.data.data;
 
             setEvaluation(evaluationData);
 
-            // Load questions
+            // --------------------------------------------------
+            // Questions
+            // --------------------------------------------------
+
             const questionsResponse = await api.get(
                 "/evaluation-questions"
             );
@@ -45,11 +59,12 @@ const EvaluationDetails = () => {
             const questionsData =
                 questionsResponse.data.data || [];
 
-            console.log("Questions:", questionsData);
-
             setQuestions(questionsData);
 
-            // Load existing answers
+            // --------------------------------------------------
+            // Existing Answers
+            // --------------------------------------------------
+
             const existingAnswers = {};
 
             if (evaluationData.answers) {
@@ -68,7 +83,10 @@ const EvaluationDetails = () => {
             setAnswers(existingAnswers);
 
         } catch (error) {
-            console.error(error);
+            console.error(
+                "Failed to load evaluation:",
+                error
+            );
 
             setError(
                 error.response?.data?.message ||
@@ -79,10 +97,17 @@ const EvaluationDetails = () => {
         }
     };
 
-    // Answer change
-    const handleAnswerChange = (questionId, value) => {
+    // ==========================================================
+    // Answer Handlers
+    // ==========================================================
+
+    const handleAnswerChange = (
+        questionId,
+        value
+    ) => {
         setAnswers((previous) => ({
             ...previous,
+
             [questionId]: {
                 ...previous[questionId],
                 answer: value,
@@ -90,52 +115,80 @@ const EvaluationDetails = () => {
         }));
     };
 
-    // Rating change
-    const handleRatingChange = (questionId, rating) => {
+    const handleRatingChange = (
+        questionId,
+        value
+    ) => {
         setAnswers((previous) => ({
             ...previous,
+
             [questionId]: {
                 ...previous[questionId],
-                rating: rating ? Number(rating) : "",
+                rating: value
+                    ? Number(value)
+                    : "",
             },
         }));
     };
 
-    // Save answers
+    // ==========================================================
+    // Save Answers
+    // ==========================================================
+
+    const saveAnswers = async () => {
+        for (const question of questions) {
+            const currentAnswer =
+                answers[question.id];
+
+            // Skip unanswered questions
+            if (
+                !currentAnswer ||
+                (
+                    !currentAnswer.answer?.trim() &&
+                    !currentAnswer.rating
+                )
+            ) {
+                continue;
+            }
+
+            await api.post(
+                "/evaluation-answers",
+                {
+                    evaluation_id: Number(id),
+                    question_id: question.id,
+                    answer:
+                        currentAnswer.answer || null,
+                    rating:
+                        currentAnswer.rating || null,
+                }
+            );
+        }
+    };
+
+    // ==========================================================
+    // Save Button
+    // ==========================================================
+
     const handleSaveAnswers = async () => {
         try {
             setSaving(true);
             setError("");
             setSuccess("");
 
-            for (const question of questions) {
-                const currentAnswer = answers[question.id];
+            await saveAnswers();
 
-                if (
-                    !currentAnswer ||
-                    (
-                        !currentAnswer.answer?.trim() &&
-                        !currentAnswer.rating
-                    )
-                ) {
-                    continue;
-                }
+            setSuccess(
+                "Answers saved successfully."
+            );
 
-                await api.post("/evaluation-answers", {
-                    evaluation_id: Number(id),
-                    question_id: question.id,
-                    answer: currentAnswer.answer || null,
-                    rating: currentAnswer.rating || null,
-                });
-            }
-
-            setSuccess("Answers saved successfully.");
-
-            // Reload so latest saved answers are available
+            // Reload latest data
             await loadEvaluation();
 
         } catch (error) {
-            console.error(error);
+            console.error(
+                "Failed to save answers:",
+                error
+            );
 
             setError(
                 error.response?.data?.message ||
@@ -146,7 +199,10 @@ const EvaluationDetails = () => {
         }
     };
 
-    // Submit evaluation
+    // ==========================================================
+    // Submit Evaluation
+    // ==========================================================
+
     const handleSubmitEvaluation = async () => {
         const confirmed = window.confirm(
             "Are you sure you want to submit this evaluation? You cannot edit it after submission."
@@ -161,50 +217,40 @@ const EvaluationDetails = () => {
             setError("");
             setSuccess("");
 
+            // --------------------------------------------------
             // Save answers first
-            for (const question of questions) {
-                const currentAnswer = answers[question.id];
+            // --------------------------------------------------
 
-                if (
-                    !currentAnswer ||
-                    (
-                        !currentAnswer.answer?.trim() &&
-                        !currentAnswer.rating
-                    )
-                ) {
-                    continue;
-                }
+            await saveAnswers();
 
-                await api.post("/evaluation-answers", {
-                    evaluation_id: Number(id),
-                    question_id: question.id,
-                    answer: currentAnswer.answer || null,
-                    rating: currentAnswer.rating || null,
-                });
-            }
-
+            // --------------------------------------------------
             // Submit evaluation
+            // --------------------------------------------------
+
             const response = await api.post(
                 `/evaluations/${id}/submit`
             );
 
-            console.log(
-                "Evaluation Submitted:",
-                response.data
+            setEvaluation(
+                response.data.data
             );
 
             setSuccess(
                 "Evaluation submitted successfully."
             );
 
-            setEvaluation(response.data.data);
-
+            // Redirect after success
             setTimeout(() => {
-                navigate("/employee/evaluations");
+                navigate(
+                    "/management/employee/evaluations"
+                );
             }, 1200);
 
         } catch (error) {
-            console.error(error);
+            console.error(
+                "Failed to submit evaluation:",
+                error
+            );
 
             setError(
                 error.response?.data?.message ||
@@ -215,265 +261,459 @@ const EvaluationDetails = () => {
         }
     };
 
+    // ==========================================================
+    // Loading
+    // ==========================================================
+
     if (loading) {
         return (
-            <div>
-                <h2>Loading evaluation...</h2>
+            <div className="management-form-container">
+
+                <div className="data-table-empty">
+
+                    <div className="data-table-empty-title">
+                        Loading Evaluation...
+                    </div>
+
+                    <div className="data-table-empty-message">
+                        Please wait while the evaluation
+                        details are being loaded.
+                    </div>
+
+                </div>
+
             </div>
         );
     }
+
+    // ==========================================================
+    // Error Without Evaluation
+    // ==========================================================
 
     if (error && !evaluation) {
         return (
-            <div>
-                <p style={{ color: "red" }}>
-                    {error}
-                </p>
+            <div className="management-form-container">
 
-                <button
-                    onClick={() =>
-                        navigate("/employee/evaluations")
-                    }
-                >
-                    Back to My Evaluations
-                </button>
+                <div className="management-form-error">
+                    {error}
+                </div>
+
+                <div className="management-form-actions">
+
+                    <button
+                        type="button"
+                        onClick={() =>
+                            navigate(
+                                "/management/employee/evaluations"
+                            )
+                        }
+                    >
+                        Back to My Evaluations
+                    </button>
+
+                </div>
+
             </div>
         );
     }
+
+    // ==========================================================
+    // Evaluation Not Found
+    // ==========================================================
 
     if (!evaluation) {
         return (
-            <div>
-                <p>Evaluation not found.</p>
+            <div className="management-form-container">
+
+                <div className="data-table-empty">
+
+                    <div className="data-table-empty-title">
+                        Evaluation Not Found
+                    </div>
+
+                    <div className="data-table-empty-message">
+                        The requested evaluation could not
+                        be found.
+                    </div>
+
+                </div>
+
             </div>
         );
     }
+
+    // ==========================================================
+    // Edit Permission
+    // ==========================================================
 
     const canEdit =
         evaluation.status === "draft" ||
         evaluation.status === "returned" ||
         evaluation.status === "rejected";
 
+    // ==========================================================
+    // Page
+    // ==========================================================
+
     return (
-        <div
-            style={{
-                maxWidth: "900px",
-                margin: "30px auto",
-            }}
-        >
-            <h1>Evaluation Details</h1>
+        <div className="management-form-container">
+
+            {/* ==================================================
+                Page Header
+            ================================================== */}
+
+            <div className="page-header">
+
+                <div className="page-header-info">
+
+                    <h1 className="page-header-title">
+                        Evaluation Details
+                    </h1>
+
+                    <p className="page-header-description">
+                        Complete and submit your employee
+                        self-evaluation.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                Messages
+            ================================================== */}
 
             {error && (
-                <div
-                    style={{
-                        color: "red",
-                        marginBottom: "15px",
-                    }}
-                >
+                <div className="management-form-error">
                     {error}
                 </div>
             )}
 
             {success && (
-                <div
-                    style={{
-                        color: "green",
-                        marginBottom: "15px",
-                    }}
-                >
+                <div className="management-form-success">
                     {success}
                 </div>
             )}
 
-            {/* Evaluation Information */}
 
-            <div
-                style={{
-                    border: "1px solid #ddd",
-                    padding: "20px",
-                    marginBottom: "25px",
-                }}
-            >
-                <h2>
-                    {evaluation.evaluation_period?.name}
-                </h2>
+            {/* ==================================================
+                Evaluation Information
+            ================================================== */}
 
-                <p>
-                    <strong>Evaluation ID:</strong>{" "}
-                    {evaluation.id}
-                </p>
+            <div className="management-form-section">
 
-                <p>
-                    <strong>Status:</strong>{" "}
-                    {evaluation.status}
-                </p>
+                <div className="management-form-section-header">
 
-                <p>
-                    <strong>Employee Comment:</strong>{" "}
-                    {evaluation.employee_comment || "-"}
-                </p>
+                    <h2>
+                        Evaluation Information
+                    </h2>
+
+                </div>
+
+                <div className="management-form-grid">
+
+                    <div className="management-form-info">
+
+                        <span className="management-form-info-label">
+                            Evaluation Period
+                        </span>
+
+                        <span className="management-form-info-value">
+                            {evaluation.evaluation_period?.name ||
+                                "-"}
+                        </span>
+
+                    </div>
+
+
+                    <div className="management-form-info">
+
+                        <span className="management-form-info-label">
+                            Evaluation ID
+                        </span>
+
+                        <span className="management-form-info-value">
+                            #{evaluation.id}
+                        </span>
+
+                    </div>
+
+
+                    <div className="management-form-info">
+
+                        <span className="management-form-info-label">
+                            Status
+                        </span>
+
+                        <span className="management-form-info-value">
+                            {evaluation.status}
+                        </span>
+
+                    </div>
+
+
+                    <div className="management-form-info">
+
+                        <span className="management-form-info-label">
+                            Employee Comment
+                        </span>
+
+                        <span className="management-form-info-value">
+                            {evaluation.employee_comment ||
+                                "-"}
+                        </span>
+
+                    </div>
+
+                </div>
+
             </div>
 
-            {/* Questions */}
 
-            <h2>Evaluation Questions</h2>
+            {/* ==================================================
+                Evaluation Questions
+            ================================================== */}
 
-            {questions.length === 0 ? (
-                <p>
-                    No evaluation questions found.
-                </p>
-            ) : (
-                questions.map((question, index) => {
-                    const currentAnswer =
-                        answers[question.id] || {};
+            <div className="management-form-section">
 
-                    return (
-                        <div
-                            key={question.id}
-                            style={{
-                                border: "1px solid #ddd",
-                                padding: "20px",
-                                marginBottom: "20px",
-                            }}
-                        >
-                            <label>
-                                <strong>
-                                    {index + 1}.{" "}
-                                    {question.question}
-                                </strong>
-                            </label>
+                <div className="management-form-section-header">
 
-                            <br />
-                            <br />
+                    <h2>
+                        Evaluation Questions
+                    </h2>
 
-                            {/* Employee Answer */}
+                    <p>
+                        Answer each question and provide
+                        an appropriate rating.
+                    </p>
 
-                            <textarea
-                                rows="5"
-                                style={{
-                                    width: "100%",
-                                    padding: "10px",
-                                }}
-                                disabled={!canEdit}
-                                value={
-                                    currentAnswer.answer || ""
-                                }
-                                onChange={(e) =>
-                                    handleAnswerChange(
-                                        question.id,
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="Write your answer..."
-                            />
-
-                            <br />
-                            <br />
-
-                            {/* Rating */}
-
-                            <div>
-                                <label>
-                                    <strong>
-                                        Rating:
-                                    </strong>
-                                </label>
-
-                                <br />
-
-                                <select
-                                    disabled={!canEdit}
-                                    value={
-                                        currentAnswer.rating || ""
-                                    }
-                                    onChange={(e) =>
-                                        handleRatingChange(
-                                            question.id,
-                                            e.target.value
-                                        )
-                                    }
-                                >
-                                    <option value="">
-                                        Select Rating
-                                    </option>
-
-                                    <option value="1">
-                                        1 - Poor
-                                    </option>
-
-                                    <option value="2">
-                                        2 - Needs Improvement
-                                    </option>
-
-                                    <option value="3">
-                                        3 - Meets Expectations
-                                    </option>
-
-                                    <option value="4">
-                                        4 - Very Good
-                                    </option>
-
-                                    <option value="5">
-                                        5 - Excellent
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-                    );
-                })
-            )}
-
-            {/* Actions */}
-
-            {canEdit && (
-                <div
-                    style={{
-                        display: "flex",
-                        gap: "10px",
-                    }}
-                >
-                    <button
-                        type="button"
-                        disabled={saving || submitting}
-                        onClick={handleSaveAnswers}
-                    >
-                        {saving
-                            ? "Saving..."
-                            : "Save Answers"}
-                    </button>
-
-                    <button
-                        type="button"
-                        disabled={saving || submitting}
-                        onClick={handleSubmitEvaluation}
-                    >
-                        {submitting
-                            ? "Submitting..."
-                            : "Submit Evaluation"}
-                    </button>
                 </div>
-            )}
 
-            {!canEdit && (
-                <p>
-                    This evaluation is currently{" "}
-                    <strong>
-                        {evaluation.status}
-                    </strong>
-                    .
-                </p>
-            )}
 
-            <br />
+                {questions.length === 0 ? (
 
-            <button
-                type="button"
-                onClick={() =>
-                    navigate("/employee/evaluations")
-                }
-            >
-                Back to My Evaluations
-            </button>
+                    <div className="data-table-empty">
+
+                        <div className="data-table-empty-title">
+                            No Questions Found
+                        </div>
+
+                        <div className="data-table-empty-message">
+                            No evaluation questions are
+                            currently available.
+                        </div>
+
+                    </div>
+
+                ) : (
+
+                    <div className="evaluation-question-list">
+
+                        {questions.map(
+                            (question, index) => {
+
+                                const currentAnswer =
+                                    answers[
+                                        question.id
+                                    ] || {};
+
+                                return (
+                                    <div
+                                        key={question.id}
+                                        className="evaluation-question-card"
+                                    >
+
+                                        {/* Question */}
+
+                                        <div className="evaluation-question-title">
+
+                                            <span>
+                                                {index + 1}.
+                                            </span>
+
+                                            <strong>
+                                                {question.question}
+                                            </strong>
+
+                                        </div>
+
+
+                                        {/* Answer */}
+
+                                        <div className="management-form-field">
+
+                                            <label
+                                                htmlFor={`answer-${question.id}`}
+                                            >
+                                                Your Answer
+                                            </label>
+
+                                            <textarea
+                                                id={`answer-${question.id}`}
+                                                rows="5"
+                                                value={
+                                                    currentAnswer.answer ||
+                                                    ""
+                                                }
+                                                disabled={
+                                                    !canEdit ||
+                                                    saving ||
+                                                    submitting
+                                                }
+                                                onChange={(e) =>
+                                                    handleAnswerChange(
+                                                        question.id,
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="Write your answer..."
+                                            />
+
+                                        </div>
+
+
+                                        {/* Rating */}
+
+                                        <div className="management-form-field">
+
+                                            <label
+                                                htmlFor={`rating-${question.id}`}
+                                            >
+                                                Rating
+                                            </label>
+
+                                            <select
+                                                id={`rating-${question.id}`}
+                                                value={
+                                                    currentAnswer.rating ||
+                                                    ""
+                                                }
+                                                disabled={
+                                                    !canEdit ||
+                                                    saving ||
+                                                    submitting
+                                                }
+                                                onChange={(e) =>
+                                                    handleRatingChange(
+                                                        question.id,
+                                                        e.target.value
+                                                    )
+                                                }
+                                            >
+
+                                                <option value="">
+                                                    Select Rating
+                                                </option>
+
+                                                <option value="1">
+                                                    1 - Poor
+                                                </option>
+
+                                                <option value="2">
+                                                    2 - Needs Improvement
+                                                </option>
+
+                                                <option value="3">
+                                                    3 - Meets Expectations
+                                                </option>
+
+                                                <option value="4">
+                                                    4 - Very Good
+                                                </option>
+
+                                                <option value="5">
+                                                    5 - Excellent
+                                                </option>
+
+                                            </select>
+
+                                        </div>
+
+                                    </div>
+                                );
+                            }
+                        )}
+
+                    </div>
+                )}
+
+            </div>
+
+
+            {/* ==================================================
+                Actions
+            ================================================== */}
+
+            <div className="management-form-actions">
+
+                {canEdit && (
+
+                    <>
+
+                        <button
+                            type="button"
+                            disabled={
+                                saving ||
+                                submitting
+                            }
+                            onClick={
+                                handleSaveAnswers
+                            }
+                        >
+                            {saving
+                                ? "Saving..."
+                                : "Save Answers"}
+                        </button>
+
+
+                        <button
+                            type="button"
+                            disabled={
+                                saving ||
+                                submitting
+                            }
+                            onClick={
+                                handleSubmitEvaluation
+                            }
+                        >
+                            {submitting
+                                ? "Submitting..."
+                                : "Submit Evaluation"}
+                        </button>
+
+                    </>
+                )}
+
+
+                {!canEdit && (
+                    <div className="management-form-info-message">
+                        This evaluation is currently{" "}
+                        <strong>
+                            {evaluation.status}
+                        </strong>
+                        .
+                    </div>
+                )}
+
+
+                <button
+                    type="button"
+                    disabled={
+                        saving ||
+                        submitting
+                    }
+                    onClick={() =>
+                        navigate(
+                            "/management/employee/evaluations"
+                        )
+                    }
+                >
+                    Back to My Evaluations
+                </button>
+
+            </div>
+
         </div>
     );
 };

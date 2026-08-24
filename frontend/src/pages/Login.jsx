@@ -1,96 +1,265 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import { useAuth } from "../context/AuthContext";
 
+
 const Login = () => {
+
     const navigate = useNavigate();
 
     const { login } = useAuth();
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Form State
+    |--------------------------------------------------------------------------
+    */
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | UI State
+    |--------------------------------------------------------------------------
+    */
 
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Submit
+    |--------------------------------------------------------------------------
+    */
+
     const handleSubmit = async (e) => {
+
         e.preventDefault();
 
         setError("");
         setLoading(true);
 
+
         try {
-            const response = await login(email, password);
-            
-            if (response.success) {
-                const role = response.data.user.role.name;                
 
-                if (role === "Admin") {
-                    navigate("/admin");
-                } else if (role === "HR") {
-                    navigate("/hr");
-                } else if (role === "Manager") {
-                    navigate("/manager");
-                } else if (role === "Employee") {
-                    navigate("/employee");
+            const response = await login(
+                email,
+                password
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Login Failed
+            |--------------------------------------------------------------------------
+            */
+
+            if (!response?.success) {
+
+                setError(
+                    response?.message ||
+                    "Login failed."
+                );
+
+                return;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | User
+            |--------------------------------------------------------------------------
+            */
+
+            const loggedInUser =
+                response?.data?.user;
+
+            const role =
+                loggedInUser?.role?.name;
+
+
+            console.log(
+                "Logged in user:",
+                loggedInUser
+            );
+
+            console.log(
+                "Logged in role:",
+                role
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Go To Common Layout
+            |--------------------------------------------------------------------------
+            */
+
+            navigate(
+                "/management",
+                {
+                    replace: true,
                 }
-            } else {
-                setError(response.message || "Login failed.");
-            }
-        } catch (error) {
-            console.error(error);
+            );
 
-            if (error.response?.data?.message) {
-                setError(error.response.data.message);
-            } else {
-                setError("Something went wrong.");
-            }
+        } catch (error) {
+
+            console.error(
+                "Login error:",
+                error
+            );
+
+
+            setError(
+                error.response?.data?.message ||
+                "Something went wrong. Please try again."
+            );
+
         } finally {
+
             setLoading(false);
+
         }
     };
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Page
+    |--------------------------------------------------------------------------
+    */
+
     return (
-        <div>
-            <h2>Employee Evaluation System</h2>
 
-            <form onSubmit={handleSubmit}>
-                <div>
-                    <label>Email</label>
+        <div className="login-page">
 
-                    <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter email"
-                        required
-                    />
+            <div className="login-card">
+
+
+                {/* Header */}
+
+                <div className="login-header">
+
+                    <h1 className="login-title">
+                        Employee Evaluation System
+                    </h1>
+
+                    <p className="login-description">
+                        Sign in to access your account.
+                    </p>
+
                 </div>
 
-                <div>
-                    <label>Password</label>
 
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter password"
-                        required
-                    />
-                </div>
+                {/* Error */}
 
                 {error && (
-                    <p style={{ color: "red" }}>
+
+                    <div className="login-error">
                         {error}
-                    </p>
+                    </div>
+
                 )}
 
-                <button type="submit" disabled={loading}>
-                    {loading ? "Logging in..." : "Login"}
+
+                {/* Form */}
+
+                <form
+                    onSubmit={handleSubmit}
+                    className="login-form"
+                >
+
+
+                    {/* Email */}
+
+                    <div className="login-field">
+
+                        <label htmlFor="email">
+                            Email
+                        </label>
+
+                        <input
+                            id="email"
+                            type="email"
+                            value={email}
+                            onChange={(e) =>
+                                setEmail(
+                                    e.target.value
+                                )
+                            }
+                            placeholder="Enter your email"
+                            autoComplete="email"
+                            required
+                            disabled={loading}
+                        />
+
+                    </div>
+
+
+                    {/* Password */}
+
+                    <div className="login-field">
+
+                        <label htmlFor="password">
+                            Password
+                        </label>
+
+                        <input
+                            id="password"
+                            type="password"
+                            value={password}
+                            onChange={(e) =>
+                                setPassword(
+                                    e.target.value
+                                )
+                            }
+                            placeholder="Enter your password"
+                            autoComplete="current-password"
+                            required
+                            disabled={loading}
+                        />
+
+                    </div>
+
+
+                    {/* Submit */}
+
+                    <button
+                        type="submit"
+                        className="login-button"
+                        disabled={loading}
+                    >
+                        {loading
+                            ? "Logging in..."
+                            : "Login"}
+                    </button>
+
+                </form>
+
+
+                {/* Home */}
+
+                <button
+                    type="button"
+                    className="login-home-button"
+                    onClick={() =>
+                        navigate("/")
+                    }
+                    disabled={loading}
+                >
+                    ← Back to Home
                 </button>
-            </form>
+
+            </div>
+
         </div>
     );
 };
+
 
 export default Login;

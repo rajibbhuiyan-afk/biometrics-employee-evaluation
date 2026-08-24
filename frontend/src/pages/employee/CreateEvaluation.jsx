@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import api from "../../api/axios";
 
+
 const CreateEvaluation = () => {
+
     const navigate = useNavigate();
+
+    // --------------------------------------------------------------------------
+    // State
+    // --------------------------------------------------------------------------
 
     const [periods, setPeriods] = useState([]);
     const [selectedPeriod, setSelectedPeriod] = useState("");
@@ -14,19 +21,37 @@ const CreateEvaluation = () => {
 
     const [error, setError] = useState("");
 
+
+    // --------------------------------------------------------------------------
+    // Fetch Active Evaluation Periods
+    // --------------------------------------------------------------------------
+
     useEffect(() => {
         fetchEvaluationPeriods();
     }, []);
 
+
     const fetchEvaluationPeriods = async () => {
+
         try {
-            const response = await api.get("/evaluation-periods/active");
 
-            console.log("Active Evaluation Periods:", response.data);
+            setLoading(true);
+            setError("");
 
-            setPeriods(response.data.data || []);
+            const response =
+                await api.get("/evaluation-periods/active");
+
+            console.log(
+                "Active Evaluation Periods:",
+                response.data
+            );
+
+            setPeriods(
+                response.data.data || []
+            );
 
         } catch (error) {
+
             console.error(error);
 
             setError(
@@ -35,34 +60,67 @@ const CreateEvaluation = () => {
             );
 
         } finally {
+
             setLoading(false);
+
         }
     };
 
+
+    // --------------------------------------------------------------------------
+    // Create Evaluation
+    // --------------------------------------------------------------------------
+
     const handleCreateEvaluation = async (e) => {
+
         e.preventDefault();
 
+        // Clear previous error
+        setError("");
+
+
+        // Validate evaluation period
         if (!selectedPeriod) {
-            setError("Please select an evaluation period.");
+
+            setError(
+                "Please select an evaluation period."
+            );
+
             return;
         }
 
+
         try {
+
             setSubmitting(true);
-            setError("");
 
-            const response = await api.post("/evaluations", {
-                evaluation_period_id: Number(selectedPeriod),
-                employee_comment: comment,
-            });
+            const response =
+                await api.post(
+                    "/evaluations",
+                    {
+                        evaluation_period_id:
+                            Number(selectedPeriod),
 
-            console.log("Evaluation Created:", response.data);
+                        employee_comment:
+                            comment,
+                    }
+                );
 
-            alert("Evaluation created successfully.");
+            console.log(
+                "Evaluation Created:",
+                response.data
+            );
 
-            navigate("/employee/evaluations");
+            alert(
+                "Evaluation created successfully."
+            );
+
+            navigate(
+                "/employee/evaluations"
+            );
 
         } catch (error) {
+
             console.error(error);
 
             setError(
@@ -71,88 +129,191 @@ const CreateEvaluation = () => {
             );
 
         } finally {
+
             setSubmitting(false);
+
         }
     };
 
+
+    // --------------------------------------------------------------------------
+    // Loading State
+    // --------------------------------------------------------------------------
+
     if (loading) {
-        return <div>Loading evaluation periods...</div>;
+
+        return (
+            <div className="management-form-page">
+
+                <div className="data-table-empty">
+
+                    <div className="data-table-empty-title">
+                        Loading Evaluation Periods...
+                    </div>
+
+                    <div className="data-table-empty-message">
+                        Please wait while active evaluation
+                        periods are being loaded.
+                    </div>
+
+                </div>
+
+            </div>
+        );
     }
 
+
+    // --------------------------------------------------------------------------
+    // Page
+    // --------------------------------------------------------------------------
+
     return (
-        <div>
-            <h1>Create Evaluation</h1>
+
+        <div className="management-form-page">
+
+            {/* ------------------------------------------------------------------
+                Header
+            ------------------------------------------------------------------ */}
+
+            <div className="page-header">
+
+                <div className="page-header-info">
+
+                    <h1 className="page-header-title">
+                        Create Evaluation
+                    </h1>
+
+                    <p className="page-header-description">
+                        Start a new employee self-evaluation
+                        for an active evaluation period.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            {/* ------------------------------------------------------------------
+                Error
+            ------------------------------------------------------------------ */}
 
             {error && (
-                <p style={{ color: "red" }}>
+
+                <div className="management-form-error">
                     {error}
-                </p>
+                </div>
+
             )}
 
-            <form onSubmit={handleCreateEvaluation}>
 
-                <div>
-                    <label>
+            {/* ------------------------------------------------------------------
+                Form
+            ------------------------------------------------------------------ */}
+
+            <form
+                onSubmit={handleCreateEvaluation}
+                className="management-form"
+            >
+
+                {/* Evaluation Period */}
+
+                <div className="management-form-field">
+
+                    <label htmlFor="evaluation_period">
                         Evaluation Period
                     </label>
 
-                    <br />
-
                     <select
+                        id="evaluation_period"
                         value={selectedPeriod}
                         onChange={(e) =>
-                            setSelectedPeriod(e.target.value)
+                            setSelectedPeriod(
+                                e.target.value
+                            )
                         }
+                        required
+                        disabled={submitting}
                     >
+
                         <option value="">
                             Select Evaluation Period
                         </option>
 
                         {periods.map((period) => (
+
                             <option
                                 key={period.id}
                                 value={period.id}
                             >
                                 {period.name}
                             </option>
+
                         ))}
+
                     </select>
+
                 </div>
 
-                <br />
 
-                <div>
-                    <label>
+                {/* Employee Comment */}
+
+                <div className="management-form-field">
+
+                    <label htmlFor="employee_comment">
                         Employee Comment
                     </label>
 
-                    <br />
-
                     <textarea
+                        id="employee_comment"
                         value={comment}
                         onChange={(e) =>
-                            setComment(e.target.value)
+                            setComment(
+                                e.target.value
+                            )
                         }
                         placeholder="Enter your comment"
                         rows="5"
-                        cols="50"
+                        disabled={submitting}
                     />
+
                 </div>
 
-                <br />
 
-                <button
-                    type="submit"
-                    disabled={submitting}
-                >
-                    {submitting
-                        ? "Creating..."
-                        : "Create Evaluation"}
-                </button>
+                {/* ----------------------------------------------------------------
+                    Actions
+                ---------------------------------------------------------------- */}
+
+                <div className="management-form-actions">
+
+                    <button
+                        type="submit"
+                        disabled={submitting}
+                    >
+                        {submitting
+                            ? "Creating..."
+                            : "Create Evaluation"}
+                    </button>
+
+
+                    <button
+                        type="button"
+                        onClick={() =>
+                            navigate(
+                                "/employee/evaluations"
+                            )
+                        }
+                        disabled={submitting}
+                    >
+                        Cancel
+                    </button>
+
+                </div>
 
             </form>
+
         </div>
     );
 };
+
 
 export default CreateEvaluation;
