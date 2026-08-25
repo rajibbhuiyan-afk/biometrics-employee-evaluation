@@ -140,6 +140,12 @@ const ManagementLayout = () => {
             end: true,
             roles: ["Employee"],
         },
+        {
+            label: "My Profile",
+            path: "/management/employee/profile",
+            end: true,
+            roles: ["Employee"],
+        },
 
 
         // ==========================================================

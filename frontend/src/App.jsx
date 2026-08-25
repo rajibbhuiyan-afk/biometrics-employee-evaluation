@@ -73,6 +73,8 @@ import HRDashboard from "./pages/hr/HRDashboard";
 
 import AdminEvaluationList from "./pages/management/AdminEvaluationList";
 
+import MyProfile from "./pages/employee/MyProfile";
+
 
 
 
@@ -162,6 +164,12 @@ function App() {
                     <Route
                         path="employee/evaluations/:id"
                         element={<EvaluationDetails />}
+                    />
+
+
+                  <Route
+                        path="/management/employee/profile"
+                        element={<MyProfile />}
                     />
 
 

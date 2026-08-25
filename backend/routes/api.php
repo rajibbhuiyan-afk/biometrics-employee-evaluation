@@ -16,6 +16,8 @@ use App\Http\Controllers\EvaluationAnswerController;
 use App\Http\Controllers\EvaluationReviewController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\ProbationPeriodController;
+use App\Http\Controllers\EmployeeProfileController;
+use App\Http\Controllers\EmployeeEducationController;
 
 
 // ==========================================================================
@@ -50,9 +52,95 @@ Route::middleware('auth:sanctum')->group(function () {
     ]);
 
 
+   // ======================================================================
+// MY PROFILE
+// ======================================================================
+//
+// Every authenticated user can view their own profile.
+//
+// Employee can update their own profile.
+//
+// The controller should always use auth()->user()
+// instead of accepting user_id from frontend.
+//
+// ======================================================================
+
+Route::get('/profile', [
+    EmployeeProfileController::class,
+    'show'
+]);
+
+Route::put('/profile', [
+    EmployeeProfileController::class,
+    'update'
+]);
+
+Route::patch('/profile', [
+    EmployeeProfileController::class,
+    'update'
+]);
+
+
+// ======================================================================
+// MY EDUCATION
+// ======================================================================
+//
+// Employee can manage multiple education records.
+//
+// ======================================================================
+
+Route::get('/profile/educations', [
+    EmployeeEducationController::class,
+    'index'
+]);
+
+Route::post('/profile/educations', [
+    EmployeeEducationController::class,
+    'store'
+]);
+
+Route::get('/profile/educations/{education}', [
+    EmployeeEducationController::class,
+    'show'
+]);
+
+Route::put('/profile/educations/{education}', [
+    EmployeeEducationController::class,
+    'update'
+]);
+
+Route::patch('/profile/educations/{education}', [
+    EmployeeEducationController::class,
+    'update'
+]);
+
+Route::delete('/profile/educations/{education}', [
+    EmployeeEducationController::class,
+    'destroy'
+]);
+
+
+// ======================================================================
+// VIEW EMPLOYEE PROFILE
+// ======================================================================
+//
+// HR / Manager / Admin can view another employee's profile.
+//
+// They CANNOT edit the employee profile from these routes.
+//
+// ======================================================================
+
+Route::middleware('role:HR,Manager,Admin')->group(function () {
+
+    Route::get(
+        '/employees/{user}/profile',
+        [EmployeeProfileController::class, 'employeeProfile']
+    );
+
+});
+
     // ======================================================================
     // CHANGE PASSWORD
-    // All authenticated users
     // ======================================================================
 
     Route::post('/change-password', [
@@ -63,7 +151,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ======================================================================
     // ACTIVE EVALUATION PERIOD
-    // All authenticated users
     // ======================================================================
 
     Route::get(
@@ -273,14 +360,20 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:Employee')->group(function () {
 
+        // --------------------------------------------------------------
         // Create / Save Answer
+        // --------------------------------------------------------------
+
         Route::post(
             '/evaluation-answers',
             [EvaluationAnswerController::class, 'store']
         );
 
 
+        // --------------------------------------------------------------
         // Update Answer
+        // --------------------------------------------------------------
+
         Route::put(
             '/evaluation-answers/{evaluationAnswer}',
             [EvaluationAnswerController::class, 'update']
@@ -293,8 +386,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // EVALUATIONS - VIEW
     // ======================================================================
 
-    // All authenticated users
-    // Controller handles ownership/access rules
+    // All authenticated users.
+    // Controller handles ownership/access rules.
 
     Route::get(
         '/evaluations',
@@ -326,39 +419,51 @@ Route::middleware('auth:sanctum')->group(function () {
     // MANAGER REVIEW
     // ======================================================================
 
-    /*
-    |--------------------------------------------------------------------------
-    | Manager can:
-    |
-    | submitted -> reviewed
-    | submitted -> returned
-    | submitted -> rejected
-    |
-    | Manager CANNOT give final approval.
-    |--------------------------------------------------------------------------
-    */
-
     Route::middleware('role:Manager')->group(function () {
+
+        // --------------------------------------------------------------
+        // Manager Review List
+        // --------------------------------------------------------------
 
         Route::get(
             '/manager/evaluation-reviews',
             [EvaluationReviewController::class, 'index']
         );
 
+
+        // --------------------------------------------------------------
+        // Single Manager Review
+        // --------------------------------------------------------------
+
         Route::get(
             '/manager/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'show']
         );
+
+
+        // --------------------------------------------------------------
+        // Create Manager Review
+        // --------------------------------------------------------------
 
         Route::post(
             '/manager/evaluation-reviews',
             [EvaluationReviewController::class, 'store']
         );
 
+
+        // --------------------------------------------------------------
+        // Update Manager Review
+        // --------------------------------------------------------------
+
         Route::put(
             '/manager/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'update']
         );
+
+
+        // --------------------------------------------------------------
+        // Delete Manager Review
+        // --------------------------------------------------------------
 
         Route::delete(
             '/manager/evaluation-reviews/{evaluationReview}',
@@ -372,39 +477,51 @@ Route::middleware('auth:sanctum')->group(function () {
     // ADMIN FINAL APPROVAL
     // ======================================================================
 
-    /*
-    |--------------------------------------------------------------------------
-    | Admin can:
-    |
-    | reviewed -> approved
-    | reviewed -> returned
-    | reviewed -> rejected
-    |
-    | This is the FINAL approval stage.
-    |--------------------------------------------------------------------------
-    */
-
     Route::middleware('role:Admin')->group(function () {
+
+        // --------------------------------------------------------------
+        // Admin Review List
+        // --------------------------------------------------------------
 
         Route::get(
             '/admin/evaluation-reviews',
             [EvaluationReviewController::class, 'index']
         );
 
+
+        // --------------------------------------------------------------
+        // Single Admin Review
+        // --------------------------------------------------------------
+
         Route::get(
             '/admin/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'show']
         );
+
+
+        // --------------------------------------------------------------
+        // Create Admin Review
+        // --------------------------------------------------------------
 
         Route::post(
             '/admin/evaluation-reviews',
             [EvaluationReviewController::class, 'store']
         );
 
+
+        // --------------------------------------------------------------
+        // Update Admin Review
+        // --------------------------------------------------------------
+
         Route::put(
             '/admin/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'update']
         );
+
+
+        // --------------------------------------------------------------
+        // Delete Admin Review
+        // --------------------------------------------------------------
 
         Route::delete(
             '/admin/evaluation-reviews/{evaluationReview}',
@@ -413,41 +530,68 @@ Route::middleware('auth:sanctum')->group(function () {
 
     });
 
-    // ==========================================
+
+    // ======================================================================
     // EVALUATION REVIEWS
-    // ==========================================
+    // ======================================================================
+    //
+    // General review endpoints.
+    //
+    // Manager / HR / Admin
+    //
+    // ======================================================================
 
     Route::middleware('role:Manager,HR,Admin')->group(function () {
 
-        // Review history
+        // --------------------------------------------------------------
+        // Review History
+        // --------------------------------------------------------------
+
         Route::get(
             '/evaluation-reviews',
             [EvaluationReviewController::class, 'index']
         );
 
-        // Single review
+
+        // --------------------------------------------------------------
+        // Single Review
+        // --------------------------------------------------------------
+
         Route::get(
             '/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'show']
         );
 
-        // Create Manager/Admin review
+
+        // --------------------------------------------------------------
+        // Create Review
+        // --------------------------------------------------------------
+
         Route::post(
             '/evaluation-reviews',
             [EvaluationReviewController::class, 'store']
         );
 
-        // Update review
+
+        // --------------------------------------------------------------
+        // Update Review
+        // --------------------------------------------------------------
+
         Route::put(
             '/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'update']
         );
 
-        // Delete review
+
+        // --------------------------------------------------------------
+        // Delete Review
+        // --------------------------------------------------------------
+
         Route::delete(
             '/evaluation-reviews/{evaluationReview}',
             [EvaluationReviewController::class, 'destroy']
         );
+
     });
 
 });

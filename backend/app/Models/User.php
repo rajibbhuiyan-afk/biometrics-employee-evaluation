@@ -150,4 +150,19 @@ class User extends Authenticatable
             'employee_id'
         );
     }
+    public function employeeProfile()
+    {
+        return $this->hasOne(
+            EmployeeProfile::class,
+            'user_id'
+        );
+    }
+
+    public function educations()
+    {
+        return $this->hasMany(
+            EmployeeEducation::class,
+            'user_id'
+        );
+    }
 }
