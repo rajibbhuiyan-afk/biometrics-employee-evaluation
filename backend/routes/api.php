@@ -134,7 +134,7 @@ Route::middleware('role:HR,Manager,Admin')->group(function () {
 
     Route::get(
         '/employees/{user}/profile',
-        [EmployeeProfileController::class, 'employeeProfile']
+        [EmployeeProfileController::class, 'showEmployee']
     );
 
 });

@@ -12,6 +12,10 @@ return new class extends Migration
             $table->id();
 
             $table->string('employee_id', 50)->unique();
+            $table->string('gender', 20)->nullable();
+
+            $table->string('employee_type', 30)
+                ->default('regular');
             $table->string('name', 150);
             $table->string('email', 150)->unique();
             $table->string('google_id', 255)->nullable()->unique();

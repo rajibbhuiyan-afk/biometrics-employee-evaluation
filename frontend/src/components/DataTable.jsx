@@ -2,6 +2,7 @@ const DataTable = ({
     columns,
     data,
     emptyMessage = "No records found.",
+    onRowClick,
 }) => {
     return (
         <div className="data-table-container">
@@ -38,26 +39,40 @@ const DataTable = ({
                         </thead>
 
                         <tbody>
+
                             {data.map((row, index) => (
-                                <tr key={row.id ?? index}>
+
+                                <tr
+                                    key={row.id || index}
+                                    onClick={() => {
+                                        if (onRowClick) {
+                                            onRowClick(row);
+                                        }
+                                    }}
+                                    className={
+                                        onRowClick
+                                            ? "data-table-clickable-row"
+                                            : ""
+                                    }
+                                >
 
                                     {columns.map((column) => (
-                                        <td
-                                            key={column.key}
-                                            className={
-                                                column.key === "actions"
-                                                    ? "data-table-actions"
-                                                    : ""
-                                            }
-                                        >
+
+                                        <td key={column.key}>
+
                                             {column.render
                                                 ? column.render(row)
-                                                : row[column.key] ?? "N/A"}
+                                                : row[column.key] ?? "-"
+                                            }
+
                                         </td>
+
                                     ))}
 
                                 </tr>
+
                             ))}
+
                         </tbody>
 
                     </table>

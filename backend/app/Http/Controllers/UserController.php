@@ -80,6 +80,15 @@ class UserController extends Controller
                 'min:8',
                 'confirmed',
             ],
+             'gender' => [
+                'required',
+                'in:male,female',
+            ],
+
+            'employee_type' => [
+                'required',
+                'in:regular,support_staff,cpa',
+            ],
 
             'role_id' => [
                 'required',
@@ -116,15 +125,130 @@ class UserController extends Controller
             ],
         ]);
 
-        $lastEmployee = User::orderByDesc('id')->first();
+        // $lastEmployee = User::orderByDesc('id')->first();
 
-        $nextNumber = $lastEmployee
-            ? $lastEmployee->id + 1
-            : 1;
+        // $nextNumber = $lastEmployee
+        //     ? $lastEmployee->id + 1
+        //     : 1;
 
-        $employeeId = 'EMP-' . str_pad(
-            $nextNumber,
-            4,
+        // $employeeId = 'EMP-' . str_pad(
+        //     $nextNumber,
+        //     4,
+        //     '0',
+        //     STR_PAD_LEFT
+        // );
+
+        // $validated['employee_id'] = $employeeId;
+
+                /*
+        |--------------------------------------------------------------------------
+        | Generate Employee ID
+        |--------------------------------------------------------------------------
+        */
+
+        $joiningDate = $validated['joining_date'] ?? now()->format('Y-m-d');
+
+        $date = \Carbon\Carbon::parse($joiningDate);
+
+        $year = $date->format('y');   // 2026 -> 26
+        $month = $date->format('m');  // May -> 05
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Gender Code
+        |--------------------------------------------------------------------------
+        |
+        | Male   = 1
+        | Female = 2
+        |
+        */
+
+        $genderCode = match ($validated['gender']) {
+            'male' => '1',
+            'female' => '2',
+        };
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Employee Type Prefix
+        |--------------------------------------------------------------------------
+        |
+        | Regular       = no prefix
+        | Support Staff = SS
+        | CPA           = CPA
+        |
+        */
+
+        $typePrefix = match ($validated['employee_type']) {
+            'regular' => '',
+            'support_staff' => 'SS',
+            'cpa' => 'CPA',
+        };
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Employee ID Prefix
+        |--------------------------------------------------------------------------
+        */
+
+        $employeeIdPrefix =
+            $typePrefix .
+            $year .
+            $month .
+            $genderCode;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Find Last Serial
+        |--------------------------------------------------------------------------
+        */
+
+        $lastEmployee = User::where(
+                'employee_id',
+                'like',
+                $employeeIdPrefix . '%'
+            )
+            ->orderByDesc('employee_id')
+            ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Generate Next Serial
+        |--------------------------------------------------------------------------
+        */
+
+        if ($lastEmployee) {
+
+            $lastSerial = (int) substr(
+                $lastEmployee->employee_id,
+                strlen($employeeIdPrefix)
+            );
+
+            $nextSerial = $lastSerial + 1;
+
+        } else {
+
+            $nextSerial = 1;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Final Employee ID
+        |--------------------------------------------------------------------------
+        |
+        | Serial = 3 digits
+        |
+        */
+
+        $employeeId = $employeeIdPrefix . str_pad(
+            $nextSerial,
+            3,
             '0',
             STR_PAD_LEFT
         );
@@ -241,6 +365,13 @@ class UserController extends Controller
                 'email',
                 'max:255',
                 Rule::unique('users', 'email')
+                    ->ignore($user->id),
+            ],
+            'employee_id' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('users', 'employee_id')
                     ->ignore($user->id),
             ],
 
