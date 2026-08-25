@@ -14,6 +14,11 @@ const ReviewEvaluation = () => {
     // ==========================================================
 
     const [evaluation, setEvaluation] = useState(null);
+
+    // All evaluation questions
+    const [questions, setQuestions] = useState([]);
+
+    // Employee answers
     const [answers, setAnswers] = useState([]);
 
     const [rating, setRating] = useState("");
@@ -58,7 +63,7 @@ const ReviewEvaluation = () => {
     };
 
     // ==========================================================
-    // Fetch Evaluation
+    // Fetch Evaluation + Questions
     // ==========================================================
 
     useEffect(() => {
@@ -72,31 +77,37 @@ const ReviewEvaluation = () => {
             setLoading(true);
             setError("");
 
-            const response = await api.get(
+            // ==================================================
+            // Load Evaluation
+            // ==================================================
+
+            const evaluationResponse = await api.get(
                 `/evaluations/${id}`
             );
 
             console.log(
                 "Evaluation Details:",
-                response.data
+                evaluationResponse.data
             );
 
-            if (!response.data.success) {
+            if (!evaluationResponse.data.success) {
                 setEvaluation(null);
+                setQuestions([]);
                 setAnswers([]);
 
                 setError(
-                    response.data.message ||
+                    evaluationResponse.data.message ||
                     "Failed to load evaluation."
                 );
 
                 return;
             }
 
-            const data = response.data.data;
+            const data = evaluationResponse.data.data;
 
             if (!data) {
                 setEvaluation(null);
+                setQuestions([]);
                 setAnswers([]);
 
                 setError(
@@ -107,35 +118,60 @@ const ReviewEvaluation = () => {
             }
 
             setEvaluation(data);
-            setAnswers(data.answers || []);
 
             // ==================================================
-            // Load latest review
+            // Employee Answers
             // ==================================================
 
-            if (
-                data.reviews &&
-                data.reviews.length > 0
-            ) {
-                const latestReview =
-                    data.reviews[
-                        data.reviews.length - 1
-                    ];
+            setAnswers(
+                data.answers || []
+            );
 
-                setRating(
-                    latestReview.rating !== null &&
-                    latestReview.rating !== undefined
-                        ? String(latestReview.rating)
-                        : ""
-                );
+            // ==================================================
+            // Load ALL Evaluation Questions
+            // ==================================================
 
-                setComment(
-                    latestReview.comment || ""
-                );
-            } else {
-                setRating("");
-                setComment("");
-            }
+            const questionsResponse = await api.get(
+                "/evaluation-questions"
+            );
+
+            console.log(
+                "Evaluation Questions:",
+                questionsResponse.data
+            );
+
+            const questionData =
+                questionsResponse.data.data || [];
+
+            setQuestions(questionData);
+
+            // ==================================================
+            // Load Latest Review
+            // ==================================================
+
+            // if (
+            //     data.reviews &&
+            //     data.reviews.length > 0
+            // ) {
+            //     const latestReview =
+            //         data.reviews[
+            //             data.reviews.length - 1
+            //         ];
+
+            //     setRating(
+            //         latestReview.rating !== null &&
+            //         latestReview.rating !== undefined
+            //             ? String(latestReview.rating)
+            //             : ""
+            //     );
+
+            //     setComment(
+            //         latestReview.comment || ""
+            //     );
+            // } else {
+            //     setRating("");
+            //     setComment("");
+            // }
 
         } catch (error) {
             console.error(
@@ -144,6 +180,7 @@ const ReviewEvaluation = () => {
             );
 
             setEvaluation(null);
+            setQuestions([]);
             setAnswers([]);
 
             setError(
@@ -157,10 +194,23 @@ const ReviewEvaluation = () => {
     };
 
     // ==========================================================
+    // Find Answer For Question
+    // ==========================================================
+
+    const getAnswerForQuestion = (questionId) => {
+        return answers.find(
+            (item) =>
+                Number(item.question_id) ===
+                Number(questionId)
+        );
+    };
+
+    // ==========================================================
     // Review Action
     // ==========================================================
 
     const handleReviewAction = async (action) => {
+
         setError("");
         setSuccess("");
 
@@ -169,12 +219,10 @@ const ReviewEvaluation = () => {
         // ======================================================
 
         if (!user?.id) {
-            setError(
-                "Logged-in user information not found."
-            );
-
+            setError("Logged-in user information not found.");
             return;
         }
+
 
         // ======================================================
         // Check role
@@ -184,9 +232,19 @@ const ReviewEvaluation = () => {
             setError(
                 "You are not authorized to review evaluations."
             );
-
             return;
         }
+
+
+        // ======================================================
+        // Check evaluation
+        // ======================================================
+
+        if (!evaluation) {
+            setError("Evaluation information not found.");
+            return;
+        }
+
 
         // ======================================================
         // Check status
@@ -199,9 +257,9 @@ const ReviewEvaluation = () => {
             setError(
                 "This evaluation is not available for manager review."
             );
-
             return;
         }
+
 
         if (
             isAdmin &&
@@ -210,33 +268,29 @@ const ReviewEvaluation = () => {
             setError(
                 "This evaluation is not available for final admin review."
             );
-
             return;
         }
+
 
         // ======================================================
         // Validate rating
         // ======================================================
 
         if (!rating) {
-            setError(
-                "Please select a rating."
-            );
-
+            setError("Please select a rating.");
             return;
         }
+
 
         // ======================================================
         // Validate comment
         // ======================================================
 
         if (!comment.trim()) {
-            setError(
-                "Please enter a comment."
-            );
-
+            setError("Please enter a comment.");
             return;
         }
+
 
         // ======================================================
         // Action text
@@ -258,6 +312,7 @@ const ReviewEvaluation = () => {
             actionText = "return";
         }
 
+
         // ======================================================
         // Confirmation
         // ======================================================
@@ -270,11 +325,13 @@ const ReviewEvaluation = () => {
             return;
         }
 
+
         // ======================================================
-        // Submit
+        // Submit Review
         // ======================================================
 
         try {
+
             setActionLoading(true);
 
             const response = await api.post(
@@ -287,24 +344,42 @@ const ReviewEvaluation = () => {
                 }
             );
 
+
             console.log(
                 "Review Action Response:",
                 response.data
             );
 
+
             if (response.data.success) {
+
+                // ==================================================
+                // Clear current review form immediately
+                // ==================================================
+
+                setRating("");
+                setComment("");
+
+
+                // ==================================================
+                // Show success message
+                // ==================================================
 
                 setSuccess(
                     response.data.message ||
                     `Evaluation ${actionText} successfully.`
                 );
 
-                // Reload evaluation
-                await fetchEvaluation();
 
-                // Clear form
-                setRating("");
-                setComment("");
+                // ==================================================
+                // Reload evaluation
+                // This will reload:
+                // - status
+                // - answers
+                // - review history
+                // ==================================================
+
+                await fetchEvaluation();
 
             } else {
 
@@ -326,9 +401,10 @@ const ReviewEvaluation = () => {
                 error.response?.data
             );
 
-            // ==================================================
+
+            // ======================================================
             // Laravel validation errors
-            // ==================================================
+            // ======================================================
 
             const validationErrors =
                 error.response?.data?.errors;
@@ -348,13 +424,20 @@ const ReviewEvaluation = () => {
                 return;
             }
 
+
+            // ======================================================
+            // General error
+            // ======================================================
+
             setError(
                 error.response?.data?.message ||
                 "Failed to process evaluation."
             );
 
         } finally {
+
             setActionLoading(false);
+
         }
     };
 
@@ -363,9 +446,7 @@ const ReviewEvaluation = () => {
     // ==========================================================
 
     const getStatusClass = (status) => {
-
         switch (status) {
-
             case "submitted":
                 return "status-active";
 
@@ -400,9 +481,7 @@ const ReviewEvaluation = () => {
     // ==========================================================
 
     const getStatusLabel = (status) => {
-
         switch (status) {
-
             case "submitted":
                 return "Submitted";
 
@@ -437,7 +516,6 @@ const ReviewEvaluation = () => {
     // ==========================================================
 
     if (loading) {
-
         return (
             <div className="management-page">
 
@@ -483,7 +561,6 @@ const ReviewEvaluation = () => {
     // ==========================================================
 
     if (error && !evaluation) {
-
         return (
             <div className="management-page">
 
@@ -529,7 +606,6 @@ const ReviewEvaluation = () => {
     // ==========================================================
 
     if (!evaluation) {
-
         return (
             <div className="management-page">
 
@@ -833,7 +909,7 @@ const ReviewEvaluation = () => {
 
 
             {/* ==================================================
-                Employee Answers
+                ALL QUESTIONS & ANSWERS
             ================================================== */}
 
             <div className="management-form-section">
@@ -845,23 +921,25 @@ const ReviewEvaluation = () => {
                     </h2>
 
                     <p>
-                        Review the answers and ratings provided
-                        by the employee.
+                        All evaluation questions are displayed
+                        below, including questions that were not
+                        answered by the employee.
                     </p>
 
                 </div>
 
-                {answers.length === 0 ? (
+
+                {questions.length === 0 ? (
 
                     <div className="data-table-empty">
 
                         <div className="data-table-empty-title">
-                            No Answers Found
+                            No Questions Found
                         </div>
 
                         <div className="data-table-empty-message">
-                            The employee has not provided any
-                            answers yet.
+                            No evaluation questions are
+                            currently available.
                         </div>
 
                     </div>
@@ -870,81 +948,144 @@ const ReviewEvaluation = () => {
 
                     <div className="evaluation-review-list">
 
-                        {answers.map((item, index) => (
+                        {questions.map(
+                            (question, index) => {
 
-                            <div
-                                key={
-                                    item.id ||
-                                    index
-                                }
-                                className="evaluation-review-card"
-                            >
+                                // Find employee answer
+                                const employeeAnswer =
+                                    getAnswerForQuestion(
+                                        question.id
+                                    );
 
-                                <div className="evaluation-review-question">
+                                return (
 
-                                    <span>
-                                        {index + 1}.
-                                    </span>
+                                    <div
+                                        key={question.id}
+                                        className="evaluation-review-card"
+                                    >
 
-                                    <strong>
-                                        {
-                                            item.question
-                                                ?.question ||
-                                            "Question not found"
-                                        }
-                                    </strong>
+                                        {/* ==================================
+                                            Question
+                                        ================================== */}
 
-                                </div>
+                                        <div className="evaluation-review-question">
 
-                                <div className="evaluation-review-answer">
+                                            <span>
+                                                {index + 1}.
+                                            </span>
 
-                                    <span className="evaluation-review-label">
-                                        Employee Answer
-                                    </span>
+                                            <strong>
 
-                                    <p>
-                                        {item.answer ||
-                                            "No answer provided."}
-                                    </p>
+                                                {question.question}
 
-                                </div>
+                                                {question.is_required && (
+                                                    <span className="required-star">
+                                                        {" "}*
+                                                    </span>
+                                                )}
 
-                                <div className="evaluation-review-rating">
+                                            </strong>
 
-                                    <span className="evaluation-review-label">
-                                        Employee Rating
-                                    </span>
+                                        </div>
 
-                                    <span className="status-badge status-active">
 
-                                        {item.rating !== null &&
-                                        item.rating !== undefined
-                                            ? `${item.rating} / 5`
-                                            : "Not provided"}
+                                        {/* ==================================
+                                            Required Status
+                                        ================================== */}
 
-                                    </span>
+                                        {/* {question.is_required && (
+                                            <div
+                                                style={{
+                                                    marginTop: "6px",
+                                                    fontSize: "13px",
+                                                    color: "#b45309",
+                                                }}
+                                            >
+                                                Required Question
+                                            </div>
+                                        )} */}
 
-                                </div>
 
-                                {item.comment && (
+                                        {/* ==================================
+                                            Employee Answer
+                                        ================================== */}
 
-                                    <div className="evaluation-review-answer">
+                                        <div className="evaluation-review-answer">
 
-                                        <span className="evaluation-review-label">
+                                            <span className="evaluation-review-label">
+                                                Employee Answer
+                                            </span>
+
+                                            <p>
+
+                                                {employeeAnswer?.answer
+                                                    ? employeeAnswer.answer
+                                                    : "No answer provided."}
+
+                                            </p>
+
+                                        </div>
+
+
+                                        {/* ==================================
+                                            Employee Rating
+                                        ================================== */}
+
+                                        <div className="evaluation-review-rating">
+
+                                            <span className="evaluation-review-label">
+                                                Employee Rating
+                                            </span>
+
+                                            <span
+                                                className={
+                                                    employeeAnswer?.rating !==
+                                                        null &&
+                                                    employeeAnswer?.rating !==
+                                                        undefined
+                                                        ? "status-badge status-active"
+                                                        : "status-badge status-extended"
+                                                }
+                                            >
+
+                                                {employeeAnswer?.rating !==
+                                                    null &&
+                                                employeeAnswer?.rating !==
+                                                    undefined
+                                                    ? `${employeeAnswer.rating} / 5`
+                                                    : "Not provided"}
+
+                                            </span>
+
+                                        </div>
+
+
+                                        {/* ==================================
                                             Employee Comment
-                                        </span>
+                                        ================================== */}
 
-                                        <p>
-                                            {item.comment}
-                                        </p>
+                                        {employeeAnswer?.comment ? (
+
+                                            <div className="evaluation-review-answer">
+
+                                                <span className="evaluation-review-label">
+                                                    Employee Comment
+                                                </span>
+
+                                                <p>
+                                                    {
+                                                        employeeAnswer.comment
+                                                    }
+                                                </p>
+
+                                            </div>
+
+                                        ) : null}
 
                                     </div>
-
-                                )}
-
-                            </div>
-
-                        ))}
+                                );
+                            }
+                        )}
 
                     </div>
 
@@ -999,11 +1140,9 @@ const ReviewEvaluation = () => {
                                     </span>
 
                                     {review.reviewer_role && (
-
                                         <span className="status-badge status-extended">
                                             {review.reviewer_role}
                                         </span>
-
                                     )}
 
                                 </div>
@@ -1062,20 +1201,6 @@ const ReviewEvaluation = () => {
 
             {/* ==================================================
                 MANAGER REVIEW
-            ==================================================
-
-                Employee submitted
-                         ↓
-                     submitted
-                         ↓
-                     Manager
-                         ↓
-             approved / rejected / returned
-                         ↓
-                manager_approved
-                manager_rejected
-                manager_returned
-
             ================================================== */}
 
             {isManager &&
@@ -1121,24 +1246,11 @@ const ReviewEvaluation = () => {
                     />
 
                 </div>
-
             )}
 
 
             {/* ==================================================
                 ADMIN FINAL REVIEW
-            ==================================================
-
-                manager_approved
-                       ↓
-                     Admin
-                       ↓
-             approved / rejected / returned
-                       ↓
-                admin_approved
-                admin_rejected
-                admin_returned
-
             ================================================== */}
 
             {isAdmin &&
@@ -1185,7 +1297,6 @@ const ReviewEvaluation = () => {
                     />
 
                 </div>
-
             )}
 
         </div>
@@ -1216,12 +1327,9 @@ const ReviewForm = ({
 }) => {
 
     return (
-
         <div className="management-form">
 
-            {/* ==================================================
-                Rating
-            ================================================== */}
+            {/* Rating */}
 
             <div className="management-form-field">
 
@@ -1267,9 +1375,7 @@ const ReviewForm = ({
             </div>
 
 
-            {/* ==================================================
-                Comment
-            ================================================== */}
+            {/* Comment */}
 
             <div className="management-form-field">
 
@@ -1291,9 +1397,7 @@ const ReviewForm = ({
             </div>
 
 
-            {/* ==================================================
-                Actions
-            ================================================== */}
+            {/* Actions */}
 
             <div className="management-form-actions">
 
@@ -1308,7 +1412,6 @@ const ReviewForm = ({
                         : approveText}
                 </button>
 
-
                 <button
                     type="button"
                     className="action-button action-delete"
@@ -1320,7 +1423,6 @@ const ReviewForm = ({
                         : rejectText}
                 </button>
 
-
                 <button
                     type="button"
                     className="action-button action-password"
@@ -1331,7 +1433,6 @@ const ReviewForm = ({
                         ? "Processing..."
                         : returnText}
                 </button>
-
 
                 <button
                     type="button"

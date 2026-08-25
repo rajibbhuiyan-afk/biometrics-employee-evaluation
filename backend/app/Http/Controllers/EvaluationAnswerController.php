@@ -12,8 +12,8 @@ class EvaluationAnswerController extends Controller
     /**
      * Display answers.
      *
-     * Employee -> Own evaluation answers only
-     * Manager  -> Answers of assigned employees only
+     * Employee -> Own evaluation answers
+     * Manager  -> Assigned employees
      * HR/Admin -> All answers
      */
     public function index(): JsonResponse
@@ -21,7 +21,8 @@ class EvaluationAnswerController extends Controller
         $user = auth()->user();
 
         $query = EvaluationAnswer::with([
-            'evaluation.employee',
+            'evaluation.employee.department',
+            'evaluation.employee.position',
             'question.category',
         ])->latest();
 
@@ -33,14 +34,16 @@ class EvaluationAnswerController extends Controller
 
         if ($user->role->name === 'Employee') {
 
-            $query->whereHas('evaluation', function ($evaluationQuery) use ($user) {
+            $query->whereHas(
+                'evaluation',
+                function ($evaluationQuery) use ($user) {
 
-                $evaluationQuery->where(
-                    'employee_id',
-                    $user->id
-                );
-
-            });
+                    $evaluationQuery->where(
+                        'employee_id',
+                        $user->id
+                    );
+                }
+            );
         }
 
         /*
@@ -51,14 +54,16 @@ class EvaluationAnswerController extends Controller
 
         elseif ($user->role->name === 'Manager') {
 
-            $query->whereHas('evaluation.employee', function ($employeeQuery) use ($user) {
+            $query->whereHas(
+                'evaluation.employee',
+                function ($employeeQuery) use ($user) {
 
-                $employeeQuery->where(
-                    'manager_id',
-                    $user->id
-                );
-
-            });
+                    $employeeQuery->where(
+                        'manager_id',
+                        $user->id
+                    );
+                }
+            );
         }
 
         /*
@@ -69,7 +74,7 @@ class EvaluationAnswerController extends Controller
 
         elseif (in_array($user->role->name, ['HR', 'Admin'])) {
 
-            // HR and Admin can see all answers.
+            // Allowed.
         }
 
         /*
@@ -96,13 +101,15 @@ class EvaluationAnswerController extends Controller
     /**
      * Create / save an evaluation answer.
      *
-     * Employee can only save answers
-     * for their own evaluation.
+     * Employee only.
      *
-     * Allowed evaluation statuses:
+     * Allowed statuses:
+     *
      * draft
-     * returned
-     * rejected
+     * manager_returned
+     * manager_rejected
+     * admin_returned
+     * admin_rejected
      */
     public function store(
         StoreEvaluationAnswerRequest $request
@@ -112,7 +119,7 @@ class EvaluationAnswerController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Only Employee can create answers
+        | Only Employee
         |--------------------------------------------------------------------------
         */
 
@@ -120,9 +127,10 @@ class EvaluationAnswerController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Only employees can submit evaluation answers.',
+                'message' => 'Only employees can save evaluation answers.',
             ], 403);
         }
+
 
         /*
         |--------------------------------------------------------------------------
@@ -142,9 +150,10 @@ class EvaluationAnswerController extends Controller
             ], 404);
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | Check ownership
+        | Ownership
         |--------------------------------------------------------------------------
         */
 
@@ -159,27 +168,31 @@ class EvaluationAnswerController extends Controller
             ], 403);
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | Check evaluation status
+        | Check status
         |--------------------------------------------------------------------------
         */
 
         if (!in_array($evaluation->status, [
             'draft',
-            'returned',
-            'rejected',
+            'manager_returned',
+            'manager_rejected',
+            'admin_returned',
+            'admin_rejected',
         ])) {
 
             return response()->json([
                 'success' => false,
-                'message' => 'You cannot edit answers after the evaluation has been submitted.',
+                'message' => 'You cannot edit answers after the evaluation has been approved or submitted.',
             ], 422);
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | Create / update answer
+        | Create / Update answer
         |--------------------------------------------------------------------------
         */
 
@@ -207,12 +220,7 @@ class EvaluationAnswerController extends Controller
 
 
     /**
-     * Display a single evaluation answer.
-     *
-     * Access:
-     * Employee -> Own evaluation only
-     * Manager  -> Assigned employee only
-     * HR/Admin -> All
+     * Display single answer.
      */
     public function show(
         EvaluationAnswer $evaluationAnswer
@@ -221,7 +229,8 @@ class EvaluationAnswerController extends Controller
         $user = auth()->user();
 
         $evaluationAnswer->load([
-            'evaluation.employee',
+            'evaluation.employee.department',
+            'evaluation.employee.position',
             'question.category',
         ]);
 
@@ -283,7 +292,7 @@ class EvaluationAnswerController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | UNKNOWN ROLE
+        | UNKNOWN
         |--------------------------------------------------------------------------
         */
 
@@ -303,14 +312,9 @@ class EvaluationAnswerController extends Controller
 
 
     /**
-     * Update an existing evaluation answer.
+     * Update an existing answer.
      *
-     * Employee can update only their own answer.
-     *
-     * Allowed statuses:
-     * draft
-     * returned
-     * rejected
+     * Employee only.
      */
     public function update(
         StoreEvaluationAnswerRequest $request,
@@ -321,7 +325,7 @@ class EvaluationAnswerController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Only Employee can update answers
+        | Only Employee
         |--------------------------------------------------------------------------
         */
 
@@ -332,6 +336,7 @@ class EvaluationAnswerController extends Controller
                 'message' => 'Only employees can update evaluation answers.',
             ], 403);
         }
+
 
         /*
         |--------------------------------------------------------------------------
@@ -351,9 +356,10 @@ class EvaluationAnswerController extends Controller
             ], 404);
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | Check ownership
+        | Ownership
         |--------------------------------------------------------------------------
         */
 
@@ -368,27 +374,31 @@ class EvaluationAnswerController extends Controller
             ], 403);
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | Check evaluation status
+        | Allowed statuses
         |--------------------------------------------------------------------------
         */
 
         if (!in_array($evaluation->status, [
             'draft',
-            'returned',
-            'rejected',
+            'manager_returned',
+            'manager_rejected',
+            'admin_returned',
+            'admin_rejected',
         ])) {
 
             return response()->json([
                 'success' => false,
-                'message' => 'You cannot update answers after the evaluation has been submitted.',
+                'message' => 'You cannot update answers after the evaluation has been approved or submitted.',
             ], 422);
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | Update answer
+        | Update
         |--------------------------------------------------------------------------
         */
 
@@ -399,19 +409,20 @@ class EvaluationAnswerController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Evaluation answer updated successfully.',
-            'data' => $evaluationAnswer->fresh()->load([
-                'evaluation',
-                'question.category',
-            ]),
+            'data' => $evaluationAnswer
+                ->fresh()
+                ->load([
+                    'evaluation',
+                    'question.category',
+                ]),
         ]);
     }
 
 
     /**
-     * Delete an evaluation answer.
+     * Delete answer.
      *
-     * Employee can delete only their own answer
-     * while evaluation is draft/returned/rejected.
+     * Employee only.
      */
     public function destroy(
         EvaluationAnswer $evaluationAnswer
@@ -421,7 +432,7 @@ class EvaluationAnswerController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Only Employee can delete answers
+        | Only Employee
         |--------------------------------------------------------------------------
         */
 
@@ -432,6 +443,7 @@ class EvaluationAnswerController extends Controller
                 'message' => 'Only employees can delete evaluation answers.',
             ], 403);
         }
+
 
         /*
         |--------------------------------------------------------------------------
@@ -451,9 +463,10 @@ class EvaluationAnswerController extends Controller
             ], 404);
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | Check ownership
+        | Ownership
         |--------------------------------------------------------------------------
         */
 
@@ -468,23 +481,33 @@ class EvaluationAnswerController extends Controller
             ], 403);
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | Check status
+        | Allowed statuses
         |--------------------------------------------------------------------------
         */
 
         if (!in_array($evaluation->status, [
             'draft',
-            'returned',
-            'rejected',
+            'manager_returned',
+            'manager_rejected',
+            'admin_returned',
+            'admin_rejected',
         ])) {
 
             return response()->json([
                 'success' => false,
-                'message' => 'You cannot delete answers after the evaluation has been submitted.',
+                'message' => 'You cannot delete answers after the evaluation has been approved or submitted.',
             ], 422);
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Delete
+        |--------------------------------------------------------------------------
+        */
 
         $evaluationAnswer->delete();
 

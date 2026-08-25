@@ -2071,6 +2071,12 @@
 
 }
 
+.required-star {
+    color: red;
+    margin-left: 4px;
+    font-weight: 700;
+}
+
 
 
 

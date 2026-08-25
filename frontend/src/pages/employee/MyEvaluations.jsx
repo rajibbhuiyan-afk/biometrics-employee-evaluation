@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 
 const MyEvaluations = () => {
+
     const navigate = useNavigate();
 
     // ==========================================================
@@ -21,11 +22,16 @@ const MyEvaluations = () => {
     // ==========================================================
 
     useEffect(() => {
+
         fetchMyEvaluations();
+
     }, []);
 
+
     const fetchMyEvaluations = async () => {
+
         try {
+
             setLoading(true);
             setError("");
 
@@ -43,6 +49,7 @@ const MyEvaluations = () => {
             );
 
         } catch (error) {
+
             console.error(
                 "Failed to load evaluations:",
                 error
@@ -54,16 +61,19 @@ const MyEvaluations = () => {
             );
 
         } finally {
+
             setLoading(false);
+
         }
     };
 
 
     // ==========================================================
-    // Loading State
+    // Loading
     // ==========================================================
 
     if (loading) {
+
         return (
             <div className="management-page">
 
@@ -90,10 +100,11 @@ const MyEvaluations = () => {
 
 
     // ==========================================================
-    // Navigate to Create Evaluation
+    // Create Evaluation
     // ==========================================================
 
     const handleCreateEvaluation = () => {
+
         navigate(
             "/management/employee/evaluations/create"
         );
@@ -101,10 +112,11 @@ const MyEvaluations = () => {
 
 
     // ==========================================================
-    // Navigate to Evaluation Details
+    // View Evaluation
     // ==========================================================
 
     const handleViewEvaluation = (id) => {
+
         navigate(
             `/management/employee/evaluations/${id}`
         );
@@ -120,48 +132,79 @@ const MyEvaluations = () => {
         switch (status) {
 
             case "draft":
+
                 return (
                     <span className="status-badge status-draft">
                         Draft
                     </span>
                 );
 
+
             case "submitted":
+
                 return (
                     <span className="status-badge status-submitted">
                         Submitted
                     </span>
                 );
 
-            case "reviewed":
-                return (
-                    <span className="status-badge status-reviewed">
-                        Reviewed
-                    </span>
-                );
 
-            case "approved":
-                return (
-                    <span className="status-badge status-approved">
-                        Approved
-                    </span>
-                );
+            case "manager_returned":
 
-            case "rejected":
-                return (
-                    <span className="status-badge status-rejected">
-                        Rejected
-                    </span>
-                );
-
-            case "returned":
                 return (
                     <span className="status-badge status-returned">
-                        Returned
+                        Returned by Manager
                     </span>
                 );
 
+
+            case "manager_rejected":
+
+                return (
+                    <span className="status-badge status-rejected">
+                        Rejected by Manager
+                    </span>
+                );
+
+
+            case "manager_approved":
+
+                return (
+                    <span className="status-badge status-approved">
+                        Manager Approved
+                    </span>
+                );
+
+
+            case "admin_returned":
+
+                return (
+                    <span className="status-badge status-returned">
+                        Returned by Admin
+                    </span>
+                );
+
+
+            case "admin_rejected":
+
+                return (
+                    <span className="status-badge status-rejected">
+                        Rejected by Admin
+                    </span>
+                );
+
+
+            case "admin_approved":
+
+                return (
+                    <span className="status-badge status-approved">
+                        Final Approved
+                    </span>
+                );
+
+
             default:
+
                 return (
                     <span className="status-badge status-inactive">
                         {status || "-"}
@@ -179,11 +222,12 @@ const MyEvaluations = () => {
 
         switch (evaluation.status) {
 
-            // --------------------------------------------------
-            // Draft
-            // --------------------------------------------------
+            // ==================================================
+            // DRAFT
+            // ==================================================
 
             case "draft":
+
                 return (
                     <div className="table-actions">
 
@@ -207,35 +251,154 @@ const MyEvaluations = () => {
                 );
 
 
-            // --------------------------------------------------
-            // Submitted
-            // --------------------------------------------------
+            // ==================================================
+            // SUBMITTED
+            // ==================================================
 
             case "submitted":
+
                 return (
                     <span className="action-status-text">
-                        Waiting for Review
+                        Waiting for Manager Review
                     </span>
                 );
 
 
-            // --------------------------------------------------
-            // Reviewed
-            // --------------------------------------------------
+            // ==================================================
+            // MANAGER RETURNED
+            // ==================================================
 
-            case "reviewed":
+            case "manager_returned":
+
+                return (
+                    <div className="table-actions">
+
+                        <button
+                            type="button"
+                            className="
+                                action-button
+                                evaluation-action-button
+                                action-resubmit
+                            "
+                            onClick={() =>
+                                handleViewEvaluation(
+                                    evaluation.id
+                                )
+                            }
+                        >
+                            Edit & Resubmit
+                        </button>
+
+                    </div>
+                );
+
+
+            // ==================================================
+            // MANAGER REJECTED
+            // ==================================================
+
+            case "manager_rejected":
+
+                return (
+                    <div className="table-actions">
+
+                        <button
+                            type="button"
+                            className="
+                                action-button
+                                evaluation-action-button
+                                action-resubmit
+                            "
+                            onClick={() =>
+                                handleViewEvaluation(
+                                    evaluation.id
+                                )
+                            }
+                        >
+                            Edit & Resubmit
+                        </button>
+
+                    </div>
+                );
+
+
+            // ==================================================
+            // MANAGER APPROVED
+            // ==================================================
+
+            case "manager_approved":
+
                 return (
                     <span className="action-status-text">
-                        Under Approval
+                        Waiting for Final Review
                     </span>
                 );
 
 
-            // --------------------------------------------------
-            // Approved
-            // --------------------------------------------------
+            // ==================================================
+            // ADMIN RETURNED
+            // ==================================================
 
-            case "approved":
+            case "admin_returned":
+
+                return (
+                    <div className="table-actions">
+
+                        <button
+                            type="button"
+                            className="
+                                action-button
+                                evaluation-action-button
+                                action-resubmit
+                            "
+                            onClick={() =>
+                                handleViewEvaluation(
+                                    evaluation.id
+                                )
+                            }
+                        >
+                            Edit & Resubmit
+                        </button>
+
+                    </div>
+                );
+
+
+            // ==================================================
+            // ADMIN REJECTED
+            // ==================================================
+
+            case "admin_rejected":
+
+                return (
+                    <div className="table-actions">
+
+                        <button
+                            type="button"
+                            className="
+                                action-button
+                                evaluation-action-button
+                                action-resubmit
+                            "
+                            onClick={() =>
+                                handleViewEvaluation(
+                                    evaluation.id
+                                )
+                            }
+                        >
+                            Edit & Resubmit
+                        </button>
+
+                    </div>
+                );
+
+
+            // ==================================================
+            // ADMIN APPROVED
+            // ==================================================
+
+            case "admin_approved":
+
                 return (
                     <span className="action-status-text">
                         Completed
@@ -243,67 +406,12 @@ const MyEvaluations = () => {
                 );
 
 
-            // --------------------------------------------------
-            // Rejected
-            // --------------------------------------------------
-
-            case "rejected":
-                return (
-                    <div className="table-actions">
-
-                        <button
-                            type="button"
-                            className="
-                                action-button
-                                evaluation-action-button
-                                action-resubmit
-                            "
-                            onClick={() =>
-                                handleViewEvaluation(
-                                    evaluation.id
-                                )
-                            }
-                        >
-                            Edit & Resubmit
-                        </button>
-
-                    </div>
-                );
-
-
-            // --------------------------------------------------
-            // Returned
-            // --------------------------------------------------
-
-            case "returned":
-                return (
-                    <div className="table-actions">
-
-                        <button
-                            type="button"
-                            className="
-                                action-button
-                                evaluation-action-button
-                                action-resubmit
-                            "
-                            onClick={() =>
-                                handleViewEvaluation(
-                                    evaluation.id
-                                )
-                            }
-                        >
-                            Edit & Resubmit
-                        </button>
-
-                    </div>
-                );
-
-
-            // --------------------------------------------------
-            // Default
-            // --------------------------------------------------
+            // ==================================================
+            // DEFAULT
+            // ==================================================
 
             default:
+
                 return (
                     <span className="action-status-text">
                         -
@@ -318,6 +426,7 @@ const MyEvaluations = () => {
     // ==========================================================
 
     return (
+
         <div className="management-page">
 
             {/* ==================================================
@@ -356,9 +465,11 @@ const MyEvaluations = () => {
             ================================================== */}
 
             {error && (
+
                 <div className="management-form-error">
                     {error}
                 </div>
+
             )}
 
 
@@ -432,32 +543,43 @@ const MyEvaluations = () => {
                                             {/* ID */}
 
                                             <td>
+
                                                 <strong>
                                                     #{evaluation.id}
                                                 </strong>
+
                                             </td>
 
 
                                             {/* Evaluation Period */}
 
                                             <td>
+
                                                 <span className="evaluation-period-name">
+
                                                     {
                                                         evaluation
                                                             .evaluation_period
                                                             ?.name ||
+                                                        evaluation
+                                                            .evaluationPeriod
+                                                            ?.name ||
                                                         "-"
                                                     }
+
                                                 </span>
+
                                             </td>
 
 
                                             {/* Status */}
 
                                             <td>
+
                                                 {renderStatus(
                                                     evaluation.status
                                                 )}
+
                                             </td>
 
 

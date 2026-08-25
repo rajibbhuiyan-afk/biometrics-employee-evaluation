@@ -75,6 +75,7 @@ const EvaluationDetails = () => {
                 error.response?.data?.message ||
                 "Failed to load evaluation."
             );
+
         } finally {
             setLoading(false);
         }
@@ -109,21 +110,73 @@ const EvaluationDetails = () => {
     };
 
     // =========================================================
+    // Check Required Questions
+    // =========================================================
+
+    const validateRequiredQuestions = () => {
+
+        const missingQuestions = [];
+
+        questions.forEach((question, index) => {
+
+            // Only required questions
+            if (!question.is_required) {
+                return;
+            }
+
+            const currentAnswer =
+                answers[question.id];
+
+            const hasAnswer =
+                currentAnswer?.answer &&
+                currentAnswer.answer.trim() !== "";
+
+            const hasRating =
+                currentAnswer?.rating !== "" &&
+                currentAnswer?.rating !== null &&
+                currentAnswer?.rating !== undefined;
+
+            // Required question must have
+            // either answer or rating
+            if (!hasAnswer && !hasRating) {
+
+                missingQuestions.push({
+                    number: index + 1,
+                    question: question.question,
+                });
+            }
+        });
+
+        return missingQuestions;
+    };
+
+    // =========================================================
     // Save Answers
     // =========================================================
 
     const saveAnswers = async () => {
+
         for (const question of questions) {
+
             const currentAnswer =
                 answers[question.id];
 
-            if (
-                !currentAnswer ||
-                (
-                    !currentAnswer.answer?.trim() &&
-                    !currentAnswer.rating
-                )
-            ) {
+            // No answer object
+            if (!currentAnswer) {
+                continue;
+            }
+
+            const hasAnswer =
+                currentAnswer.answer &&
+                currentAnswer.answer.trim() !== "";
+
+            const hasRating =
+                currentAnswer.rating !== "" &&
+                currentAnswer.rating !== null &&
+                currentAnswer.rating !== undefined;
+
+            // Skip completely empty optional questions
+            if (!hasAnswer && !hasRating) {
                 continue;
             }
 
@@ -132,10 +185,16 @@ const EvaluationDetails = () => {
                 {
                     evaluation_id: Number(id),
                     question_id: question.id,
+
                     answer:
-                        currentAnswer.answer || null,
+                        hasAnswer
+                            ? currentAnswer.answer.trim()
+                            : null,
+
                     rating:
-                        currentAnswer.rating || null,
+                        hasRating
+                            ? currentAnswer.rating
+                            : null,
                 }
             );
         }
@@ -146,7 +205,9 @@ const EvaluationDetails = () => {
     // =========================================================
 
     const handleSaveAnswers = async () => {
+
         try {
+
             setSaving(true);
             setError("");
             setSuccess("");
@@ -160,14 +221,18 @@ const EvaluationDetails = () => {
             await loadEvaluation();
 
         } catch (error) {
+
             console.error(error);
 
             setError(
                 error.response?.data?.message ||
                 "Failed to save answers."
             );
+
         } finally {
+
             setSaving(false);
+
         }
     };
 
@@ -176,6 +241,35 @@ const EvaluationDetails = () => {
     // =========================================================
 
     const handleSubmitEvaluation = async () => {
+
+        setError("");
+        setSuccess("");
+
+        // =====================================================
+        // Validate Required Questions
+        // =====================================================
+
+        const missingQuestions =
+            validateRequiredQuestions();
+
+        if (missingQuestions.length > 0) {
+
+            const questionNumbers =
+                missingQuestions
+                    .map((item) => item.number)
+                    .join(", ");
+
+            setError(
+                `Please answer all required questions. Missing question(s): ${questionNumbers}.`
+            );
+
+            return;
+        }
+
+        // =====================================================
+        // Confirmation
+        // =====================================================
+
         const confirmed = window.confirm(
             "Are you sure you want to submit this evaluation? You will not be able to edit it after submission."
         );
@@ -184,13 +278,21 @@ const EvaluationDetails = () => {
             return;
         }
 
+        // =====================================================
+        // Submit
+        // =====================================================
+
         try {
+
             setSubmitting(true);
+
             setError("");
             setSuccess("");
 
+            // Save all provided answers first
             await saveAnswers();
 
+            // Submit evaluation
             const response = await api.post(
                 `/evaluations/${id}/submit`
             );
@@ -202,20 +304,31 @@ const EvaluationDetails = () => {
             );
 
             setTimeout(() => {
+
                 navigate(
                     "/management/employee/evaluations"
                 );
+
             }, 1200);
 
         } catch (error) {
+
             console.error(error);
+
+            console.error(
+                "Submit response:",
+                error.response?.data
+            );
 
             setError(
                 error.response?.data?.message ||
                 "Failed to submit evaluation."
             );
+
         } finally {
+
             setSubmitting(false);
+
         }
     };
 
@@ -224,6 +337,7 @@ const EvaluationDetails = () => {
     // =========================================================
 
     if (loading) {
+
         return (
             <div className="management-page">
 
@@ -253,6 +367,7 @@ const EvaluationDetails = () => {
     // =========================================================
 
     if (error && !evaluation) {
+
         return (
             <div className="management-page">
 
@@ -281,6 +396,7 @@ const EvaluationDetails = () => {
     // =========================================================
 
     if (!evaluation) {
+
         return (
             <div className="management-page">
 
@@ -310,29 +426,39 @@ const EvaluationDetails = () => {
     // =========================================================
 
     const canEdit =
-        evaluation.status === "draft" ||
-        evaluation.status === "returned" ||
-        evaluation.status === "rejected";
+            evaluation.status === "draft" ||
+            evaluation.status === "manager_returned" ||
+            evaluation.status === "manager_rejected" ||
+            evaluation.status === "admin_returned" ||
+            evaluation.status === "admin_rejected";
 
     // =========================================================
     // Status Class
     // =========================================================
 
     const getStatusClass = (status) => {
+
         switch (status) {
+
             case "approved":
+            case "admin_approved":
                 return "evaluation-status approved";
 
             case "submitted":
                 return "evaluation-status submitted";
 
             case "reviewed":
+            case "manager_approved":
                 return "evaluation-status reviewed";
 
             case "rejected":
+            case "manager_rejected":
+            case "admin_rejected":
                 return "evaluation-status rejected";
 
             case "returned":
+            case "manager_returned":
+            case "admin_returned":
                 return "evaluation-status returned";
 
             default:
@@ -407,14 +533,17 @@ const EvaluationDetails = () => {
                 <div className="evaluation-summary-header">
 
                     <div>
+
                         <span className="evaluation-summary-label">
                             Evaluation Period
                         </span>
 
                         <h2>
                             {evaluation.evaluation_period?.name ||
+                                evaluation.evaluationPeriod?.name ||
                                 "Evaluation"}
                         </h2>
+
                     </div>
 
                     <span
@@ -489,7 +618,7 @@ const EvaluationDetails = () => {
                         </h2>
 
                         <p>
-                            Please answer all applicable questions
+                            Please answer all required questions
                             and provide a rating from 1 to 5.
                         </p>
 
@@ -545,7 +674,32 @@ const EvaluationDetails = () => {
                                             </div>
 
                                             <div className="evaluation-question-title">
+
                                                 {question.question}
+                                                
+                                                {
+                                                    console.log(
+                                                    "Question:",
+                                                    question.question,
+                                                    "is_required:",
+                                                    question.is_required,
+                                                    "Type:",
+                                                    typeof question.is_required
+                                                )
+                                                }
+                                                {/* Required Star */}
+
+                                               {/* {Number */}
+                                               {(question.is_required) === true && (
+                                                    <span
+                                                        className="required-star"
+                                                        title="Required question"
+                                                    >
+                                                        {" "}*
+                                                    </span>
+                                                )}
+                                                
+
                                             </div>
 
                                         </div>
@@ -559,6 +713,16 @@ const EvaluationDetails = () => {
                                                 htmlFor={`answer-${question.id}`}
                                             >
                                                 Your Answer
+
+                                                {/* {question.is_required && (
+                                                    <span
+                                                        className="required-star"
+                                                        title="Required"
+                                                    >
+                                                        {" "}*
+                                                    </span>
+                                                )} */}
+
                                             </label>
 
                                             <textarea
@@ -593,6 +757,16 @@ const EvaluationDetails = () => {
                                                 htmlFor={`rating-${question.id}`}
                                             >
                                                 Performance Rating
+
+                                                {question.is_required && (
+                                                    <span
+                                                        className="required-star"
+                                                        title="Required"
+                                                    >
+                                                        {" "}*
+                                                    </span>
+                                                )}
+
                                             </label>
 
                                             <select
@@ -661,7 +835,9 @@ const EvaluationDetails = () => {
             <div className="evaluation-actions">
 
                 {canEdit ? (
+
                     <>
+
                         <button
                             type="button"
                             className="evaluation-save-button"
@@ -678,6 +854,7 @@ const EvaluationDetails = () => {
                                 : "Save Answers"}
                         </button>
 
+
                         <button
                             type="button"
                             className="evaluation-submit-button"
@@ -693,16 +870,25 @@ const EvaluationDetails = () => {
                                 ? "Submitting..."
                                 : "Submit Evaluation"}
                         </button>
+
                     </>
+
                 ) : (
+
                     <div className="evaluation-locked-message">
+
                         This evaluation is currently{" "}
+
                         <strong>
                             {evaluation.status}
                         </strong>
+
                         .
+
                     </div>
+
                 )}
+
 
                 <button
                     type="button"
