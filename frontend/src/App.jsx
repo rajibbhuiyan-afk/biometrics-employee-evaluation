@@ -71,6 +71,8 @@ import EditProbationPeriod from "./pages/management/EditProbationPeriod";
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
 import HRDashboard from "./pages/hr/HRDashboard";
 
+import AdminEvaluationList from "./pages/management/AdminEvaluationList";
+
 
 
 
@@ -195,6 +197,11 @@ function App() {
                     <Route
                         path="hr/evaluations/:id"
                         element={<ReviewEvaluation />}
+                    />
+
+                    <Route
+                        path="admin/reviews"
+                        element={<AdminEvaluationList />}
                     />
 
                     <Route
