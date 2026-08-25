@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 import "../styles/managementlayout.css";
+import logo from "../assets/logo.png";
 
 
 const ManagementLayout = () => {
@@ -243,6 +244,13 @@ const ManagementLayout = () => {
                 {/* Brand */}
 
                 <div className="sidebar-brand">
+
+                    <div className="brand-logo">
+                        <img
+                            src={logo}
+                            alt="Employee Evaluation"
+                        />
+                    </div>
 
                     <div className="brand-title">
                         Employee Evaluation

@@ -58,12 +58,59 @@ const HRDashboard = () => {
     };
 
     // ==========================================================
-    // View Evaluation
+    // View Employee Profile
     // ==========================================================
 
-    const handleReview = (id) => {
+    const handleEmployeeProfile = (employeeId) => {
+
+        if (!employeeId) {
+            console.error(
+                "Employee ID not found."
+            );
+
+            return;
+        }
+
+        navigate(           
+            `/management/users/${employeeId}/profile`
+        );
+    };
+
+    // ==========================================================
+    // Review Evaluation
+    // ==========================================================
+
+    const handleReview = (evaluationId) => {
+
+        if (!evaluationId) {
+            return;
+        }
+
         navigate(
-            `/management/hr/evaluations/${id}`
+            `/management/hr/evaluations/${evaluationId}`
+        );
+    };
+
+    // ==========================================================
+    // Handle Row Click
+    // ==========================================================
+
+    const handleRowClick = (evaluation) => {
+
+        const employeeId =
+            evaluation?.employee?.id;
+
+        if (!employeeId) {
+            console.error(
+                "Employee ID not found in evaluation:",
+                evaluation
+            );
+
+            return;
+        }
+
+        handleEmployeeProfile(
+            employeeId
         );
     };
 
@@ -72,9 +119,11 @@ const HRDashboard = () => {
     // ==========================================================
 
     const renderStatus = (status) => {
+
         switch (status) {
 
             case "draft":
+
                 return (
                     <span
                         className="status-badge"
@@ -87,7 +136,9 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
             case "submitted":
+
                 return (
                     <span
                         className="status-badge"
@@ -100,7 +151,9 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
             case "reviewed":
+
                 return (
                     <span
                         className="status-badge"
@@ -113,7 +166,9 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
             case "approved":
+
                 return (
                     <span
                         className="status-badge status-active"
@@ -122,7 +177,9 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
             case "rejected":
+
                 return (
                     <span
                         className="status-badge status-inactive"
@@ -131,7 +188,9 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
             case "returned":
+
                 return (
                     <span
                         className="status-badge"
@@ -144,7 +203,9 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
             default:
+
                 return (
                     <span
                         className="status-badge"
@@ -164,6 +225,7 @@ const HRDashboard = () => {
     // ==========================================================
 
     if (loading) {
+
         return (
             <div className="management-page">
 
@@ -218,17 +280,21 @@ const HRDashboard = () => {
             ================================================== */}
 
             {error && (
+
                 <div className="management-form-error">
                     {error}
                 </div>
+
             )}
 
 
             {/* ==================================================
-                Summary
+                Summary Cards
             ================================================== */}
 
             <div className="dashboard-card-grid">
+
+                {/* Total */}
 
                 <div className="dashboard-card">
 
@@ -243,6 +309,8 @@ const HRDashboard = () => {
                 </div>
 
 
+                {/* Submitted */}
+
                 <div className="dashboard-card">
 
                     <div className="dashboard-card-title">
@@ -250,6 +318,7 @@ const HRDashboard = () => {
                     </div>
 
                     <div className="dashboard-card-value">
+
                         {
                             evaluations.filter(
                                 (evaluation) =>
@@ -257,10 +326,13 @@ const HRDashboard = () => {
                                     "submitted"
                             ).length
                         }
+
                     </div>
 
                 </div>
 
+
+                {/* Reviewed */}
 
                 <div className="dashboard-card">
 
@@ -269,6 +341,7 @@ const HRDashboard = () => {
                     </div>
 
                     <div className="dashboard-card-value">
+
                         {
                             evaluations.filter(
                                 (evaluation) =>
@@ -276,6 +349,7 @@ const HRDashboard = () => {
                                     "reviewed"
                             ).length
                         }
+
                     </div>
 
                 </div>
@@ -295,7 +369,7 @@ const HRDashboard = () => {
 
 
                 {/* ==================================================
-                    Table
+                    Table Container
                 ================================================== */}
 
                 <div className="data-table-container">
@@ -320,6 +394,10 @@ const HRDashboard = () => {
                         <div className="data-table-wrapper">
 
                             <table className="data-table">
+
+                                {/* ==================================================
+                                    Table Header
+                                ================================================== */}
 
                                 <thead>
 
@@ -358,6 +436,10 @@ const HRDashboard = () => {
                                 </thead>
 
 
+                                {/* ==================================================
+                                    Table Body
+                                ================================================== */}
+
                                 <tbody>
 
                                     {evaluations.map(
@@ -367,47 +449,75 @@ const HRDashboard = () => {
                                                 key={
                                                     evaluation.id
                                                 }
+                                                onClick={() =>
+                                                    handleRowClick(
+                                                        evaluation
+                                                    )
+                                                }
+                                                style={{
+                                                    cursor:
+                                                        evaluation
+                                                            .employee
+                                                            ?.id
+                                                            ? "pointer"
+                                                            : "default",
+                                                }}
                                             >
 
-                                                {/* ID */}
+                                                {/* ==================================================
+                                                    Evaluation ID
+                                                ================================================== */}
 
                                                 <td>
+
                                                     <strong>
                                                         #
                                                         {
                                                             evaluation.id
                                                         }
                                                     </strong>
+
                                                 </td>
 
 
-                                                {/* Employee */}
+                                                {/* ==================================================
+                                                    Employee
+                                                ================================================== */}
 
                                                 <td>
+
                                                     {
                                                         evaluation
                                                             .employee
                                                             ?.name ||
                                                         "Unknown"
                                                     }
+
                                                 </td>
 
 
-                                                {/* Employee ID */}
+                                                {/* ==================================================
+                                                    Employee ID
+                                                ================================================== */}
 
                                                 <td>
+
                                                     {
                                                         evaluation
                                                             .employee
                                                             ?.employee_id ||
                                                         "N/A"
                                                     }
+
                                                 </td>
 
 
-                                                {/* Department */}
+                                                {/* ==================================================
+                                                    Department
+                                                ================================================== */}
 
                                                 <td>
+
                                                     {
                                                         evaluation
                                                             .employee
@@ -415,31 +525,42 @@ const HRDashboard = () => {
                                                             ?.name ||
                                                         "N/A"
                                                     }
+
                                                 </td>
 
 
-                                                {/* Evaluation Period */}
+                                                {/* ==================================================
+                                                    Evaluation Period
+                                                ================================================== */}
 
                                                 <td>
+
                                                     {
                                                         evaluation
                                                             .evaluation_period
                                                             ?.name ||
                                                         "N/A"
                                                     }
+
                                                 </td>
 
 
-                                                {/* Status */}
+                                                {/* ==================================================
+                                                    Status
+                                                ================================================== */}
 
                                                 <td>
+
                                                     {renderStatus(
                                                         evaluation.status
                                                     )}
+
                                                 </td>
 
 
-                                                {/* Action */}
+                                                {/* ==================================================
+                                                    Action
+                                                ================================================== */}
 
                                                 <td className="data-table-actions">
 
@@ -448,11 +569,23 @@ const HRDashboard = () => {
                                                         <button
                                                             type="button"
                                                             className="action-button action-edit"
-                                                            onClick={() =>
+                                                            onClick={(
+                                                                e
+                                                            ) => {
+
+                                                                /*
+                                                                |--------------------------------------------------
+                                                                | Prevent row click
+                                                                |--------------------------------------------------
+                                                                */
+
+                                                                e.stopPropagation();
+
                                                                 handleReview(
                                                                     evaluation.id
-                                                                )
-                                                            }
+                                                                );
+
+                                                            }}
                                                         >
                                                             Review
                                                         </button>
