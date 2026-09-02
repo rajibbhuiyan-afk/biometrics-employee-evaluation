@@ -9,16 +9,24 @@ use Illuminate\Http\JsonResponse;
 class EvaluationQuestionController extends Controller
 {
     public function index(): JsonResponse
-    {
-        $questions = EvaluationQuestion::with('category')
-            ->orderBy('sort_order')
-            ->get();
+{
+    $user = auth()->user();
 
-        return response()->json([
-            'success' => true,
-            'data' => $questions,
-        ]);
+    $query = EvaluationQuestion::with('category')
+        ->orderBy('sort_order');
+
+    // Employee শুধু active questions দেখবে
+    if ($user->role->name === 'Employee') {
+        $query->where('status', true);
     }
+
+    $questions = $query->get();
+
+    return response()->json([
+        'success' => true,
+        'data' => $questions,
+    ]);
+}
 
     public function store(
         StoreEvaluationQuestionRequest $request

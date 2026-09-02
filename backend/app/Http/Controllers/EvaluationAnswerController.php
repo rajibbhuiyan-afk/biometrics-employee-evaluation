@@ -10,11 +10,13 @@ use Illuminate\Http\JsonResponse;
 class EvaluationAnswerController extends Controller
 {
     /**
-     * Display answers.
+     * Display evaluation answers.
      *
-     * Employee -> Own evaluation answers
-     * Manager  -> Assigned employees
-     * HR/Admin -> All answers
+     * Employee    -> Own evaluation answers
+     * Manager     -> Assigned employees
+     * HR          -> All answers
+     * Management  -> All answers
+     * Admin       -> All answers
      */
     public function index(): JsonResponse
     {
@@ -28,7 +30,7 @@ class EvaluationAnswerController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | EMPLOYEE
+        | Employee
         |--------------------------------------------------------------------------
         */
 
@@ -48,7 +50,7 @@ class EvaluationAnswerController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | MANAGER
+        | Manager
         |--------------------------------------------------------------------------
         */
 
@@ -68,18 +70,23 @@ class EvaluationAnswerController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | HR / ADMIN
+        | HR / Management / Admin
         |--------------------------------------------------------------------------
         */
 
-        elseif (in_array($user->role->name, ['HR', 'Admin'])) {
+        elseif (
+            in_array(
+                $user->role->name,
+                ['HR', 'Management', 'Admin']
+            )
+        ) {
 
-            // Allowed.
+            // Allowed to view all evaluation answers.
         }
 
         /*
         |--------------------------------------------------------------------------
-        | UNKNOWN ROLE
+        | Unknown Role
         |--------------------------------------------------------------------------
         */
 
@@ -87,7 +94,8 @@ class EvaluationAnswerController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission to view evaluation answers.',
+                'message' =>
+                    'You do not have permission to view evaluation answers.',
             ], 403);
         }
 
@@ -99,17 +107,11 @@ class EvaluationAnswerController extends Controller
 
 
     /**
-     * Create / save an evaluation answer.
+     * Save an evaluation answer.
      *
      * Employee only.
      *
-     * Allowed statuses:
-     *
-     * draft
-     * manager_returned
-     * manager_rejected
-     * admin_returned
-     * admin_rejected
+     * This method can be used for auto-save.
      */
     public function store(
         StoreEvaluationAnswerRequest $request
@@ -119,7 +121,7 @@ class EvaluationAnswerController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Only Employee
+        | Only Employee Can Save
         |--------------------------------------------------------------------------
         */
 
@@ -127,14 +129,15 @@ class EvaluationAnswerController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Only employees can save evaluation answers.',
+                'message' =>
+                    'Only employees can save evaluation answers.',
             ], 403);
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Find evaluation
+        | Find Evaluation
         |--------------------------------------------------------------------------
         */
 
@@ -153,7 +156,7 @@ class EvaluationAnswerController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Ownership
+        | Check Ownership
         |--------------------------------------------------------------------------
         */
 
@@ -164,63 +167,177 @@ class EvaluationAnswerController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'You can only answer your own evaluation.',
+                'message' =>
+                    'You can only answer your own evaluation.',
             ], 403);
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Check status
+        | Editable Statuses
         |--------------------------------------------------------------------------
         */
 
-        if (!in_array($evaluation->status, [
+        $editableStatuses = [
             'draft',
             'manager_returned',
             'manager_rejected',
-            'admin_returned',
-            'admin_rejected',
-        ])) {
+            'hr_returned',
+            'hr_rejected',
+            'management_returned',
+            'management_rejected',
+        ];
+
+        if (!in_array(
+            $evaluation->status,
+            $editableStatuses
+        )) {
 
             return response()->json([
                 'success' => false,
-                'message' => 'You cannot edit answers after the evaluation has been approved or submitted.',
+                'message' =>
+                    'You cannot edit answers after the evaluation has been submitted.',
             ], 422);
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Create / Update answer
+        | Find Existing Answer
+        |--------------------------------------------------------------------------
+        |
+        | When an evaluation is created, an answer row is created
+        | for every active question.
+        |
+        | Therefore we only update an existing answer row.
+        |
+        */
+
+        $answer = EvaluationAnswer::where(
+            'evaluation_id',
+            $evaluation->id
+        )
+        ->where(
+            'question_id',
+            $request->question_id
+        )
+        ->with('question')
+        ->first();
+
+        if (!$answer) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'This question is not part of this evaluation.',
+            ], 422);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Question
         |--------------------------------------------------------------------------
         */
 
-        $answer = EvaluationAnswer::updateOrCreate(
-            [
-                'evaluation_id' => $request->evaluation_id,
-                'question_id' => $request->question_id,
-            ],
-            [
-                'rating' => $request->rating,
-                'answer' => $request->answer,
-                'comment' => $request->comment,
-            ]
-        );
+        $question = $answer->question;
+
+        if (!$question) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Question not found for this evaluation answer.',
+            ], 404);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Maximum Answer Words
+        |--------------------------------------------------------------------------
+        |
+        | HR controls this value when creating the question.
+        |
+        | Example:
+        |
+        | 10   -> maximum 10 words
+        | 50   -> maximum 50 words
+        | 100  -> maximum 100 words
+        | NULL -> no word limit
+        |
+        */
+
+        if (
+            $question->max_answer_words !== null &&
+            $request->answer !== null
+        ) {
+
+            $answerText = trim($request->answer);
+
+            $wordCount = $answerText === ''
+                ? 0
+                : count(
+                    preg_split(
+                        '/\s+/',
+                        $answerText
+                    )
+                );
+
+            if (
+                $wordCount >
+                $question->max_answer_words
+            ) {
+
+                return response()->json([
+                    'success' => false,
+                    'message' =>
+                        'Answer exceeds the maximum allowed word limit.',
+                    'max_answer_words' =>
+                        $question->max_answer_words,
+                    'current_word_count' =>
+                        $wordCount,
+                ], 422);
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Save Answer
+        |--------------------------------------------------------------------------
+        */
+
+        $answer->update([
+            'rating' => $request->rating,
+            'answer' => $request->answer,
+            'comment' => $request->comment,
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Response
+        |--------------------------------------------------------------------------
+        */
 
         return response()->json([
             'success' => true,
-            'message' => 'Evaluation answer saved successfully.',
-            'data' => $answer->load([
-                'evaluation',
-                'question.category',
-            ]),
-        ], 201);
+            'message' =>
+                'Evaluation answer saved successfully.',
+            'data' => $answer
+                ->fresh()
+                ->load([
+                    'evaluation',
+                    'question.category',
+                ]),
+        ]);
     }
 
 
     /**
-     * Display single answer.
+     * Display a single evaluation answer.
      */
     public function show(
         EvaluationAnswer $evaluationAnswer
@@ -235,6 +352,7 @@ class EvaluationAnswerController extends Controller
         ]);
 
         $evaluation = $evaluationAnswer->evaluation;
+
 
         /*
         |--------------------------------------------------------------------------
@@ -252,10 +370,12 @@ class EvaluationAnswerController extends Controller
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'You can only view answers from your own evaluation.',
+                    'message' =>
+                        'You can only view answers from your own evaluation.',
                 ], 403);
             }
         }
+
 
         /*
         |--------------------------------------------------------------------------
@@ -274,25 +394,33 @@ class EvaluationAnswerController extends Controller
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'You can only view answers of your assigned employees.',
+                    'message' =>
+                        'You can only view answers of your assigned employees.',
                 ], 403);
             }
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | HR / ADMIN
+        | HR / Management / Admin
         |--------------------------------------------------------------------------
         */
 
-        elseif (in_array($user->role->name, ['HR', 'Admin'])) {
+        elseif (
+            in_array(
+                $user->role->name,
+                ['HR', 'Management', 'Admin']
+            )
+        ) {
 
             // Allowed.
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | UNKNOWN
+        | Unknown Role
         |--------------------------------------------------------------------------
         */
 
@@ -300,9 +428,11 @@ class EvaluationAnswerController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission to view this answer.',
+                'message' =>
+                    'You do not have permission to view this answer.',
             ], 403);
         }
+
 
         return response()->json([
             'success' => true,
@@ -312,9 +442,11 @@ class EvaluationAnswerController extends Controller
 
 
     /**
-     * Update an existing answer.
+     * Update an existing evaluation answer.
      *
      * Employee only.
+     *
+     * This method can also be used for auto-save.
      */
     public function update(
         StoreEvaluationAnswerRequest $request,
@@ -323,9 +455,10 @@ class EvaluationAnswerController extends Controller
 
         $user = auth()->user();
 
+
         /*
         |--------------------------------------------------------------------------
-        | Only Employee
+        | Only Employee Can Update
         |--------------------------------------------------------------------------
         */
 
@@ -333,18 +466,22 @@ class EvaluationAnswerController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Only employees can update evaluation answers.',
+                'message' =>
+                    'Only employees can update evaluation answers.',
             ], 403);
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Load evaluation
+        | Load Evaluation and Question
         |--------------------------------------------------------------------------
         */
 
-        $evaluationAnswer->load('evaluation');
+        $evaluationAnswer->load([
+            'evaluation',
+            'question',
+        ]);
 
         $evaluation = $evaluationAnswer->evaluation;
 
@@ -359,7 +496,7 @@ class EvaluationAnswerController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Ownership
+        | Check Ownership
         |--------------------------------------------------------------------------
         */
 
@@ -370,45 +507,141 @@ class EvaluationAnswerController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'You can only update answers from your own evaluation.',
+                'message' =>
+                    'You can only update answers from your own evaluation.',
             ], 403);
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Allowed statuses
+        | Editable Statuses
         |--------------------------------------------------------------------------
         */
 
-        if (!in_array($evaluation->status, [
+        $editableStatuses = [
             'draft',
             'manager_returned',
             'manager_rejected',
-            'admin_returned',
-            'admin_rejected',
-        ])) {
+            'hr_returned',
+            'hr_rejected',
+            'management_returned',
+            'management_rejected',
+        ];
+
+        if (!in_array(
+            $evaluation->status,
+            $editableStatuses
+        )) {
 
             return response()->json([
                 'success' => false,
-                'message' => 'You cannot update answers after the evaluation has been approved or submitted.',
+                'message' =>
+                    'You cannot update answers after the evaluation has been submitted.',
             ], 422);
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Update
+        | Make Sure Answer Belongs To Evaluation
         |--------------------------------------------------------------------------
         */
 
-        $evaluationAnswer->update(
-            $request->validated()
-        );
+        if (
+            (int) $evaluationAnswer->evaluation_id !==
+            (int) $evaluation->id
+        ) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'This answer does not belong to the evaluation.',
+            ], 422);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Question Must Exist
+        |--------------------------------------------------------------------------
+        */
+
+        $question = $evaluationAnswer->question;
+
+        if (!$question) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Question not found for this evaluation answer.',
+            ], 404);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Maximum Answer Words
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $question->max_answer_words !== null &&
+            $request->answer !== null
+        ) {
+
+            $answerText = trim($request->answer);
+
+            $wordCount = $answerText === ''
+                ? 0
+                : count(
+                    preg_split(
+                        '/\s+/',
+                        $answerText
+                    )
+                );
+
+            if (
+                $wordCount >
+                $question->max_answer_words
+            ) {
+
+                return response()->json([
+                    'success' => false,
+                    'message' =>
+                        'Answer exceeds the maximum allowed word limit.',
+                    'max_answer_words' =>
+                        $question->max_answer_words,
+                    'current_word_count' =>
+                        $wordCount,
+                ], 422);
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Update Answer
+        |--------------------------------------------------------------------------
+        */
+
+        $evaluationAnswer->update([
+            'rating' => $request->rating,
+            'answer' => $request->answer,
+            'comment' => $request->comment,
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Response
+        |--------------------------------------------------------------------------
+        */
 
         return response()->json([
             'success' => true,
-            'message' => 'Evaluation answer updated successfully.',
+            'message' =>
+                'Evaluation answer updated successfully.',
             'data' => $evaluationAnswer
                 ->fresh()
                 ->load([
@@ -420,15 +653,17 @@ class EvaluationAnswerController extends Controller
 
 
     /**
-     * Delete answer.
+     * Clear an evaluation answer.
      *
-     * Employee only.
+     * We do NOT delete the row because every question
+     * has an answer row created when the evaluation starts.
      */
     public function destroy(
         EvaluationAnswer $evaluationAnswer
     ): JsonResponse {
 
         $user = auth()->user();
+
 
         /*
         |--------------------------------------------------------------------------
@@ -440,14 +675,15 @@ class EvaluationAnswerController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Only employees can delete evaluation answers.',
+                'message' =>
+                    'Only employees can clear their evaluation answers.',
             ], 403);
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Load evaluation
+        | Load Evaluation
         |--------------------------------------------------------------------------
         */
 
@@ -477,43 +713,57 @@ class EvaluationAnswerController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'You can only delete answers from your own evaluation.',
+                'message' =>
+                    'You can only clear answers from your own evaluation.',
             ], 403);
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Allowed statuses
+        | Editable Statuses
         |--------------------------------------------------------------------------
         */
 
-        if (!in_array($evaluation->status, [
+        $editableStatuses = [
             'draft',
             'manager_returned',
             'manager_rejected',
-            'admin_returned',
-            'admin_rejected',
-        ])) {
+            'hr_returned',
+            'hr_rejected',
+            'management_returned',
+            'management_rejected',
+        ];
+
+        if (!in_array(
+            $evaluation->status,
+            $editableStatuses
+        )) {
 
             return response()->json([
                 'success' => false,
-                'message' => 'You cannot delete answers after the evaluation has been approved or submitted.',
+                'message' =>
+                    'You cannot clear answers after the evaluation has been submitted.',
             ], 422);
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Delete
+        | Clear Instead Of Delete
         |--------------------------------------------------------------------------
         */
 
-        $evaluationAnswer->delete();
+        $evaluationAnswer->update([
+            'rating' => null,
+            'answer' => null,
+            'comment' => null,
+        ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Evaluation answer deleted successfully.',
+            'message' =>
+                'Evaluation answer cleared successfully.',
         ]);
     }
 }

@@ -52,92 +52,74 @@ Route::middleware('auth:sanctum')->group(function () {
     ]);
 
 
-   // ======================================================================
-// MY PROFILE
-// ======================================================================
-//
-// Every authenticated user can view their own profile.
-//
-// Employee can update their own profile.
-//
-// The controller should always use auth()->user()
-// instead of accepting user_id from frontend.
-//
-// ======================================================================
+    // ======================================================================
+    // MY PROFILE
+    // ======================================================================
 
-Route::get('/profile', [
-    EmployeeProfileController::class,
-    'show'
-]);
+    Route::get('/profile', [
+        EmployeeProfileController::class,
+        'show'
+    ]);
 
-Route::put('/profile', [
-    EmployeeProfileController::class,
-    'update'
-]);
+    Route::put('/profile', [
+        EmployeeProfileController::class,
+        'update'
+    ]);
 
-Route::patch('/profile', [
-    EmployeeProfileController::class,
-    'update'
-]);
+    Route::patch('/profile', [
+        EmployeeProfileController::class,
+        'update'
+    ]);
 
 
-// ======================================================================
-// MY EDUCATION
-// ======================================================================
-//
-// Employee can manage multiple education records.
-//
-// ======================================================================
+    // ======================================================================
+    // MY EDUCATION
+    // ======================================================================
 
-Route::get('/profile/educations', [
-    EmployeeEducationController::class,
-    'index'
-]);
+    Route::get('/profile/educations', [
+        EmployeeEducationController::class,
+        'index'
+    ]);
 
-Route::post('/profile/educations', [
-    EmployeeEducationController::class,
-    'store'
-]);
+    Route::post('/profile/educations', [
+        EmployeeEducationController::class,
+        'store'
+    ]);
 
-Route::get('/profile/educations/{education}', [
-    EmployeeEducationController::class,
-    'show'
-]);
+    Route::get('/profile/educations/{education}', [
+        EmployeeEducationController::class,
+        'show'
+    ]);
 
-Route::put('/profile/educations/{education}', [
-    EmployeeEducationController::class,
-    'update'
-]);
+    Route::put('/profile/educations/{education}', [
+        EmployeeEducationController::class,
+        'update'
+    ]);
 
-Route::patch('/profile/educations/{education}', [
-    EmployeeEducationController::class,
-    'update'
-]);
+    Route::patch('/profile/educations/{education}', [
+        EmployeeEducationController::class,
+        'update'
+    ]);
 
-Route::delete('/profile/educations/{education}', [
-    EmployeeEducationController::class,
-    'destroy'
-]);
+    Route::delete('/profile/educations/{education}', [
+        EmployeeEducationController::class,
+        'destroy'
+    ]);
 
 
-// ======================================================================
-// VIEW EMPLOYEE PROFILE
-// ======================================================================
-//
-// HR / Manager / Admin can view another employee's profile.
-//
-// They CANNOT edit the employee profile from these routes.
-//
-// ======================================================================
+    // ======================================================================
+    // VIEW ANOTHER EMPLOYEE PROFILE
+    // ======================================================================
 
-Route::middleware('role:HR,Manager,Admin')->group(function () {
+    Route::middleware('role:HR,Manager,Admin')->group(function () {
 
-    Route::get(
-        '/employees/{user}/profile',
-        [EmployeeProfileController::class, 'showEmployee']
-    );
+        Route::get(
+            '/employees/{user}/profile',
+            [EmployeeProfileController::class, 'showEmployee']
+        );
 
-});
+    });
+
 
     // ======================================================================
     // CHANGE PASSWORD
@@ -165,10 +147,7 @@ Route::middleware('role:HR,Manager,Admin')->group(function () {
 
     Route::middleware('role:Admin')->group(function () {
 
-        // --------------------------------------------------------------
         // Admin Dashboard
-        // --------------------------------------------------------------
-
         Route::get(
             '/admin/dashboard',
             [AdminDashboardController::class, 'index']
@@ -351,14 +330,6 @@ Route::middleware('role:HR,Manager,Admin')->group(function () {
             [EvaluationController::class, 'submit']
         );
 
-    });
-
-
-    // ======================================================================
-    // EMPLOYEE ANSWERS
-    // ======================================================================
-
-    Route::middleware('role:Employee')->group(function () {
 
         // --------------------------------------------------------------
         // Create / Save Answer
@@ -385,9 +356,15 @@ Route::middleware('role:HR,Manager,Admin')->group(function () {
     // ======================================================================
     // EVALUATIONS - VIEW
     // ======================================================================
-
-    // All authenticated users.
-    // Controller handles ownership/access rules.
+    //
+    // Controller handles:
+    // Employee ownership
+    // Manager assignment
+    // HR access
+    // Management access
+    // Admin access
+    //
+    // ======================================================================
 
     Route::get(
         '/evaluations',
@@ -416,132 +393,28 @@ Route::middleware('role:HR,Manager,Admin')->group(function () {
 
 
     // ======================================================================
-    // MANAGER REVIEW
-    // ======================================================================
-
-    Route::middleware('role:Manager')->group(function () {
-
-        // --------------------------------------------------------------
-        // Manager Review List
-        // --------------------------------------------------------------
-
-        Route::get(
-            '/manager/evaluation-reviews',
-            [EvaluationReviewController::class, 'index']
-        );
-
-
-        // --------------------------------------------------------------
-        // Single Manager Review
-        // --------------------------------------------------------------
-
-        Route::get(
-            '/manager/evaluation-reviews/{evaluationReview}',
-            [EvaluationReviewController::class, 'show']
-        );
-
-
-        // --------------------------------------------------------------
-        // Create Manager Review
-        // --------------------------------------------------------------
-
-        Route::post(
-            '/manager/evaluation-reviews',
-            [EvaluationReviewController::class, 'store']
-        );
-
-
-        // --------------------------------------------------------------
-        // Update Manager Review
-        // --------------------------------------------------------------
-
-        Route::put(
-            '/manager/evaluation-reviews/{evaluationReview}',
-            [EvaluationReviewController::class, 'update']
-        );
-
-
-        // --------------------------------------------------------------
-        // Delete Manager Review
-        // --------------------------------------------------------------
-
-        Route::delete(
-            '/manager/evaluation-reviews/{evaluationReview}',
-            [EvaluationReviewController::class, 'destroy']
-        );
-
-    });
-
-
-    // ======================================================================
-    // ADMIN FINAL APPROVAL
-    // ======================================================================
-
-    Route::middleware('role:Admin')->group(function () {
-
-        // --------------------------------------------------------------
-        // Admin Review List
-        // --------------------------------------------------------------
-
-        Route::get(
-            '/admin/evaluation-reviews',
-            [EvaluationReviewController::class, 'index']
-        );
-
-
-        // --------------------------------------------------------------
-        // Single Admin Review
-        // --------------------------------------------------------------
-
-        Route::get(
-            '/admin/evaluation-reviews/{evaluationReview}',
-            [EvaluationReviewController::class, 'show']
-        );
-
-
-        // --------------------------------------------------------------
-        // Create Admin Review
-        // --------------------------------------------------------------
-
-        Route::post(
-            '/admin/evaluation-reviews',
-            [EvaluationReviewController::class, 'store']
-        );
-
-
-        // --------------------------------------------------------------
-        // Update Admin Review
-        // --------------------------------------------------------------
-
-        Route::put(
-            '/admin/evaluation-reviews/{evaluationReview}',
-            [EvaluationReviewController::class, 'update']
-        );
-
-
-        // --------------------------------------------------------------
-        // Delete Admin Review
-        // --------------------------------------------------------------
-
-        Route::delete(
-            '/admin/evaluation-reviews/{evaluationReview}',
-            [EvaluationReviewController::class, 'destroy']
-        );
-
-    });
-
-
-    // ======================================================================
     // EVALUATION REVIEWS
     // ======================================================================
     //
-    // General review endpoints.
+    // Workflow:
     //
-    // Manager / HR / Admin
+    // Employee
+    //     ↓
+    // Manager
+    //     ↓
+    // HR
+    //     ↓
+    // Management
+    //     ↓
+    // Completed
+    //
+    // Admin is NOT a reviewer.
+    //
+    // Controller handles stage-specific authorization.
     //
     // ======================================================================
 
-    Route::middleware('role:Manager,HR,Admin')->group(function () {
+    Route::middleware('role:Manager,HR,Management')->group(function () {
 
         // --------------------------------------------------------------
         // Review History
@@ -570,26 +443,6 @@ Route::middleware('role:HR,Manager,Admin')->group(function () {
         Route::post(
             '/evaluation-reviews',
             [EvaluationReviewController::class, 'store']
-        );
-
-
-        // --------------------------------------------------------------
-        // Update Review
-        // --------------------------------------------------------------
-
-        Route::put(
-            '/evaluation-reviews/{evaluationReview}',
-            [EvaluationReviewController::class, 'update']
-        );
-
-
-        // --------------------------------------------------------------
-        // Delete Review
-        // --------------------------------------------------------------
-
-        Route::delete(
-            '/evaluation-reviews/{evaluationReview}',
-            [EvaluationReviewController::class, 'destroy']
         );
 
     });

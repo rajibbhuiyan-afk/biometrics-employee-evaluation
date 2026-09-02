@@ -16,6 +16,12 @@ class RoleSeeder extends Seeder
         ]);
 
         Role::create([
+            'name' => 'Management',
+            'description' => 'Management and final evaluation approver',
+            'status' => true,
+        ]);
+
+        Role::create([
             'name' => 'HR',
             'description' => 'Human Resource',
             'status' => true,

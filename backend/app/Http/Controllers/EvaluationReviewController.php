@@ -4,24 +4,29 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreEvaluationReviewRequest;
 use App\Models\Evaluation;
+use App\Models\EvaluationAnswer;
 use App\Models\EvaluationReview;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class EvaluationReviewController extends Controller
 {
     /**
      * Review history.
      *
-     * Manager -> Assigned employees only
-     * HR       -> All reviews
-     * Admin    -> All reviews
+     * Manager     -> Assigned employees only
+     * HR          -> All reviews
+     * Management  -> All reviews
+     * Admin       -> All reviews
      */
     public function index(): JsonResponse
     {
         $user = auth()->user();
 
         $query = EvaluationReview::with([
-            'evaluation.employee',
+            'evaluation.employee.department',
+            'evaluation.employee.position',
+            'question.category',
             'reviewer',
         ])->latest();
 
@@ -36,6 +41,7 @@ class EvaluationReviewController extends Controller
             $query->whereHas(
                 'evaluation.employee',
                 function ($employeeQuery) use ($user) {
+
                     $employeeQuery->where(
                         'manager_id',
                         $user->id
@@ -46,13 +52,18 @@ class EvaluationReviewController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | HR / ADMIN
+        | HR / MANAGEMENT / ADMIN
         |--------------------------------------------------------------------------
         */
 
-        elseif (in_array($user->role->name, ['HR', 'Admin'])) {
+        elseif (
+            in_array(
+                $user->role->name,
+                ['HR', 'Management', 'Admin']
+            )
+        ) {
 
-            // Can see all review history.
+            // Allowed to view all review history.
         }
 
         /*
@@ -78,7 +89,7 @@ class EvaluationReviewController extends Controller
 
 
     /**
-     * Create Manager / Admin review.
+     * Create evaluation review.
      *
      * Workflow:
      *
@@ -91,10 +102,21 @@ class EvaluationReviewController extends Controller
      *
      * manager_approved
      *      ↓
-     * Admin
-     *      ├── approved  → admin_approved
-     *      ├── returned  → admin_returned
-     *      └── rejected  → admin_rejected
+     * HR
+     *      ├── approved  → hr_approved
+     *      ├── returned  → hr_returned
+     *      └── rejected  → hr_rejected
+     *
+     * hr_approved
+     *      ↓
+     * Management
+     *      ├── approved  → management_approved
+     *      ├── returned  → management_returned
+     *      └── rejected  → management_rejected
+     *
+     * management_approved
+     *      ↓
+     * completed
      */
     public function store(
         StoreEvaluationReviewRequest $request
@@ -105,27 +127,37 @@ class EvaluationReviewController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | ONLY MANAGER / ADMIN CAN REVIEW
+        | Only Manager / HR / Management Can Review
         |--------------------------------------------------------------------------
         */
 
-        if (!in_array($role, ['Manager', 'Admin'])) {
+        if (
+            !in_array(
+                $role,
+                ['Manager', 'HR', 'Management']
+            )
+        ) {
 
             return response()->json([
                 'success' => false,
                 'message' =>
-                    'Only Manager or Admin can review evaluations.',
+                    'Only Manager, HR or Management can review evaluations.',
             ], 403);
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | FIND EVALUATION
+        | Find Evaluation
         |--------------------------------------------------------------------------
         */
 
-        $evaluation = Evaluation::with('employee')
-            ->find($request->evaluation_id);
+        $evaluation = Evaluation::with([
+            'employee',
+            'answers.question',
+        ])->find(
+            $request->evaluation_id
+        );
 
         if (!$evaluation) {
 
@@ -135,9 +167,10 @@ class EvaluationReviewController extends Controller
             ], 404);
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | MANAGER
+        | Check Review Permission And Current Status
         |--------------------------------------------------------------------------
         */
 
@@ -145,8 +178,8 @@ class EvaluationReviewController extends Controller
 
             /*
             |----------------------------------------------------------------------
-            | Manager can review only assigned employee
-            |----------------------------------------------------------------------
+            | Manager must be assigned manager
+            |---------------------------------------------------------------------- 
             */
 
             if (
@@ -162,10 +195,11 @@ class EvaluationReviewController extends Controller
                 ], 403);
             }
 
+
             /*
             |----------------------------------------------------------------------
-            | Manager can review only submitted evaluation
-            |----------------------------------------------------------------------
+            | Manager reviews submitted evaluations
+            |---------------------------------------------------------------------- 
             */
 
             if ($evaluation->status !== 'submitted') {
@@ -176,64 +210,15 @@ class EvaluationReviewController extends Controller
                         'Only submitted evaluations can be reviewed by the manager.',
                 ], 422);
             }
-
-            /*
-            |----------------------------------------------------------------------
-            | Manager APPROVED
-            |----------------------------------------------------------------------
-            */
-
-            if ($request->action === 'approved') {
-
-                $evaluation->update([
-                    'status' => 'manager_approved',
-                    'manager_reviewed_at' => now(),
-                    'manager_approved_at' => now(),
-                ]);
-            }
-
-            /*
-            |----------------------------------------------------------------------
-            | Manager RETURNED
-            |----------------------------------------------------------------------
-            */
-
-            elseif ($request->action === 'returned') {
-
-                $evaluation->update([
-                    'status' => 'manager_returned',
-                    'manager_reviewed_at' => now(),
-                ]);
-            }
-
-            /*
-            |----------------------------------------------------------------------
-            | Manager REJECTED
-            |----------------------------------------------------------------------
-            */
-
-            elseif ($request->action === 'rejected') {
-
-                $evaluation->update([
-                    'status' => 'manager_rejected',
-                    'manager_reviewed_at' => now(),
-                ]);
-            }
         }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | ADMIN FINAL REVIEW
-        |--------------------------------------------------------------------------
-        */
-
-        elseif ($role === 'Admin') {
+        elseif ($role === 'HR') {
 
             /*
             |----------------------------------------------------------------------
-            | Admin can review ONLY manager approved
-            |----------------------------------------------------------------------
+            | HR reviews manager-approved evaluations
+            |---------------------------------------------------------------------- 
             */
 
             if ($evaluation->status !== 'manager_approved') {
@@ -241,75 +226,385 @@ class EvaluationReviewController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' =>
-                        'Only manager-approved evaluations can be reviewed by admin.',
+                        'Only manager-approved evaluations can be reviewed by HR.',
                 ], 422);
             }
+        }
+
+
+        elseif ($role === 'Management') {
 
             /*
             |----------------------------------------------------------------------
-            | Admin APPROVED
-            |----------------------------------------------------------------------
+            | Management reviews HR-approved evaluations
+            |---------------------------------------------------------------------- 
             */
 
-            if ($request->action === 'approved') {
+            if ($evaluation->status !== 'hr_approved') {
 
-                $evaluation->update([
-                    'status' => 'admin_approved',
-                    'admin_reviewed_at' => now(),
-                    'admin_approved_at' => now(),
-                ]);
-            }
-
-            /*
-            |----------------------------------------------------------------------
-            | Admin RETURNED
-            |----------------------------------------------------------------------
-            */
-
-            elseif ($request->action === 'returned') {
-
-                $evaluation->update([
-                    'status' => 'admin_returned',
-                    'admin_reviewed_at' => now(),
-                ]);
-            }
-
-            /*
-            |----------------------------------------------------------------------
-            | Admin REJECTED
-            |----------------------------------------------------------------------
-            */
-
-            elseif ($request->action === 'rejected') {
-
-                $evaluation->update([
-                    'status' => 'admin_rejected',
-                    'admin_reviewed_at' => now(),
-                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' =>
+                        'Only HR-approved evaluations can be reviewed by Management.',
+                ], 422);
             }
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | CREATE REVIEW HISTORY
+        | Get Evaluation Questions
         |--------------------------------------------------------------------------
+        |
+        | We use the questions already attached to this evaluation
+        | through evaluation_answers.
+        |
+        | We DO NOT check current question status here.
+        |
         */
 
-        $review = EvaluationReview::create([
-            'evaluation_id' => $evaluation->id,
-            'reviewer_id' => $user->id,
-            'reviewer_role' => $role,
-            'rating' => $request->rating,
-            'comment' => $request->comment,
-            'action' => $request->action,
-            'reviewed_at' => $request->reviewed_at ?? now(),
-        ]);
+        $evaluationAnswers = $evaluation->answers;
+
+        if ($evaluationAnswers->count() === 0) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'No questions found for this evaluation.',
+            ], 422);
+        }
 
 
         /*
         |--------------------------------------------------------------------------
-        | RESPONSE
+        | Submitted Reviews
+        |--------------------------------------------------------------------------
+        */
+
+        $submittedReviews = collect(
+            $request->reviews
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Duplicate Question Reviews
+        |--------------------------------------------------------------------------
+        */
+
+        $questionIds = $submittedReviews
+            ->pluck('question_id')
+            ->map(fn ($id) => (int) $id);
+
+        if ($questionIds->duplicates()->count() > 0) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Duplicate question reviews are not allowed.',
+            ], 422);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check All Evaluation Questions Are Reviewed
+        |--------------------------------------------------------------------------
+        */
+
+        $evaluationQuestionIds = $evaluationAnswers
+            ->pluck('question_id')
+            ->map(fn ($id) => (int) $id)
+            ->sort()
+            ->values();
+
+        $submittedQuestionIds = $questionIds
+            ->sort()
+            ->values();
+
+        $missingQuestionIds = $evaluationQuestionIds
+            ->diff($submittedQuestionIds)
+            ->values();
+
+        if ($missingQuestionIds->count() > 0) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Please review all questions before submitting the evaluation review.',
+                'missing_question_ids' =>
+                    $missingQuestionIds,
+            ], 422);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Invalid Questions
+        |--------------------------------------------------------------------------
+        */
+
+        $invalidQuestionIds = $submittedQuestionIds
+            ->diff($evaluationQuestionIds)
+            ->values();
+
+        if ($invalidQuestionIds->count() > 0) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'One or more questions do not belong to this evaluation.',
+                'invalid_question_ids' =>
+                    $invalidQuestionIds,
+            ], 422);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Transaction
+        |--------------------------------------------------------------------------
+        */
+
+        $result = DB::transaction(function () use (
+            $evaluation,
+            $submittedReviews,
+            $request,
+            $user,
+            $role
+        ) {
+
+            /*
+            |----------------------------------------------------------------------
+            | Create Question-Level Reviews
+            |----------------------------------------------------------------------
+            */
+
+            foreach ($submittedReviews as $reviewData) {
+
+                EvaluationReview::create([
+                    'evaluation_id' => $evaluation->id,
+
+                    'question_id' =>
+                        $reviewData['question_id'],
+
+                    'reviewer_id' =>
+                        $user->id,
+
+                    'reviewer_role' =>
+                        $role,
+
+                    'review_result' =>
+                        $reviewData['review_result'],
+
+                    'rating' =>
+                        $reviewData['rating'],
+
+                    'comment' =>
+                        $reviewData['comment'] ?? null,
+
+                    'action' => null,
+
+                    'reviewed_at' =>
+                        $request->reviewed_at ?? now(),
+                ]);
+            }
+
+
+            /*
+            |----------------------------------------------------------------------
+            | Determine Status And Rating Column
+            |----------------------------------------------------------------------
+            */
+
+            $updateData = [];
+
+
+            /*
+            |----------------------------------------------------------------------
+            | MANAGER
+            |----------------------------------------------------------------------
+            */
+
+            if ($role === 'Manager') {
+
+                $updateData[
+                    'manager_overall_rating'
+                ] = $request->overall_rating;
+
+                $updateData[
+                    'manager_reviewed_at'
+                ] = $request->reviewed_at ?? now();
+
+
+                if ($request->action === 'approved') {
+
+                    $updateData['status'] =
+                        'manager_approved';
+
+                    $updateData[
+                        'manager_approved_at'
+                    ] = $request->reviewed_at ?? now();
+                }
+
+                elseif ($request->action === 'returned') {
+
+                    $updateData['status'] =
+                        'manager_returned';
+                }
+
+                elseif ($request->action === 'rejected') {
+
+                    $updateData['status'] =
+                        'manager_rejected';
+                }
+            }
+
+
+            /*
+            |----------------------------------------------------------------------
+            | HR
+            |----------------------------------------------------------------------
+            */
+
+            elseif ($role === 'HR') {
+
+                $updateData[
+                    'hr_overall_rating'
+                ] = $request->overall_rating;
+
+                $updateData[
+                    'hr_reviewed_at'
+                ] = $request->reviewed_at ?? now();
+
+
+                if ($request->action === 'approved') {
+
+                    $updateData['status'] =
+                        'hr_approved';
+
+                    $updateData[
+                        'hr_approved_at'
+                    ] = $request->reviewed_at ?? now();
+                }
+
+                elseif ($request->action === 'returned') {
+
+                    $updateData['status'] =
+                        'hr_returned';
+                }
+
+                elseif ($request->action === 'rejected') {
+
+                    $updateData['status'] =
+                        'hr_rejected';
+                }
+            }
+
+
+            /*
+            |----------------------------------------------------------------------
+            | MANAGEMENT
+            |----------------------------------------------------------------------
+            */
+
+            elseif ($role === 'Management') {
+
+                $updateData[
+                    'management_overall_rating'
+                ] = $request->overall_rating;
+
+                $updateData[
+                    'management_reviewed_at'
+                ] = $request->reviewed_at ?? now();
+
+
+                if ($request->action === 'approved') {
+
+                    $updateData['status'] =
+                        'completed';
+
+                    $updateData[
+                        'management_approved_at'
+                    ] = $request->reviewed_at ?? now();
+
+                    $updateData[
+                        'approved_at'
+                    ] = $request->reviewed_at ?? now();
+                }
+
+                elseif ($request->action === 'returned') {
+
+                    $updateData['status'] =
+                        'management_returned';
+                }
+
+                elseif ($request->action === 'rejected') {
+
+                    $updateData['status'] =
+                        'management_rejected';
+                }
+            }
+
+
+            /*
+            |----------------------------------------------------------------------
+            | Update Evaluation
+            |----------------------------------------------------------------------
+            */
+
+            $evaluation->update(
+                $updateData
+            );
+
+
+            /*
+            |----------------------------------------------------------------------
+            | Create Stage-Level Review History
+            |----------------------------------------------------------------------
+            |
+            | question_id = null means this review is for
+            | the overall evaluation stage.
+            |
+            */
+
+            $stageReview = EvaluationReview::create([
+                'evaluation_id' =>
+                    $evaluation->id,
+
+                'question_id' =>
+                    null,
+
+                'reviewer_id' =>
+                    $user->id,
+
+                'reviewer_role' =>
+                    $role,
+
+                'review_result' =>
+                    null,
+
+                'rating' =>
+                    $request->overall_rating,
+
+                'comment' =>
+                    $request->overall_comment,
+
+                'action' =>
+                    $request->action,
+
+                'reviewed_at' =>
+                    $request->reviewed_at ?? now(),
+            ]);
+
+
+            return $stageReview;
+        });
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Response
         |--------------------------------------------------------------------------
         */
 
@@ -317,10 +612,15 @@ class EvaluationReviewController extends Controller
             'success' => true,
             'message' =>
                 'Evaluation review created successfully.',
-            'data' => $review->load([
-                'evaluation.employee',
-                'reviewer',
-            ]),
+
+            'data' => $result
+                ->fresh()
+                ->load([
+                    'evaluation.employee.department',
+                    'evaluation.employee.position',
+                    'question.category',
+                    'reviewer',
+                ]),
         ], 201);
     }
 
@@ -335,15 +635,18 @@ class EvaluationReviewController extends Controller
         $user = auth()->user();
 
         $evaluationReview->load([
-            'evaluation.employee',
+            'evaluation.employee.department',
+            'evaluation.employee.position',
+            'question.category',
             'reviewer',
         ]);
 
         $evaluation = $evaluationReview->evaluation;
 
+
         /*
         |--------------------------------------------------------------------------
-        | MANAGER ACCESS
+        | MANAGER
         |--------------------------------------------------------------------------
         */
 
@@ -364,19 +667,23 @@ class EvaluationReviewController extends Controller
             }
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | HR / ADMIN
+        | HR / MANAGEMENT / ADMIN
         |--------------------------------------------------------------------------
         */
 
-        elseif (in_array(
-            $user->role->name,
-            ['HR', 'Admin']
-        )) {
+        elseif (
+            in_array(
+                $user->role->name,
+                ['HR', 'Management', 'Admin']
+            )
+        ) {
 
             // Allowed.
         }
+
 
         /*
         |--------------------------------------------------------------------------
@@ -393,6 +700,7 @@ class EvaluationReviewController extends Controller
             ], 403);
         }
 
+
         return response()->json([
             'success' => true,
             'data' => $evaluationReview,
@@ -401,10 +709,7 @@ class EvaluationReviewController extends Controller
 
 
     /**
-     * Update review history.
-     *
-     * For workflow safety, review history should not normally
-     * be edited after creation.
+     * Review history cannot be updated.
      */
     public function update(
         StoreEvaluationReviewRequest $request,
@@ -420,10 +725,7 @@ class EvaluationReviewController extends Controller
 
 
     /**
-     * Delete review history.
-     *
-     * For workflow safety, review history should not normally
-     * be deleted.
+     * Review history cannot be deleted.
      */
     public function destroy(
         EvaluationReview $evaluationReview

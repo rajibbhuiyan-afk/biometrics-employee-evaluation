@@ -8,16 +8,18 @@ use App\Models\EvaluationAnswer;
 use App\Models\EvaluationQuestion;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 class EvaluationController extends Controller
 {
     /**
      * Display evaluations according to logged-in user's role.
      *
-     * Employee -> Own evaluations only
-     * Manager  -> Assigned employees only
-     * HR       -> All evaluations
-     * Admin    -> All evaluations
+     * Employee   -> Own evaluations only
+     * Manager    -> Assigned employees only
+     * HR         -> All evaluations
+     * Management -> All evaluations
+     * Admin      -> All evaluations
      */
     public function index(): JsonResponse
     {
@@ -31,7 +33,7 @@ class EvaluationController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | EMPLOYEE
+        | Employee
         |--------------------------------------------------------------------------
         */
 
@@ -45,36 +47,43 @@ class EvaluationController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | MANAGER
+        | Manager
         |--------------------------------------------------------------------------
         */
 
         elseif ($user->role->name === 'Manager') {
 
-            $query->whereHas('employee', function ($employeeQuery) use ($user) {
+            $query->whereHas(
+                'employee',
+                function ($employeeQuery) use ($user) {
 
-                $employeeQuery->where(
-                    'manager_id',
-                    $user->id
-                );
-
-            });
+                    $employeeQuery->where(
+                        'manager_id',
+                        $user->id
+                    );
+                }
+            );
         }
 
         /*
         |--------------------------------------------------------------------------
-        | HR / ADMIN
+        | HR / Management / Admin
         |--------------------------------------------------------------------------
         */
 
-        elseif (in_array($user->role->name, ['HR', 'Admin'])) {
+        elseif (
+            in_array(
+                $user->role->name,
+                ['HR', 'Management', 'Admin']
+            )
+        ) {
 
-            // HR and Admin can see all evaluations.
+            // Allowed to see all evaluations.
         }
 
         /*
         |--------------------------------------------------------------------------
-        | UNKNOWN ROLE
+        | Unknown Role
         |--------------------------------------------------------------------------
         */
 
@@ -97,6 +106,12 @@ class EvaluationController extends Controller
      * Create a new evaluation.
      *
      * Employee only.
+     *
+     * When an evaluation is created, all currently active
+     * questions are attached to the evaluation as empty
+     * EvaluationAnswer records.
+     *
+     * This creates a stable question set for the evaluation.
      */
     public function store(
         StoreEvaluationRequest $request
@@ -130,30 +145,104 @@ class EvaluationController extends Controller
                 ], 409);
             }
 
+
             /*
             |--------------------------------------------------------------------------
-            | Create evaluation
+            | Create evaluation + answer rows
             |--------------------------------------------------------------------------
             */
 
-            $evaluation = Evaluation::create([
-                'employee_id' => $employeeId,
-                'evaluation_period_id' => $request->evaluation_period_id,
-                'status' => 'draft',
-                'employee_comment' => $request->employee_comment,
-            ]);
+            $evaluation = DB::transaction(function () use (
+                $request,
+                $employeeId
+            ) {
+
+                /*
+                |------------------------------------------------------------------
+                | Create Evaluation
+                |------------------------------------------------------------------
+                */
+
+                $evaluation = Evaluation::create([
+                    'employee_id' => $employeeId,
+                    'evaluation_period_id' => $request->evaluation_period_id,
+                    'status' => 'draft',
+                    'employee_comment' => $request->employee_comment,
+                ]);
+
+
+                /*
+                |------------------------------------------------------------------
+                | Get currently active questions
+                |------------------------------------------------------------------
+                |
+                | These questions become part of this evaluation.
+                |
+                */
+
+                $activeQuestions = EvaluationQuestion::where(
+                    'status',
+                    true
+                )
+                ->orderBy('sort_order')
+                ->get();
+
+
+                /*
+                |------------------------------------------------------------------
+                | Create empty answer for every active question
+                |------------------------------------------------------------------
+                |
+                | This is important because:
+                |
+                | - Optional unanswered questions must still appear in review.
+                | - Question status changes later won't remove them.
+                | - Auto-save can update an existing answer row.
+                |
+                */
+
+                foreach ($activeQuestions as $question) {
+
+                    EvaluationAnswer::create([
+                        'evaluation_id' => $evaluation->id,
+                        'question_id' => $question->id,
+                        'rating' => null,
+                        'answer' => null,
+                        'comment' => null,
+                    ]);
+                }
+
+
+                return $evaluation;
+            });
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Return Evaluation
+            |--------------------------------------------------------------------------
+            */
 
             return response()->json([
                 'success' => true,
                 'message' => 'Evaluation created successfully.',
-                'data' => $evaluation->load([
-                    'employee.department',
-                    'employee.position',
-                    'evaluationPeriod',
-                ]),
+                'data' => $evaluation
+                    ->fresh()
+                    ->load([
+                        'employee.department',
+                        'employee.position',
+                        'evaluationPeriod',
+                        'answers.question.category',
+                    ]),
             ], 201);
 
         } catch (QueryException $e) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Duplicate Evaluation Protection
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 isset($e->errorInfo[1]) &&
@@ -174,9 +263,11 @@ class EvaluationController extends Controller
     /**
      * Display a single evaluation.
      *
-     * Employee -> Own evaluation
-     * Manager  -> Assigned employee
-     * HR/Admin -> All
+     * Employee   -> Own evaluation
+     * Manager    -> Assigned employee
+     * HR         -> All
+     * Management -> All
+     * Admin      -> All
      */
     public function show(
         Evaluation $evaluation
@@ -186,7 +277,7 @@ class EvaluationController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | EMPLOYEE ACCESS
+        | Employee Access
         |--------------------------------------------------------------------------
         */
 
@@ -206,7 +297,7 @@ class EvaluationController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | MANAGER ACCESS
+        | Manager Access
         |--------------------------------------------------------------------------
         */
 
@@ -229,18 +320,23 @@ class EvaluationController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | HR / ADMIN
+        | HR / Management / Admin
         |--------------------------------------------------------------------------
         */
 
-        elseif (in_array($user->role->name, ['HR', 'Admin'])) {
+        elseif (
+            in_array(
+                $user->role->name,
+                ['HR', 'Management', 'Admin']
+            )
+        ) {
 
             // Allowed.
         }
 
         /*
         |--------------------------------------------------------------------------
-        | UNKNOWN ROLE
+        | Unknown Role
         |--------------------------------------------------------------------------
         */
 
@@ -252,9 +348,10 @@ class EvaluationController extends Controller
             ], 403);
         }
 
+
         /*
         |--------------------------------------------------------------------------
-        | Load complete evaluation
+        | Load Complete Evaluation
         |--------------------------------------------------------------------------
         */
 
@@ -264,6 +361,7 @@ class EvaluationController extends Controller
             'evaluationPeriod',
             'answers.question.category',
             'reviews.reviewer',
+            'reviews.question.category',
         ]);
 
         return response()->json([
@@ -281,8 +379,10 @@ class EvaluationController extends Controller
      * draft
      * manager_returned
      * manager_rejected
-     * admin_returned
-     * admin_rejected
+     * hr_returned
+     * hr_rejected
+     * management_returned
+     * management_rejected
      */
     public function submit(
         Evaluation $evaluation
@@ -290,7 +390,7 @@ class EvaluationController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Only owner can submit
+        | Only Owner Can Submit
         |--------------------------------------------------------------------------
         */
 
@@ -308,17 +408,27 @@ class EvaluationController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Allowed statuses
+        | Allowed Statuses
         |--------------------------------------------------------------------------
         */
 
-        if (!in_array($evaluation->status, [
+        $editableStatuses = [
             'draft',
+
             'manager_returned',
             'manager_rejected',
-            'admin_returned',
-            'admin_rejected',
-        ])) {
+
+            'hr_returned',
+            'hr_rejected',
+
+            'management_returned',
+            'management_rejected',
+        ];
+
+        if (!in_array(
+            $evaluation->status,
+            $editableStatuses
+        )) {
 
             return response()->json([
                 'success' => false,
@@ -329,69 +439,97 @@ class EvaluationController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Get active required questions
+        | Get Questions Belonging To This Evaluation
         |--------------------------------------------------------------------------
+        |
+        | IMPORTANT:
+        |
+        | Do NOT query current active questions here.
+        |
+        | EvaluationAnswer records were created when the evaluation
+        | was created. Therefore they represent the question set
+        | belonging to this evaluation.
+        |
         */
 
-        $requiredQuestions = EvaluationQuestion::where(
-            'status',
-            true
-        )
-        ->where(
-            'is_required',
-            true
-        )
-        ->get();
+        $evaluationAnswers = $evaluation
+            ->answers()
+            ->with('question')
+            ->get();
 
 
         /*
         |--------------------------------------------------------------------------
-        | Get answered required question IDs
+        | Find Missing Required Questions
         |--------------------------------------------------------------------------
-        |
-        | A question is considered answered when:
-        |
-        | rating exists
-        | OR
-        | answer contains text
-        |
         */
 
-        $answeredQuestionIds = EvaluationAnswer::where(
-            'evaluation_id',
-            $evaluation->id
-        )
-        ->where(function ($query) {
+        $missingRequiredQuestions = $evaluationAnswers
+            ->filter(function ($evaluationAnswer) {
 
-            $query->whereNotNull('rating')
-                ->orWhere(function ($query) {
+                $question = $evaluationAnswer->question;
 
-                    $query->whereNotNull('answer')
-                        ->where('answer', '!=', '');
+                /*
+                |--------------------------------------------------------------
+                | If question was deleted somehow, ignore it here.
+                |--------------------------------------------------------------
+                */
 
-                });
+                if (!$question) {
+                    return false;
+                }
 
-        })
-        ->pluck('question_id')
-        ->toArray();
+                /*
+                |--------------------------------------------------------------
+                | Only required questions need an answer.
+                |--------------------------------------------------------------
+                */
+
+                if (!$question->is_required) {
+                    return false;
+                }
+
+                /*
+                |--------------------------------------------------------------
+                | Rating answer
+                |--------------------------------------------------------------
+                */
+
+                if (
+                    $evaluationAnswer->rating !== null
+                ) {
+
+                    return false;
+                }
+
+                /*
+                |--------------------------------------------------------------
+                | Text answer
+                |--------------------------------------------------------------
+                */
+
+                if (
+                    $evaluationAnswer->answer !== null &&
+                    trim($evaluationAnswer->answer) !== ''
+                ) {
+
+                    return false;
+                }
+
+                /*
+                |--------------------------------------------------------------
+                | Required question is unanswered
+                |--------------------------------------------------------------
+                */
+
+                return true;
+            })
+            ->values();
 
 
         /*
         |--------------------------------------------------------------------------
-        | Find missing required questions
-        |--------------------------------------------------------------------------
-        */
-
-        $missingRequiredQuestions = $requiredQuestions
-            ->whereNotIn(
-                'id',
-                $answeredQuestionIds
-            );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Required question missing
+        | Required Question Missing
         |--------------------------------------------------------------------------
         */
 
@@ -405,14 +543,15 @@ class EvaluationController extends Controller
 
                 'missing_questions' =>
                     $missingRequiredQuestions
-                        ->values()
-                        ->map(function ($question) {
+                        ->map(function ($evaluationAnswer) {
 
                             return [
-                                'id' => $question->id,
-                                'question' => $question->question,
-                            ];
+                                'id' =>
+                                    $evaluationAnswer->question->id,
 
+                                'question' =>
+                                    $evaluationAnswer->question->question,
+                            ];
                         }),
             ], 422);
         }
@@ -432,7 +571,7 @@ class EvaluationController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Return updated evaluation
+        | Return Updated Evaluation
         |--------------------------------------------------------------------------
         */
 
@@ -451,6 +590,7 @@ class EvaluationController extends Controller
                         'evaluationPeriod',
                         'answers.question.category',
                         'reviews.reviewer',
+                        'reviews.question.category',
                     ]),
         ]);
     }
@@ -464,8 +604,10 @@ class EvaluationController extends Controller
      * draft
      * manager_returned
      * manager_rejected
-     * admin_returned
-     * admin_rejected
+     * hr_returned
+     * hr_rejected
+     * management_returned
+     * management_rejected
      */
     public function update(
         StoreEvaluationRequest $request,
@@ -474,7 +616,7 @@ class EvaluationController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Only owner can update
+        | Only Owner Can Update
         |--------------------------------------------------------------------------
         */
 
@@ -492,17 +634,27 @@ class EvaluationController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Allowed statuses
+        | Allowed Statuses
         |--------------------------------------------------------------------------
         */
 
-        if (!in_array($evaluation->status, [
+        $editableStatuses = [
             'draft',
+
             'manager_returned',
             'manager_rejected',
-            'admin_returned',
-            'admin_rejected',
-        ])) {
+
+            'hr_returned',
+            'hr_rejected',
+
+            'management_returned',
+            'management_rejected',
+        ];
+
+        if (!in_array(
+            $evaluation->status,
+            $editableStatuses
+        )) {
 
             return response()->json([
                 'success' => false,
@@ -513,7 +665,7 @@ class EvaluationController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Update employee comment
+        | Update Employee Comment
         |--------------------------------------------------------------------------
         */
 
@@ -524,6 +676,7 @@ class EvaluationController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Evaluation updated successfully.',
+
             'data' => $evaluation
                 ->fresh()
                 ->load([
@@ -544,6 +697,12 @@ class EvaluationController extends Controller
         Evaluation $evaluation
     ): JsonResponse {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Only Owner Can Delete
+        |--------------------------------------------------------------------------
+        */
+
         if (
             (int) $evaluation->employee_id !==
             (int) auth()->id()
@@ -555,6 +714,12 @@ class EvaluationController extends Controller
             ], 403);
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Only Draft Can Be Deleted
+        |--------------------------------------------------------------------------
+        */
 
         if ($evaluation->status !== 'draft') {
 

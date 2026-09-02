@@ -11,10 +11,15 @@ class EvaluationReview extends Model
 
     protected $fillable = [
         'evaluation_id',
+        'question_id',
         'reviewer_id',
         'reviewer_role',
+
+        'review_result',
+
         'rating',
         'comment',
+
         'action',
         'reviewed_at',
     ];
@@ -24,6 +29,12 @@ class EvaluationReview extends Model
         'reviewed_at' => 'datetime',
     ];
 
+    /*
+    |--------------------------------------------------------------------------
+    | Evaluation
+    |--------------------------------------------------------------------------
+    */
+
     public function evaluation()
     {
         return $this->belongsTo(
@@ -31,6 +42,26 @@ class EvaluationReview extends Model
             'evaluation_id'
         );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Question
+    |--------------------------------------------------------------------------
+    */
+
+    public function question()
+    {
+        return $this->belongsTo(
+            EvaluationQuestion::class,
+            'question_id'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reviewer
+    |--------------------------------------------------------------------------
+    */
 
     public function reviewer()
     {
