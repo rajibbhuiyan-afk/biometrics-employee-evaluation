@@ -2306,6 +2306,267 @@
     margin-bottom: 20px;
 }
 
+/* =========================================================
+   Evaluation Review Card
+========================================================= */
+
+.evaluation-review-card {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+
+/* =========================================================
+   Question
+========================================================= */
+
+.evaluation-review-question {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.evaluation-review-question-number {
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.evaluation-review-question strong {
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   Employee Answer + Rating
+========================================================= */
+
+.evaluation-review-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    gap: 24px;
+    align-items: start;
+    margin-bottom: 24px;
+}
+
+.evaluation-review-answer-section,
+.evaluation-review-rating-section {
+    min-width: 0;
+}
+
+.evaluation-review-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-h);
+}
+
+.evaluation-review-answer-box {
+    min-height: 110px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.evaluation-review-employee-rating {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    font-weight: 600;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+}
+
+
+/* =========================================================
+   Review Panels
+========================================================= */
+
+.evaluation-review-panels {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.evaluation-review-panel {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    background: #fafafa;
+    min-width: 0;
+}
+
+.evaluation-review-panel-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+
+/* =========================================================
+   Previous Review
+========================================================= */
+
+.evaluation-previous-review {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.evaluation-previous-review-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.evaluation-previous-review-row strong {
+    font-size: 14px;
+}
+
+.evaluation-previous-review-comment {
+    margin-top: 4px;
+}
+
+.evaluation-previous-review-comment p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+
+/* =========================================================
+   Current Review
+========================================================= */
+
+.evaluation-current-review {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.evaluation-review-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.evaluation-review-form-group label {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.evaluation-review-form-group select,
+.evaluation-review-form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 10px;
+    font-size: 14px;
+    background: #ffffff;
+}
+
+.evaluation-review-form-group textarea {
+    resize: vertical;
+}
+
+
+/* =========================================================
+   Accept / Reject
+========================================================= */
+
+.evaluation-review-decision {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.evaluation-review-accept,
+.evaluation-review-reject {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background: #ffffff;
+}
+
+.evaluation-review-accept.active {
+    border-color: #198754;
+    background: #198754;
+    color: #ffffff;
+}
+
+.evaluation-review-reject.active {
+    border-color: #dc3545;
+    background: #dc3545;
+    color: #ffffff;
+}
+
+.evaluation-review-accept:disabled,
+.evaluation-review-reject:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   Decision Colors
+========================================================= */
+
+.review-decision-accepted {
+    color: #198754;
+}
+
+.review-decision-rejected {
+    color: #dc3545;
+}
+
+
+/* =========================================================
+   Mobile
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .evaluation-review-panels {
+        grid-template-columns: 1fr;
+    }
+
+    .evaluation-review-main {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 600px) {
+
+    .evaluation-review-card {
+        padding: 16px;
+    }
+
+    .evaluation-review-question {
+        font-size: 14px;
+    }
+
+}
+
 
 
 
