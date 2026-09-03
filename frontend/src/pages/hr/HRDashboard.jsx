@@ -28,18 +28,11 @@ const HRDashboard = () => {
             setLoading(true);
             setError("");
 
-            const response = await api.get(
-                "/evaluations"
-            );
+            const response = await api.get("/evaluations");
 
-            console.log(
-                "HR Evaluations:",
-                response.data
-            );
+            console.log("HR Evaluations:", response.data);
 
-            setEvaluations(
-                response.data.data || []
-            );
+            setEvaluations(response.data.data || []);
 
         } catch (error) {
             console.error(
@@ -49,9 +42,8 @@ const HRDashboard = () => {
 
             setError(
                 error.response?.data?.message ||
-                "Failed to load evaluations."
+                    "Failed to load evaluations."
             );
-
         } finally {
             setLoading(false);
         }
@@ -62,16 +54,12 @@ const HRDashboard = () => {
     // ==========================================================
 
     const handleEmployeeProfile = (employeeId) => {
-
         if (!employeeId) {
-            console.error(
-                "Employee ID not found."
-            );
-
+            console.error("Employee ID not found.");
             return;
         }
 
-        navigate(           
+        navigate(
             `/management/users/${employeeId}/profile`
         );
     };
@@ -81,7 +69,20 @@ const HRDashboard = () => {
     // ==========================================================
 
     const handleReview = (evaluationId) => {
+        if (!evaluationId) {
+            return;
+        }
 
+        navigate(
+            `/management/hr/evaluations/${evaluationId}`
+        );
+    };
+
+    // ==========================================================
+    // View Evaluation
+    // ==========================================================
+
+    const handleView = (evaluationId) => {
         if (!evaluationId) {
             return;
         }
@@ -96,7 +97,6 @@ const HRDashboard = () => {
     // ==========================================================
 
     const handleRowClick = (evaluation) => {
-
         const employeeId =
             evaluation?.employee?.id;
 
@@ -109,9 +109,56 @@ const HRDashboard = () => {
             return;
         }
 
-        handleEmployeeProfile(
-            employeeId
-        );
+        handleEmployeeProfile(employeeId);
+    };
+
+    // ==========================================================
+    // Check Whether HR Can Review
+    // ==========================================================
+
+    const canReview = (status) => {
+        return [
+            "manager_approved",
+            "hr_returned",
+        ].includes(status);
+    };
+
+    // ==========================================================
+    // Status Label
+    // ==========================================================
+
+    const getStatusLabel = (status) => {
+        switch (status) {
+            case "draft":
+                return "Draft";
+
+            case "submitted":
+                return "Submitted";
+
+            case "manager_approved":
+                return "Manager Approved";
+
+            case "manager_returned":
+                return "Manager Returned";
+
+            case "manager_rejected":
+                return "Manager Rejected";
+
+            case "hr_approved":
+                return "HR Approved";
+
+            case "hr_returned":
+                return "HR Returned";
+
+            case "hr_rejected":
+                return "HR Rejected";
+
+            case "completed":
+                return "Completed";
+
+            default:
+                return status || "Unknown";
+        }
     };
 
     // ==========================================================
@@ -119,11 +166,8 @@ const HRDashboard = () => {
     // ==========================================================
 
     const renderStatus = (status) => {
-
         switch (status) {
-
             case "draft":
-
                 return (
                     <span
                         className="status-badge"
@@ -136,9 +180,7 @@ const HRDashboard = () => {
                     </span>
                 );
 
-
             case "submitted":
-
                 return (
                     <span
                         className="status-badge"
@@ -151,9 +193,20 @@ const HRDashboard = () => {
                     </span>
                 );
 
+            case "manager_approved":
+                return (
+                    <span
+                        className="status-badge"
+                        style={{
+                            background: "#dcfce7",
+                            color: "#166534",
+                        }}
+                    >
+                        Manager Approved
+                    </span>
+                );
 
-            case "reviewed":
-
+            case "manager_returned":
                 return (
                     <span
                         className="status-badge"
@@ -162,35 +215,37 @@ const HRDashboard = () => {
                             color: "#92400e",
                         }}
                     >
-                        Reviewed
+                        Manager Returned
                     </span>
                 );
 
-
-            case "approved":
-
+            case "manager_rejected":
                 return (
                     <span
-                        className="status-badge status-active"
+                        className="status-badge"
+                        style={{
+                            background: "#fee2e2",
+                            color: "#991b1b",
+                        }}
                     >
-                        Approved
+                        Manager Rejected
                     </span>
                 );
 
-
-            case "rejected":
-
+            case "hr_approved":
                 return (
                     <span
-                        className="status-badge status-inactive"
+                        className="status-badge"
+                        style={{
+                            background: "#dcfce7",
+                            color: "#166534",
+                        }}
                     >
-                        Rejected
+                        HR Approved
                     </span>
                 );
 
-
-            case "returned":
-
+            case "hr_returned":
                 return (
                     <span
                         className="status-badge"
@@ -199,13 +254,37 @@ const HRDashboard = () => {
                             color: "#92400e",
                         }}
                     >
-                        Returned
+                        HR Returned
                     </span>
                 );
 
+            case "hr_rejected":
+                return (
+                    <span
+                        className="status-badge"
+                        style={{
+                            background: "#fee2e2",
+                            color: "#991b1b",
+                        }}
+                    >
+                        HR Rejected
+                    </span>
+                );
+
+            case "completed":
+                return (
+                    <span
+                        className="status-badge"
+                        style={{
+                            background: "#dcfce7",
+                            color: "#166534",
+                        }}
+                    >
+                        Completed
+                    </span>
+                );
 
             default:
-
                 return (
                     <span
                         className="status-badge"
@@ -214,7 +293,7 @@ const HRDashboard = () => {
                             color: "#374151",
                         }}
                     >
-                        {status || "Unknown"}
+                        {getStatusLabel(status)}
                     </span>
                 );
         }
@@ -225,12 +304,9 @@ const HRDashboard = () => {
     // ==========================================================
 
     if (loading) {
-
         return (
             <div className="management-page">
-
                 <div className="data-table-empty">
-
                     <div className="data-table-empty-title">
                         Loading Evaluations...
                     </div>
@@ -239,12 +315,38 @@ const HRDashboard = () => {
                         Please wait while employee
                         evaluations are being loaded.
                     </div>
-
                 </div>
-
             </div>
         );
     }
+
+    // ==========================================================
+    // Summary Counts
+    // ==========================================================
+
+    const totalEvaluations =
+        evaluations.length;
+
+    const waitingForHR =
+        evaluations.filter(
+            (evaluation) =>
+                evaluation.status ===
+                "manager_approved"
+        ).length;
+
+    const hrApproved =
+        evaluations.filter(
+            (evaluation) =>
+                evaluation.status ===
+                "hr_approved"
+        ).length;
+
+    const completed =
+        evaluations.filter(
+            (evaluation) =>
+                evaluation.status ===
+                "completed"
+        ).length;
 
     // ==========================================================
     // Page
@@ -280,11 +382,9 @@ const HRDashboard = () => {
             ================================================== */}
 
             {error && (
-
                 <div className="management-form-error">
                     {error}
                 </div>
-
             )}
 
 
@@ -303,53 +403,52 @@ const HRDashboard = () => {
                     </div>
 
                     <div className="dashboard-card-value">
-                        {evaluations.length}
+                        {totalEvaluations}
                     </div>
 
                 </div>
 
 
-                {/* Submitted */}
+                {/* Waiting For HR */}
 
                 <div className="dashboard-card">
 
                     <div className="dashboard-card-title">
-                        Submitted
+                        Waiting for HR Review
                     </div>
 
                     <div className="dashboard-card-value">
-
-                        {
-                            evaluations.filter(
-                                (evaluation) =>
-                                    evaluation.status ===
-                                    "submitted"
-                            ).length
-                        }
-
+                        {waitingForHR}
                     </div>
 
                 </div>
 
 
-                {/* Reviewed */}
+                {/* HR Approved */}
 
                 <div className="dashboard-card">
 
                     <div className="dashboard-card-title">
-                        Reviewed
+                        HR Approved
                     </div>
 
                     <div className="dashboard-card-value">
+                        {hrApproved}
+                    </div>
 
-                        {
-                            evaluations.filter(
-                                (evaluation) =>
-                                    evaluation.status ===
-                                    "reviewed"
-                            ).length
-                        }
+                </div>
 
+
+                {/* Completed */}
+
+                <div className="dashboard-card">
+
+                    <div className="dashboard-card-title">
+                        Completed
+                    </div>
+
+                    <div className="dashboard-card-value">
+                        {completed}
                     </div>
 
                 </div>
@@ -443,160 +542,184 @@ const HRDashboard = () => {
                                 <tbody>
 
                                     {evaluations.map(
-                                        (evaluation) => (
+                                        (evaluation) => {
 
-                                            <tr
-                                                key={
-                                                    evaluation.id
-                                                }
-                                                onClick={() =>
-                                                    handleRowClick(
-                                                        evaluation
-                                                    )
-                                                }
-                                                style={{
-                                                    cursor:
-                                                        evaluation
-                                                            .employee
-                                                            ?.id
-                                                            ? "pointer"
-                                                            : "default",
-                                                }}
-                                            >
+                                            const reviewAllowed =
+                                                canReview(
+                                                    evaluation.status
+                                                );
 
-                                                {/* ==================================================
-                                                    Evaluation ID
-                                                ================================================== */}
+                                            return (
+                                                <tr
+                                                    key={
+                                                        evaluation.id
+                                                    }
+                                                    onClick={() =>
+                                                        handleRowClick(
+                                                            evaluation
+                                                        )
+                                                    }
+                                                    style={{
+                                                        cursor:
+                                                            evaluation
+                                                                ?.employee
+                                                                ?.id
+                                                                ? "pointer"
+                                                                : "default",
+                                                    }}
+                                                >
 
-                                                <td>
+                                                    {/* ==================================================
+                                                        Evaluation ID
+                                                    ================================================== */}
 
-                                                    <strong>
-                                                        #
+                                                    <td>
+
+                                                        <strong>
+                                                            #
+                                                            {
+                                                                evaluation.id
+                                                            }
+                                                        </strong>
+
+                                                    </td>
+
+
+                                                    {/* ==================================================
+                                                        Employee
+                                                    ================================================== */}
+
+                                                    <td>
+
                                                         {
-                                                            evaluation.id
+                                                            evaluation
+                                                                ?.employee
+                                                                ?.name ||
+                                                            "Unknown"
                                                         }
-                                                    </strong>
 
-                                                </td>
-
-
-                                                {/* ==================================================
-                                                    Employee
-                                                ================================================== */}
-
-                                                <td>
-
-                                                    {
-                                                        evaluation
-                                                            .employee
-                                                            ?.name ||
-                                                        "Unknown"
-                                                    }
-
-                                                </td>
+                                                    </td>
 
 
-                                                {/* ==================================================
-                                                    Employee ID
-                                                ================================================== */}
+                                                    {/* ==================================================
+                                                        Employee ID
+                                                    ================================================== */}
 
-                                                <td>
+                                                    <td>
 
-                                                    {
-                                                        evaluation
-                                                            .employee
-                                                            ?.employee_id ||
-                                                        "N/A"
-                                                    }
+                                                        {
+                                                            evaluation
+                                                                ?.employee
+                                                                ?.employee_id ||
+                                                            "N/A"
+                                                        }
 
-                                                </td>
-
-
-                                                {/* ==================================================
-                                                    Department
-                                                ================================================== */}
-
-                                                <td>
-
-                                                    {
-                                                        evaluation
-                                                            .employee
-                                                            ?.department
-                                                            ?.name ||
-                                                        "N/A"
-                                                    }
-
-                                                </td>
+                                                    </td>
 
 
-                                                {/* ==================================================
-                                                    Evaluation Period
-                                                ================================================== */}
+                                                    {/* ==================================================
+                                                        Department
+                                                    ================================================== */}
 
-                                                <td>
+                                                    <td>
 
-                                                    {
-                                                        evaluation
-                                                            .evaluation_period
-                                                            ?.name ||
-                                                        "N/A"
-                                                    }
+                                                        {
+                                                            evaluation
+                                                                ?.employee
+                                                                ?.department
+                                                                ?.name ||
+                                                            "N/A"
+                                                        }
 
-                                                </td>
-
-
-                                                {/* ==================================================
-                                                    Status
-                                                ================================================== */}
-
-                                                <td>
-
-                                                    {renderStatus(
-                                                        evaluation.status
-                                                    )}
-
-                                                </td>
+                                                    </td>
 
 
-                                                {/* ==================================================
-                                                    Action
-                                                ================================================== */}
+                                                    {/* ==================================================
+                                                        Evaluation Period
+                                                    ================================================== */}
 
-                                                <td className="data-table-actions">
+                                                    <td>
 
-                                                    <div className="table-actions">
+                                                        {
+                                                            evaluation
+                                                                ?.evaluation_period
+                                                                ?.name ||
+                                                            "N/A"
+                                                        }
 
-                                                        <button
-                                                            type="button"
-                                                            className="action-button action-edit"
-                                                            onClick={(
-                                                                e
-                                                            ) => {
+                                                    </td>
 
-                                                                /*
-                                                                |--------------------------------------------------
-                                                                | Prevent row click
-                                                                |--------------------------------------------------
-                                                                */
 
-                                                                e.stopPropagation();
+                                                    {/* ==================================================
+                                                        Status
+                                                    ================================================== */}
 
-                                                                handleReview(
-                                                                    evaluation.id
-                                                                );
+                                                    <td>
 
-                                                            }}
-                                                        >
-                                                            Review
-                                                        </button>
+                                                        {renderStatus(
+                                                            evaluation.status
+                                                        )}
 
-                                                    </div>
+                                                    </td>
 
-                                                </td>
 
-                                            </tr>
+                                                    {/* ==================================================
+                                                        Action
+                                                    ================================================== */}
 
-                                        )
+                                                    <td className="data-table-actions">
+
+                                                        <div className="table-actions">
+
+                                                            {reviewAllowed ? (
+
+                                                                <button
+                                                                    type="button"
+                                                                    className="action-button action-edit"
+                                                                    onClick={(
+                                                                        e
+                                                                    ) => {
+
+                                                                        e.stopPropagation();
+
+                                                                        handleReview(
+                                                                            evaluation.id
+                                                                        );
+
+                                                                    }}
+                                                                >
+                                                                    Review
+                                                                </button>
+
+                                                            ) : (
+
+                                                                <button
+                                                                    type="button"
+                                                                    className="action-button"
+                                                                    onClick={(
+                                                                        e
+                                                                    ) => {
+
+                                                                        e.stopPropagation();
+
+                                                                        handleView(
+                                                                            evaluation.id
+                                                                        );
+
+                                                                    }}
+                                                                >
+                                                                    View
+                                                                </button>
+
+                                                            )}
+
+                                                        </div>
+
+                                                    </td>
+
+                                                </tr>
+                                            );
+                                        }
                                     )}
 
                                 </tbody>

@@ -112,7 +112,7 @@ const MyEvaluations = () => {
 
 
     // ==========================================================
-    // View Evaluation
+    // View / Continue Evaluation
     // ==========================================================
 
     const handleViewEvaluation = (id) => {
@@ -131,6 +131,10 @@ const MyEvaluations = () => {
 
         switch (status) {
 
+            // ==================================================
+            // DRAFT
+            // ==================================================
+
             case "draft":
 
                 return (
@@ -139,6 +143,10 @@ const MyEvaluations = () => {
                     </span>
                 );
 
+
+            // ==================================================
+            // SUBMITTED
+            // ==================================================
 
             case "submitted":
 
@@ -149,6 +157,10 @@ const MyEvaluations = () => {
                 );
 
 
+            // ==================================================
+            // MANAGER RETURNED
+            // ==================================================
+
             case "manager_returned":
 
                 return (
@@ -157,6 +169,10 @@ const MyEvaluations = () => {
                     </span>
                 );
 
+
+            // ==================================================
+            // MANAGER REJECTED
+            // ==================================================
 
             case "manager_rejected":
 
@@ -167,6 +183,10 @@ const MyEvaluations = () => {
                 );
 
 
+            // ==================================================
+            // MANAGER APPROVED
+            // ==================================================
+
             case "manager_approved":
 
                 return (
@@ -175,6 +195,10 @@ const MyEvaluations = () => {
                     </span>
                 );
 
+
+            // ==================================================
+            // ADMIN RETURNED
+            // ==================================================
 
             case "admin_returned":
 
@@ -185,6 +209,10 @@ const MyEvaluations = () => {
                 );
 
 
+            // ==================================================
+            // ADMIN REJECTED
+            // ==================================================
+
             case "admin_rejected":
 
                 return (
@@ -194,6 +222,10 @@ const MyEvaluations = () => {
                 );
 
 
+            // ==================================================
+            // ADMIN APPROVED
+            // ==================================================
+
             case "admin_approved":
 
                 return (
@@ -202,6 +234,10 @@ const MyEvaluations = () => {
                     </span>
                 );
 
+
+            // ==================================================
+            // DEFAULT
+            // ==================================================
 
             default:
 
@@ -224,6 +260,8 @@ const MyEvaluations = () => {
 
             // ==================================================
             // DRAFT
+            //
+            // Employee can continue editing.
             // ==================================================
 
             case "draft":
@@ -253,19 +291,40 @@ const MyEvaluations = () => {
 
             // ==================================================
             // SUBMITTED
+            //
+            // Employee can ONLY view.
             // ==================================================
 
             case "submitted":
 
                 return (
-                    <span className="action-status-text">
-                        Waiting for Manager Review
-                    </span>
+                    <div className="table-actions">
+
+                        <button
+                            type="button"
+                            className="
+                                action-button
+                                evaluation-action-button
+                                action-view
+                            "
+                            onClick={() =>
+                                handleViewEvaluation(
+                                    evaluation.id
+                                )
+                            }
+                        >
+                            View
+                        </button>
+
+                    </div>
                 );
 
 
             // ==================================================
             // MANAGER RETURNED
+            //
+            // Read-only.
+            // No Edit & Resubmit.
             // ==================================================
 
             case "manager_returned":
@@ -278,7 +337,7 @@ const MyEvaluations = () => {
                             className="
                                 action-button
                                 evaluation-action-button
-                                action-resubmit
+                                action-view
                             "
                             onClick={() =>
                                 handleViewEvaluation(
@@ -286,7 +345,7 @@ const MyEvaluations = () => {
                                 )
                             }
                         >
-                            Edit & Resubmit
+                            View
                         </button>
 
                     </div>
@@ -295,6 +354,9 @@ const MyEvaluations = () => {
 
             // ==================================================
             // MANAGER REJECTED
+            //
+            // Read-only.
+            // No Edit & Resubmit.
             // ==================================================
 
             case "manager_rejected":
@@ -307,7 +369,7 @@ const MyEvaluations = () => {
                             className="
                                 action-button
                                 evaluation-action-button
-                                action-resubmit
+                                action-view
                             "
                             onClick={() =>
                                 handleViewEvaluation(
@@ -315,7 +377,7 @@ const MyEvaluations = () => {
                                 )
                             }
                         >
-                            Edit & Resubmit
+                            View
                         </button>
 
                     </div>
@@ -324,19 +386,40 @@ const MyEvaluations = () => {
 
             // ==================================================
             // MANAGER APPROVED
+            //
+            // Read-only.
             // ==================================================
 
             case "manager_approved":
 
                 return (
-                    <span className="action-status-text">
-                        Waiting for Final Review
-                    </span>
+                    <div className="table-actions">
+
+                        <button
+                            type="button"
+                            className="
+                                action-button
+                                evaluation-action-button
+                                action-view
+                            "
+                            onClick={() =>
+                                handleViewEvaluation(
+                                    evaluation.id
+                                )
+                            }
+                        >
+                            View
+                        </button>
+
+                    </div>
                 );
 
 
             // ==================================================
             // ADMIN RETURNED
+            //
+            // Read-only.
+            // No Edit & Resubmit.
             // ==================================================
 
             case "admin_returned":
@@ -349,7 +432,7 @@ const MyEvaluations = () => {
                             className="
                                 action-button
                                 evaluation-action-button
-                                action-resubmit
+                                action-view
                             "
                             onClick={() =>
                                 handleViewEvaluation(
@@ -357,7 +440,7 @@ const MyEvaluations = () => {
                                 )
                             }
                         >
-                            Edit & Resubmit
+                            View
                         </button>
 
                     </div>
@@ -366,6 +449,9 @@ const MyEvaluations = () => {
 
             // ==================================================
             // ADMIN REJECTED
+            //
+            // Read-only.
+            // No Edit & Resubmit.
             // ==================================================
 
             case "admin_rejected":
@@ -378,7 +464,7 @@ const MyEvaluations = () => {
                             className="
                                 action-button
                                 evaluation-action-button
-                                action-resubmit
+                                action-view
                             "
                             onClick={() =>
                                 handleViewEvaluation(
@@ -386,7 +472,7 @@ const MyEvaluations = () => {
                                 )
                             }
                         >
-                            Edit & Resubmit
+                            View
                         </button>
 
                     </div>
@@ -395,14 +481,33 @@ const MyEvaluations = () => {
 
             // ==================================================
             // ADMIN APPROVED
+            //
+            // Final completed evaluation.
+            // Read-only.
             // ==================================================
 
             case "admin_approved":
 
                 return (
-                    <span className="action-status-text">
-                        Completed
-                    </span>
+                    <div className="table-actions">
+
+                        <button
+                            type="button"
+                            className="
+                                action-button
+                                evaluation-action-button
+                                action-view
+                            "
+                            onClick={() =>
+                                handleViewEvaluation(
+                                    evaluation.id
+                                )
+                            }
+                        >
+                            View
+                        </button>
+
+                    </div>
                 );
 
 
@@ -413,9 +518,25 @@ const MyEvaluations = () => {
             default:
 
                 return (
-                    <span className="action-status-text">
-                        -
-                    </span>
+                    <div className="table-actions">
+
+                        <button
+                            type="button"
+                            className="
+                                action-button
+                                evaluation-action-button
+                                action-view
+                            "
+                            onClick={() =>
+                                handleViewEvaluation(
+                                    evaluation.id
+                                )
+                            }
+                        >
+                            View
+                        </button>
+
+                    </div>
                 );
         }
     };
@@ -442,8 +563,8 @@ const MyEvaluations = () => {
                     </h1>
 
                     <p className="page-header-description">
-                        View and manage your employee
-                        self-evaluations.
+                        View your employee self-evaluations
+                        and their current status.
                     </p>
 
                 </div>

@@ -1,44 +1,30 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-// =========================
 // Public
-// =========================
-
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 
-// =========================
 // Common
-// =========================
-
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ManagementLayout from "./components/ManagementLayout";
 
-// =========================
-// Management Dashboard
-// =========================
-
+// Dashboard
 import ManagementDashboard from "./pages/management/ManagementDashboard";
 
-// =========================
 // Employee
-// =========================
-
 import CreateEvaluation from "./pages/employee/CreateEvaluation";
 import MyEvaluations from "./pages/employee/MyEvaluations";
 import EvaluationDetails from "./pages/employee/EvaluationDetails";
 
-// =========================
-// Manager
-// =========================
-
+// Manager / Review
 import ReviewEvaluation from "./pages/manager/ReviewEvaluation";
+import ManagerDashboard from "./pages/manager/ManagerDashboard";
 
-// =========================
+// HR
+import HRDashboard from "./pages/hr/HRDashboard";
+
 // Management
-// =========================
-
 import Users from "./pages/management/Users";
 import CreateUser from "./pages/management/CreateUser";
 import EditUser from "./pages/management/EditUser";
@@ -68,26 +54,18 @@ import ProbationPeriods from "./pages/management/ProbationPeriods";
 import CreateProbationPeriod from "./pages/management/CreateProbationPeriod";
 import EditProbationPeriod from "./pages/management/EditProbationPeriod";
 
-import ManagerDashboard from "./pages/manager/ManagerDashboard";
-import HRDashboard from "./pages/hr/HRDashboard";
-
 import AdminEvaluationList from "./pages/management/AdminEvaluationList";
 
+// Profile
 import MyProfile from "./pages/employee/MyProfile";
 import EmployeeProfile from "./pages/employee/EmployeeProfile";
 
-
-
 function App() {
-
     return (
         <BrowserRouter>
-
             <Routes>
 
-                {/* =====================================================
-                    PUBLIC
-                ====================================================== */}
+                {/* ================= PUBLIC ================= */}
 
                 <Route
                     path="/"
@@ -100,24 +78,27 @@ function App() {
                 />
 
 
-                {/* =====================================================
-                    COMMON DASHBOARD
-                ====================================================== */}
+                {/* ================= DASHBOARD ================= */}
 
                 <Route
                     path="/dashboard"
                     element={
-                        <ProtectedRoute>
+                        <ProtectedRoute
+                            roles={[
+                                "Admin",
+                                "HR",
+                                "Manager",
+                                "Employee",
+                                "Management",
+                            ]}
+                        >
                             <Dashboard />
                         </ProtectedRoute>
                     }
                 />
 
 
-                {/* =====================================================
-                    MAIN APPLICATION
-                    ALL LOGGED-IN USERS
-                ====================================================== */}
+                {/* ================= MANAGEMENT LAYOUT ================= */}
 
                 <Route
                     path="/management"
@@ -128,6 +109,7 @@ function App() {
                                 "HR",
                                 "Manager",
                                 "Employee",
+                                "Management",
                             ]}
                         >
                             <ManagementLayout />
@@ -135,9 +117,7 @@ function App() {
                     }
                 >
 
-                    {/* =================================================
-                        DASHBOARD
-                    ================================================== */}
+                    {/* Dashboard */}
 
                     <Route
                         index
@@ -145,13 +125,9 @@ function App() {
                     />
 
 
-                    {/* =================================================
-                        EMPLOYEE
-                    ================================================== */}
+                    {/* ================= EMPLOYEE ================= */}
 
-                  
-
-                     <Route
+                    <Route
                         path="employee/evaluations/create"
                         element={<CreateEvaluation />}
                     />
@@ -166,11 +142,13 @@ function App() {
                         element={<EvaluationDetails />}
                     />
 
-
-                  <Route
-                        path="/management/employee/profile"
+                    <Route
+                        path="employee/profile"
                         element={<MyProfile />}
                     />
+
+
+                    {/* ================= EMPLOYEE PROFILE ================= */}
 
                     <Route
                         path="users/:id/profile"
@@ -178,39 +156,41 @@ function App() {
                     />
 
 
-                  
-
-                   
-
-                    {/* =================================================
-                        MANAGER
-                    ================================================== */}
+                    {/* ================= MANAGER ================= */}
 
                     <Route
                         path="manager/reviews"
                         element={<ManagerDashboard />}
                     />
 
-                    
+                    <Route
+                        path="manager/evaluations/:id"
+                        element={<ReviewEvaluation />}
+                    />
 
 
-                    {/* =================================================
-                        HR
-                    ================================================== */}
+                    {/* ================= HR ================= */}
 
                     <Route
                         path="hr/reviews"
                         element={<HRDashboard />}
-                    />
-                    <Route
-                        path="manager/evaluations/:id"
-                        element={<ReviewEvaluation />}
                     />
 
                     <Route
                         path="hr/evaluations/:id"
                         element={<ReviewEvaluation />}
                     />
+
+
+                    {/* ================= MANAGEMENT REVIEW ================= */}
+
+                    <Route
+                        path="management/evaluations/:id"
+                        element={<ReviewEvaluation />}
+                    />
+
+
+                    {/* ================= ADMIN ================= */}
 
                     <Route
                         path="admin/reviews"
@@ -223,9 +203,7 @@ function App() {
                     />
 
 
-                    {/* =================================================
-                        USERS
-                    ================================================== */}
+                    {/* ================= USERS ================= */}
 
                     <Route
                         path="users"
@@ -243,14 +221,12 @@ function App() {
                     />
 
                     <Route
-                        path="change-password"
+                        path="users/:id/change-password"
                         element={<ChangePassword />}
                     />
 
 
-                    {/* =================================================
-                        DEPARTMENTS
-                    ================================================== */}
+                    {/* ================= DEPARTMENTS ================= */}
 
                     <Route
                         path="departments"
@@ -268,9 +244,7 @@ function App() {
                     />
 
 
-                    {/* =================================================
-                        POSITIONS
-                    ================================================== */}
+                    {/* ================= POSITIONS ================= */}
 
                     <Route
                         path="positions"
@@ -288,49 +262,7 @@ function App() {
                     />
 
 
-                    {/* =================================================
-                        EVALUATION CATEGORIES
-                    ================================================== */}
-
-                    <Route
-                        path="evaluation-categories"
-                        element={<EvaluationCategories />}
-                    />
-
-                    <Route
-                        path="evaluation-categories/create"
-                        element={<CreateEvaluationCategory />}
-                    />
-
-                    <Route
-                        path="evaluation-categories/:id/edit"
-                        element={<EditEvaluationCategory />}
-                    />
-
-
-                    {/* =================================================
-                        EVALUATION QUESTIONS
-                    ================================================== */}
-
-                    <Route
-                        path="evaluation-questions"
-                        element={<EvaluationQuestions />}
-                    />
-
-                    <Route
-                        path="evaluation-questions/create"
-                        element={<CreateEvaluationQuestion />}
-                    />
-
-                    <Route
-                        path="evaluation-questions/:id/edit"
-                        element={<EditEvaluationQuestion />}
-                    />
-
-
-                    {/* =================================================
-                        EVALUATION PERIODS
-                    ================================================== */}
+                    {/* ================= EVALUATION PERIODS ================= */}
 
                     <Route
                         path="evaluation-periods"
@@ -348,9 +280,43 @@ function App() {
                     />
 
 
-                    {/* =================================================
-                        PROBATION PERIODS
-                    ================================================== */}
+                    {/* ================= EVALUATION CATEGORIES ================= */}
+
+                    <Route
+                        path="evaluation-categories"
+                        element={<EvaluationCategories />}
+                    />
+
+                    <Route
+                        path="evaluation-categories/create"
+                        element={<CreateEvaluationCategory />}
+                    />
+
+                    <Route
+                        path="evaluation-categories/:id/edit"
+                        element={<EditEvaluationCategory />}
+                    />
+
+
+                    {/* ================= EVALUATION QUESTIONS ================= */}
+
+                    <Route
+                        path="evaluation-questions"
+                        element={<EvaluationQuestions />}
+                    />
+
+                    <Route
+                        path="evaluation-questions/create"
+                        element={<CreateEvaluationQuestion />}
+                    />
+
+                    <Route
+                        path="evaluation-questions/:id/edit"
+                        element={<EditEvaluationQuestion />}
+                    />
+
+
+                    {/* ================= PROBATION PERIODS ================= */}
 
                     <Route
                         path="probation-periods"
@@ -370,9 +336,7 @@ function App() {
                 </Route>
 
 
-                {/* =====================================================
-                    FALLBACK
-                ====================================================== */}
+                {/* ================= 404 ================= */}
 
                 <Route
                     path="*"
@@ -380,7 +344,6 @@ function App() {
                 />
 
             </Routes>
-
         </BrowserRouter>
     );
 }

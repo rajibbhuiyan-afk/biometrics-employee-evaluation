@@ -20,19 +20,24 @@ const ManagerDashboard = () => {
 
             const response = await api.get("/evaluations");
 
-            console.log("Manager Evaluations:", response.data);
-
-            const data = response.data.data || [];
-
-            const filtered = data.filter(
-                (evaluation) =>
-                    evaluation.status === "submitted" ||
-                    evaluation.status === "reviewed"
+            console.log(
+                "Manager Evaluations:",
+                response.data
             );
 
-            setEvaluations(filtered);
+            // IMPORTANT:
+            // Do NOT filter evaluations here.
+            // Backend should return all evaluations
+            // belonging to this manager's employees.
+            setEvaluations(
+                response.data.data || []
+            );
+
         } catch (error) {
-            console.error("Failed to load evaluations:", error);
+            console.error(
+                "Failed to load evaluations:",
+                error
+            );
 
             setError(
                 error.response?.data?.message ||
@@ -44,6 +49,104 @@ const ManagerDashboard = () => {
     };
 
     // ==========================================================
+    // Status Label
+    // ==========================================================
+
+    const getStatusLabel = (status) => {
+        switch (status) {
+            case "draft":
+                return "Draft";
+
+            case "submitted":
+                return "Submitted";
+
+            case "manager_returned":
+                return "Returned by Manager";
+
+            case "manager_rejected":
+                return "Rejected by Manager";
+
+            case "manager_approved":
+                return "Manager Approved";
+
+            case "hr_returned":
+                return "Returned by HR";
+
+            case "hr_rejected":
+                return "Rejected by HR";
+
+            case "hr_approved":
+                return "HR Approved";
+
+            case "management_returned":
+                return "Returned by Management";
+
+            case "management_rejected":
+                return "Rejected by Management";
+
+            case "completed":
+                return "Completed";
+
+            default:
+                return status || "-";
+        }
+    };
+
+    // ==========================================================
+    // Status Class
+    // ==========================================================
+
+    const getStatusClass = (status) => {
+        switch (status) {
+            case "submitted":
+                return "status-active";
+
+            case "manager_approved":
+            case "hr_approved":
+            case "completed":
+                return "status-completed";
+
+            case "manager_rejected":
+            case "hr_rejected":
+            case "management_rejected":
+                return "status-inactive";
+
+            case "manager_returned":
+            case "hr_returned":
+            case "management_returned":
+                return "status-extended";
+
+            case "draft":
+                return "status-extended";
+
+            default:
+                return "status-extended";
+        }
+    };
+
+    // ==========================================================
+    // Can Manager Review?
+    // ==========================================================
+
+    const canManagerReview = (status) => {
+        return (
+            status === "submitted" ||
+            status === "manager_returned" ||
+            status === "manager_rejected"
+        );
+    };
+
+    // ==========================================================
+    // Action
+    // ==========================================================
+
+    const handleEvaluationAction = (evaluation) => {
+        navigate(
+            `/management/manager/evaluations/${evaluation.id}`
+        );
+    };
+
+    // ==========================================================
     // Loading
     // ==========================================================
 
@@ -52,18 +155,24 @@ const ManagerDashboard = () => {
             <div className="management-page">
 
                 <div className="page-header">
+
                     <div className="page-header-info">
+
                         <h1 className="page-header-title">
                             Manager Dashboard
                         </h1>
 
                         <p className="page-header-description">
-                            Review employee performance evaluations.
+                            Review and view employee performance
+                            evaluations.
                         </p>
+
                     </div>
+
                 </div>
 
                 <div className="data-table-container">
+
                     <div className="data-table-empty">
 
                         <div className="data-table-empty-title">
@@ -76,11 +185,32 @@ const ManagerDashboard = () => {
                         </div>
 
                     </div>
+
                 </div>
 
             </div>
         );
     }
+
+    // ==========================================================
+    // Summary Counts
+    // ==========================================================
+
+    const pendingReviews = evaluations.filter(
+        (evaluation) =>
+            evaluation.status === "submitted"
+    ).length;
+
+    const reviewed = evaluations.filter(
+        (evaluation) =>
+            evaluation.status === "manager_approved"
+    ).length;
+
+    const returnedOrRejected = evaluations.filter(
+        (evaluation) =>
+            evaluation.status === "manager_returned" ||
+            evaluation.status === "manager_rejected"
+    ).length;
 
     return (
         <div className="management-page">
@@ -98,8 +228,8 @@ const ManagerDashboard = () => {
                     </h1>
 
                     <p className="page-header-description">
-                        Review and manage submitted employee
-                        performance evaluations.
+                        Review and view employee performance
+                        evaluations.
                     </p>
 
                 </div>
@@ -108,6 +238,7 @@ const ManagerDashboard = () => {
                     type="button"
                     className="page-header-button"
                     onClick={fetchEvaluations}
+                    disabled={loading}
                 >
                     Refresh
                 </button>
@@ -138,6 +269,8 @@ const ManagerDashboard = () => {
 
                 <div className="dashboard-card-grid">
 
+                    {/* Pending */}
+
                     <div className="dashboard-card">
 
                         <div className="dashboard-card-title">
@@ -145,36 +278,43 @@ const ManagerDashboard = () => {
                         </div>
 
                         <div className="dashboard-card-value">
-                            {
-                                evaluations.filter(
-                                    (evaluation) =>
-                                        evaluation.status ===
-                                        "submitted"
-                                ).length
-                            }
+                            {pendingReviews}
                         </div>
 
                     </div>
 
+
+                    {/* Approved */}
 
                     <div className="dashboard-card">
 
                         <div className="dashboard-card-title">
-                            Reviewed
+                            Manager Approved
                         </div>
 
                         <div className="dashboard-card-value">
-                            {
-                                evaluations.filter(
-                                    (evaluation) =>
-                                        evaluation.status ===
-                                        "reviewed"
-                                ).length
-                            }
+                            {reviewed}
                         </div>
 
                     </div>
 
+
+                    {/* Returned / Rejected */}
+
+                    <div className="dashboard-card">
+
+                        <div className="dashboard-card-title">
+                            Returned / Rejected
+                        </div>
+
+                        <div className="dashboard-card-value">
+                            {returnedOrRejected}
+                        </div>
+
+                    </div>
+
+
+                    {/* Total */}
 
                     <div className="dashboard-card">
 
@@ -194,7 +334,7 @@ const ManagerDashboard = () => {
 
 
             {/* ==================================================
-                Evaluations
+                All Evaluations
             ================================================== */}
 
             <div className="dashboard-section">
@@ -208,8 +348,8 @@ const ManagerDashboard = () => {
                         </h2>
 
                         <p className="page-header-description">
-                            Evaluations submitted by employees
-                            for manager review.
+                            All evaluations submitted by employees
+                            assigned to you.
                         </p>
 
                     </div>
@@ -228,8 +368,8 @@ const ManagerDashboard = () => {
                             </div>
 
                             <div className="data-table-empty-message">
-                                There are currently no submitted
-                                evaluations available for review.
+                                There are currently no employee
+                                evaluations available.
                             </div>
 
                         </div>
@@ -268,7 +408,6 @@ const ManagerDashboard = () => {
 
                                 </thead>
 
-
                                 <tbody>
 
                                     {evaluations.map(
@@ -280,10 +419,16 @@ const ManagerDashboard = () => {
                                                 }
                                             >
 
+                                                {/* ID */}
+
                                                 <td>
-                                                    #{evaluation.id}
+                                                    <strong>
+                                                        #{evaluation.id}
+                                                    </strong>
                                                 </td>
 
+
+                                                {/* Employee */}
 
                                                 <td>
                                                     {
@@ -295,33 +440,39 @@ const ManagerDashboard = () => {
                                                 </td>
 
 
+                                                {/* Period */}
+
                                                 <td>
                                                     {
                                                         evaluation
                                                             .evaluation_period
+                                                            ?.name ||
+                                                        evaluation
+                                                            .evaluationPeriod
                                                             ?.name ||
                                                         "Unknown"
                                                     }
                                                 </td>
 
 
+                                                {/* Status */}
+
                                                 <td>
 
                                                     <span
-                                                        className={`status-badge ${
-                                                            evaluation.status ===
-                                                            "submitted"
-                                                                ? "status-active"
-                                                                : "status-completed"
-                                                        }`}
-                                                    >
-                                                        {
+                                                        className={`status-badge ${getStatusClass(
                                                             evaluation.status
-                                                        }
+                                                        )}`}
+                                                    >
+                                                        {getStatusLabel(
+                                                            evaluation.status
+                                                        )}
                                                     </span>
 
                                                 </td>
 
+
+                                                {/* Action */}
 
                                                 <td className="data-table-actions">
 
@@ -329,14 +480,24 @@ const ManagerDashboard = () => {
 
                                                         <button
                                                             type="button"
-                                                            className="action-button action-edit"
+                                                            className={
+                                                                canManagerReview(
+                                                                    evaluation.status
+                                                                )
+                                                                    ? "action-button action-edit"
+                                                                    : "action-button action-view"
+                                                            }
                                                             onClick={() =>
-                                                                navigate(
-                                                                    `/management/manager/evaluations/${evaluation.id}`
+                                                                handleEvaluationAction(
+                                                                    evaluation
                                                                 )
                                                             }
                                                         >
-                                                            Review
+                                                            {canManagerReview(
+                                                                evaluation.status
+                                                            )
+                                                                ? "Review"
+                                                                : "View"}
                                                         </button>
 
                                                     </div>

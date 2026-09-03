@@ -2148,6 +2148,165 @@
 
     text-align: center;
 }
+/* =========================================================
+   Review Action Buttons
+========================================================= */
+
+.management-form-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+    flex-wrap: wrap;
+}
+
+.management-form-actions button {
+    padding: 10px 18px;
+
+    border-radius: 7px;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.1s ease;
+}
+
+.management-form-actions button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.management-form-actions button:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.management-btn-primary {
+    border: 1px solid #2563eb;
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.management-btn-primary:hover:not(:disabled) {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+}
+
+.management-btn-secondary {
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #374151;
+}
+
+.management-btn-secondary:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.management-form-actions .action-delete {
+    padding: 10px 18px;
+
+    border: 1px solid #fecaca;
+    border-radius: 7px;
+
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.management-form-actions .action-delete:hover:not(:disabled) {
+    background: #fee2e2;
+    border-color: #fca5a5;
+}
+
+
+/* =========================
+   Evaluation Review Actions
+========================= */
+
+.evaluation-review-manager {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.evaluation-review-rating {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.evaluation-review-rating select {
+    min-width: 140px;
+    padding: 9px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #111827;
+    font-size: 14px;
+}
+
+.evaluation-review-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.evaluation-review-action {
+    min-width: 100px;
+    text-align: center;
+}
+
+.evaluation-review-action.active {
+    font-weight: 600;
+}
+
+.evaluation-review-manager .management-form-field {
+    margin-top: 14px;
+}
+
+.evaluation-review-manager .management-form-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 100px;
+}
+
+.evaluation-review-manager-view {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.evaluation-review-manager-view
+    .evaluation-review-answer {
+    margin-bottom: 14px;
+}
+
+.evaluation-review-manager-view
+    .evaluation-review-answer:last-child {
+    margin-bottom: 0;
+}
+
+.evaluation-review-manager-view
+    .evaluation-review-answer p {
+    margin-top: 6px;
+    margin-bottom: 0;
+    white-space: pre-wrap;
+}
+
+.evaluation-locked-message {
+    margin-bottom: 20px;
+}
+
+
 
 
 
@@ -2342,6 +2501,23 @@
     }
     .dashboard-card-grid {
         grid-template-columns: 1fr;
+    }
+    .evaluation-review-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .evaluation-review-action {
+        width: 100%;
+    }
+
+    .evaluation-review-rating {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .evaluation-review-rating select {
+        width: 100%;
     }
 }
 

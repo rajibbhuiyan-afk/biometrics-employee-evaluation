@@ -41,6 +41,7 @@ const ManagementLayout = () => {
                 "HR",
                 "Manager",
                 "Employee",
+                "Management"
             ],
         },
 
@@ -48,7 +49,7 @@ const ManagementLayout = () => {
             label: "Final Evaluations",
             path: "/management/admin/reviews",
             end: true,
-            roles: ["Admin"],
+            roles: ["Admin", "Management"],
         },
 
       
@@ -63,6 +64,7 @@ const ManagementLayout = () => {
             path: "/management/users",
             roles: [
                 "Admin",
+                "Management",
                 "HR",
             ],
         },
@@ -72,6 +74,7 @@ const ManagementLayout = () => {
             path: "/management/departments",
             roles: [
                 "Admin",
+                "Management",
                 "HR",
             ],
         },
@@ -81,6 +84,7 @@ const ManagementLayout = () => {
             path: "/management/positions",
             roles: [
                 "Admin",
+                "Management",
                 "HR",
             ],
         },
@@ -90,6 +94,7 @@ const ManagementLayout = () => {
             path: "/management/evaluation-categories",
             roles: [
                 "Admin",
+                "Management",
                 "HR",
             ],
         },
@@ -99,6 +104,7 @@ const ManagementLayout = () => {
             path: "/management/evaluation-questions",
             roles: [
                 "Admin",
+                "Management",
                 "HR",
             ],
         },
@@ -108,6 +114,7 @@ const ManagementLayout = () => {
             path: "/management/evaluation-periods",
             roles: [
                 "Admin",
+                "Management",
                 "HR",
             ],
         },
@@ -117,6 +124,7 @@ const ManagementLayout = () => {
             path: "/management/probation-periods",
             roles: [
                 "Admin",
+                "Management",
                 "HR",
             ],
         },
@@ -170,6 +178,7 @@ const ManagementLayout = () => {
                 "HR",
                 "Manager",
                 "Employee",
+                "Management"
             ],
         },
 

@@ -4,11 +4,16 @@ import EmployeeDashboard from "../employee/EmployeeDashboard";
 import ManagerDashboard from "../manager/ManagerDashboard";
 import HRDashboard from "../hr/HRDashboard";
 import AdminDashboard from "../admin/AdminDashboard";
+import ManagementPersonalDashboard from "./ManagementPersonalDashboard";
 
 
 const ManagementDashboard = () => {
 
     const { user } = useAuth();
+
+    console.log("LOGIN USER:", user);
+console.log("USER ROLE:", user?.role);
+console.log("ROLE NAME:", user?.role?.name);
 
     const role = user?.role?.name;
 
@@ -54,6 +59,15 @@ const ManagementDashboard = () => {
 
     if (role === "Employee") {
         return <EmployeeDashboard />;
+    }
+    /*
+    |--------------------------------------------------------------------------
+    | Management
+    |--------------------------------------------------------------------------
+    */
+
+    if (role === "Management") {
+        return <ManagementPersonalDashboard />;
     }
 
 

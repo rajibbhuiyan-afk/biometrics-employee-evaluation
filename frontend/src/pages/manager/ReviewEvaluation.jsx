@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+
 import api from "../../api/axios";
-import { useAuth } from "../../context/AuthContext";
-import { formatDateTime } from "../../utils/dateUtils";
+import PageHeader from "../../components/PageHeader";
 
 const ReviewEvaluation = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { user } = useAuth();
 
     // ==========================================================
     // State
@@ -15,61 +14,90 @@ const ReviewEvaluation = () => {
 
     const [evaluation, setEvaluation] = useState(null);
 
-    // All evaluation questions
-    const [questions, setQuestions] = useState([]);
-
-    // Employee answers
-    const [answers, setAnswers] = useState([]);
-
-    const [rating, setRating] = useState("");
-    const [comment, setComment] = useState("");
-
     const [loading, setLoading] = useState(true);
-    const [actionLoading, setActionLoading] = useState(false);
-
+    const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current reviewer's question-wise reviews
+    |--------------------------------------------------------------------------
+    |
+    | Manager      => Manager review
+    | HR           => HR review
+    | Management   => Management review
+    |
+    */
+
+    const [reviews, setReviews] = useState({});
+
+    const [overallRating, setOverallRating] = useState("");
+    const [overallComment, setOverallComment] = useState("");
 
     // ==========================================================
-    // Role
+    // Detect Reviewer Role
     // ==========================================================
 
-    const role = user?.role?.name;
+    const detectReviewerRole = () => {
+        const path = window.location.pathname.toLowerCase();
 
-    const isManager = role === "Manager";
-    const isAdmin = role === "Admin";
+        /*
+        |--------------------------------------------------------------------------
+        | HR
+        |--------------------------------------------------------------------------
+        */
 
-    // ==========================================================
-    // Back Navigation
-    // ==========================================================
-
-    const handleBack = () => {
-        if (isAdmin) {
-            navigate("/management/admin/reviews");
-            return;
+        if (path.includes("/hr/")) {
+            return "HR";
         }
 
-        if (role === "HR") {
-            navigate("/management");
-            return;
+        /*
+        |--------------------------------------------------------------------------
+        | Management
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            path.includes("/management/management/") ||
+            path.includes("/management/review/") ||
+            path.includes("/management/evaluations/")
+        ) {
+            return "Management";
         }
 
-        if (isManager) {
-            navigate("/management/manager/reviews");
-            return;
+        /*
+        |--------------------------------------------------------------------------
+        | Manager
+        |--------------------------------------------------------------------------
+        */
+
+        return "Manager";
+    };
+
+    const reviewerRole = detectReviewerRole();
+
+    // ==========================================================
+    // Role Label
+    // ==========================================================
+
+    const getRoleLabel = () => {
+        if (reviewerRole === "HR") {
+            return "HR";
         }
 
-        navigate("/management");
+        if (reviewerRole === "Management") {
+            return "Management";
+        }
+
+        return "Manager";
     };
 
     // ==========================================================
-    // Fetch Evaluation + Questions
+    // Fetch Evaluation
     // ==========================================================
 
     useEffect(() => {
-        if (id) {
-            fetchEvaluation();
-        }
+        fetchEvaluation();
     }, [id]);
 
     const fetchEvaluation = async () => {
@@ -77,131 +105,563 @@ const ReviewEvaluation = () => {
             setLoading(true);
             setError("");
 
-            // ==================================================
-            // Load Evaluation
-            // ==================================================
-
-            const evaluationResponse = await api.get(
+            const response = await api.get(
                 `/evaluations/${id}`
             );
 
-            console.log(
-                "Evaluation Details:",
-                evaluationResponse.data
-            );
-
-            if (!evaluationResponse.data.success) {
-                setEvaluation(null);
-                setQuestions([]);
-                setAnswers([]);
-
-                setError(
-                    evaluationResponse.data.message ||
-                    "Failed to load evaluation."
-                );
-
-                return;
-            }
-
-            const data = evaluationResponse.data.data;
-
-            if (!data) {
-                setEvaluation(null);
-                setQuestions([]);
-                setAnswers([]);
-
-                setError(
-                    "Evaluation not found."
-                );
-
-                return;
-            }
+            const data =
+                response.data?.data ||
+                response.data;
 
             setEvaluation(data);
 
-            // ==================================================
-            // Employee Answers
-            // ==================================================
+            // ======================================================
+            // Current Role Reviews
+            // ======================================================
 
-            setAnswers(
-                data.answers || []
+            const existingReviews = {};
+
+            if (
+                data?.reviews &&
+                Array.isArray(data.reviews)
+            ) {
+                data.reviews.forEach((review) => {
+                    if (
+                        review.question_id !== null &&
+                        review.question_id !== undefined &&
+                        String(review.reviewer_role).toLowerCase() ===
+                            reviewerRole.toLowerCase()
+                    ) {
+                        existingReviews[
+                            review.question_id
+                        ] = {
+                            review_result:
+                                review.review_result ||
+                                "",
+
+                            rating:
+                                review.rating !== null &&
+                                review.rating !== undefined
+                                    ? review.rating
+                                    : "",
+
+                            comment:
+                                review.comment || "",
+                        };
+                    }
+                });
+            }
+
+            setReviews(existingReviews);
+
+            // ======================================================
+            // Current Role Overall Review
+            // ======================================================
+
+            let stageOverallRating = "";
+            let stageOverallComment = "";
+
+            if (
+                data?.reviews &&
+                Array.isArray(data.reviews)
+            ) {
+                const stageReview =
+                    data.reviews
+                        .filter(
+                            (review) =>
+                                String(
+                                    review.reviewer_role
+                                ).toLowerCase() ===
+                                    reviewerRole.toLowerCase() &&
+                                (
+                                    review.question_id ===
+                                        null ||
+                                    review.question_id ===
+                                        undefined
+                                )
+                        )
+                        .sort(
+                            (a, b) =>
+                                new Date(
+                                    b.reviewed_at
+                                ) -
+                                new Date(
+                                    a.reviewed_at
+                                )
+                        )[0];
+
+                if (stageReview) {
+                    stageOverallRating =
+                        stageReview.rating ?? "";
+
+                    stageOverallComment =
+                        stageReview.comment || "";
+                }
+            }
+
+            // ======================================================
+            // Fallback Overall Rating
+            // ======================================================
+
+            if (
+                stageOverallRating === "" ||
+                stageOverallRating === null ||
+                stageOverallRating === undefined
+            ) {
+                if (reviewerRole === "Manager") {
+                    stageOverallRating =
+                        data?.manager_overall_rating ??
+                        "";
+                }
+
+                if (reviewerRole === "HR") {
+                    stageOverallRating =
+                        data?.hr_overall_rating ??
+                        "";
+                }
+
+                if (reviewerRole === "Management") {
+                    stageOverallRating =
+                        data?.management_overall_rating ??
+                        "";
+                }
+            }
+
+            setOverallRating(
+                stageOverallRating
             );
 
-            // ==================================================
-            // Load ALL Evaluation Questions
-            // ==================================================
-
-            const questionsResponse = await api.get(
-                "/evaluation-questions"
+            setOverallComment(
+                stageOverallComment
             );
 
-            console.log(
-                "Evaluation Questions:",
-                questionsResponse.data
-            );
-
-            const questionData =
-                questionsResponse.data.data || [];
-
-            setQuestions(questionData);
-
-            // ==================================================
-            // Load Latest Review
-            // ==================================================
-
-            // if (
-            //     data.reviews &&
-            //     data.reviews.length > 0
-            // ) {
-            //     const latestReview =
-            //         data.reviews[
-            //             data.reviews.length - 1
-            //         ];
-
-            //     setRating(
-            //         latestReview.rating !== null &&
-            //         latestReview.rating !== undefined
-            //             ? String(latestReview.rating)
-            //             : ""
-            //     );
-
-            //     setComment(
-            //         latestReview.comment || ""
-            //     );
-            // } else {
-            //     setRating("");
-            //     setComment("");
-            // }
-
-        } catch (error) {
+        } catch (err) {
             console.error(
-                "Fetch evaluation error:",
-                error
+                "Failed to load evaluation:",
+                err
             );
-
-            setEvaluation(null);
-            setQuestions([]);
-            setAnswers([]);
 
             setError(
-                error.response?.data?.message ||
-                "Failed to load evaluation."
+                err.response?.data?.message ||
+                    "Failed to load evaluation."
             );
-
         } finally {
             setLoading(false);
         }
     };
 
     // ==========================================================
-    // Find Answer For Question
+    // Questions
     // ==========================================================
 
-    const getAnswerForQuestion = (questionId) => {
-        return answers.find(
-            (item) =>
-                Number(item.question_id) ===
-                Number(questionId)
+    const getQuestions = () => {
+        if (
+            !evaluation ||
+            !Array.isArray(
+                evaluation.answers
+            )
+        ) {
+            return [];
+        }
+
+        return evaluation.answers;
+    };
+
+    // ==========================================================
+    // Update Review
+    // ==========================================================
+
+    const updateReview = (
+        questionId,
+        field,
+        value
+    ) => {
+        setReviews((prev) => ({
+            ...prev,
+
+            [questionId]: {
+                ...(prev[questionId] || {}),
+                [field]: value,
+            },
+        }));
+    };
+
+    // ==========================================================
+    // Accept / Reject
+    // ==========================================================
+
+    const setReviewResult = (
+        questionId,
+        result
+    ) => {
+        setReviews((prev) => ({
+            ...prev,
+
+            [questionId]: {
+                ...(prev[questionId] || {}),
+                review_result: result,
+            },
+        }));
+    };
+
+    // ==========================================================
+    // Rating
+    // ==========================================================
+
+    const handleRatingChange = (
+        questionId,
+        value
+    ) => {
+        updateReview(
+            questionId,
+            "rating",
+            value
+        );
+    };
+
+    // ==========================================================
+    // Comment
+    // ==========================================================
+
+    const handleCommentChange = (
+        questionId,
+        value
+    ) => {
+        updateReview(
+            questionId,
+            "comment",
+            value
+        );
+    };
+
+    // ==========================================================
+    // Question Reviewed
+    // ==========================================================
+
+    const isQuestionReviewed = (
+        questionId
+    ) => {
+        const review =
+            reviews[questionId];
+
+        return (
+            review &&
+            review.review_result &&
+            review.rating !== "" &&
+            review.rating !== null &&
+            review.rating !== undefined
+        );
+    };
+
+    // ==========================================================
+    // All Questions Reviewed
+    // ==========================================================
+
+    const allQuestionsReviewed = () => {
+        const questions =
+            getQuestions();
+
+        if (
+            questions.length === 0
+        ) {
+            return false;
+        }
+
+        return questions.every(
+            (answer) =>
+                isQuestionReviewed(
+                    answer.question_id
+                )
+        );
+    };
+
+    // ==========================================================
+    // Validation
+    // ==========================================================
+
+    const validateReviews = () => {
+        const questions =
+            getQuestions();
+
+        if (
+            questions.length === 0
+        ) {
+            return "No evaluation questions found.";
+        }
+
+        for (
+            const answer of questions
+        ) {
+            const questionId =
+                answer.question_id;
+
+            const review =
+                reviews[questionId];
+
+            // --------------------------------------------------
+            // Accept / Reject required
+            // --------------------------------------------------
+
+            if (
+                !review ||
+                !review.review_result
+            ) {
+                return `Please Accept or Reject Question ${questionId}.`;
+            }
+
+            // --------------------------------------------------
+            // Rating required
+            // --------------------------------------------------
+
+            if (
+                review.rating === "" ||
+                review.rating === null ||
+                review.rating === undefined
+            ) {
+                return `Please provide a rating for Question ${questionId}.`;
+            }
+
+            const rating =
+                Number(review.rating);
+
+            if (
+                Number.isNaN(rating) ||
+                rating < 0 ||
+                rating > 10
+            ) {
+                return `Rating for Question ${questionId} must be between 0 and 10.`;
+            }
+
+            // --------------------------------------------------
+            // Rejected question requires comment
+            // --------------------------------------------------
+
+            if (
+                review.review_result ===
+                    "not_okay" &&
+                !String(
+                    review.comment || ""
+                ).trim()
+            ) {
+                return `Please provide a comment for rejected Question ${questionId}.`;
+            }
+        }
+
+        // ======================================================
+        // Overall Rating
+        // ======================================================
+
+        if (
+            overallRating === "" ||
+            overallRating === null ||
+            overallRating === undefined
+        ) {
+            return `Please provide the overall ${getRoleLabel().toLowerCase()} rating.`;
+        }
+
+        const overall =
+            Number(overallRating);
+
+        if (
+            Number.isNaN(overall) ||
+            overall < 0 ||
+            overall > 10
+        ) {
+            return "Overall rating must be between 0 and 10.";
+        }
+
+        return null;
+    };
+
+    // ==========================================================
+    // Can Current Role Review?
+    // ==========================================================
+
+    const canCurrentRoleReview = () => {
+        if (!evaluation) {
+            return false;
+        }
+
+        // ------------------------------------------------------
+        // Manager
+        // ------------------------------------------------------
+
+        if (
+            reviewerRole === "Manager"
+        ) {
+            return [
+                "submitted",
+                "manager_returned",
+                "manager_rejected",
+            ].includes(
+                evaluation.status
+            );
+        }
+
+        // ------------------------------------------------------
+        // HR
+        // ------------------------------------------------------
+
+        if (
+            reviewerRole === "HR"
+        ) {
+            return [
+                "manager_approved",
+                "hr_returned",
+                "hr_rejected",
+            ].includes(
+                evaluation.status
+            );
+        }
+
+        // ------------------------------------------------------
+        // Management
+        // ------------------------------------------------------
+
+        if (
+            reviewerRole === "Management"
+        ) {
+            return [
+                "hr_approved",
+                "management_returned",
+                "management_rejected",
+            ].includes(
+                evaluation.status
+            );
+        }
+
+        return false;
+    };
+
+    // ==========================================================
+    // Current Stage Approved
+    // ==========================================================
+
+    const isCurrentStageApproved = () => {
+        if (!evaluation) {
+            return false;
+        }
+
+        if (
+            reviewerRole === "Manager"
+        ) {
+            return (
+                evaluation.status ===
+                "manager_approved"
+            );
+        }
+
+        if (
+            reviewerRole === "HR"
+        ) {
+            return (
+                evaluation.status ===
+                "hr_approved"
+            );
+        }
+
+        if (
+            reviewerRole === "Management"
+        ) {
+            return (
+                evaluation.status ===
+                "completed"
+            );
+        }
+
+        return false;
+    };
+
+    // ==========================================================
+    // Get Review By Role
+    // ==========================================================
+
+    const getReview = (
+        questionId,
+        role
+    ) => {
+        if (
+            !evaluation?.reviews ||
+            !Array.isArray(
+                evaluation.reviews
+            )
+        ) {
+            return null;
+        }
+
+        const roleReviews =
+            evaluation.reviews
+                .filter(
+                    (review) =>
+                        Number(
+                            review.question_id
+                        ) ===
+                            Number(questionId) &&
+                        String(
+                            review.reviewer_role
+                        ).toLowerCase() ===
+                            role.toLowerCase()
+                )
+                .sort(
+                    (a, b) =>
+                        new Date(
+                            b.reviewed_at
+                        ) -
+                        new Date(
+                            a.reviewed_at
+                        )
+                );
+
+        return (
+            roleReviews[0] ||
+            null
+        );
+    };
+
+    // ==========================================================
+    // Get Overall Review By Role
+    // ==========================================================
+
+    const getOverallReview = (
+        role
+    ) => {
+        if (
+            !evaluation?.reviews ||
+            !Array.isArray(
+                evaluation.reviews
+            )
+        ) {
+            return null;
+        }
+
+        const stageReviews =
+            evaluation.reviews
+                .filter(
+                    (review) =>
+                        String(
+                            review.reviewer_role
+                        ).toLowerCase() ===
+                            role.toLowerCase() &&
+                        (
+                            review.question_id ===
+                                null ||
+                            review.question_id ===
+                                undefined
+                        )
+                )
+                .sort(
+                    (a, b) =>
+                        new Date(
+                            b.reviewed_at
+                        ) -
+                        new Date(
+                            a.reviewed_at
+                        )
+                );
+
+        return (
+            stageReviews[0] ||
+            null
         );
     };
 
@@ -209,306 +669,211 @@ const ReviewEvaluation = () => {
     // Review Action
     // ==========================================================
 
-    const handleReviewAction = async (action) => {
-
+    const handleReviewAction = async (
+        action
+    ) => {
         setError("");
-        setSuccess("");
 
-        // ======================================================
-        // Check user
-        // ======================================================
+        // ------------------------------------------------------
+        // Validate
+        // ------------------------------------------------------
 
-        if (!user?.id) {
-            setError("Logged-in user information not found.");
-            return;
-        }
+        const validationError =
+            validateReviews();
 
-
-        // ======================================================
-        // Check role
-        // ======================================================
-
-        if (!isManager && !isAdmin) {
+        if (validationError) {
             setError(
-                "You are not authorized to review evaluations."
+                validationError
             );
+
             return;
         }
 
-
-        // ======================================================
-        // Check evaluation
-        // ======================================================
-
-        if (!evaluation) {
-            setError("Evaluation information not found.");
-            return;
-        }
-
-
-        // ======================================================
-        // Check status
-        // ======================================================
+        // ------------------------------------------------------
+        // All Questions Reviewed
+        // ------------------------------------------------------
 
         if (
-            isManager &&
-            evaluation.status !== "submitted"
+            !allQuestionsReviewed()
         ) {
             setError(
-                "This evaluation is not available for manager review."
+                `Please Accept or Reject all questions before submitting the ${getRoleLabel()} review.`
             );
+
             return;
         }
-
-
-        if (
-            isAdmin &&
-            evaluation.status !== "manager_approved"
-        ) {
-            setError(
-                "This evaluation is not available for final admin review."
-            );
-            return;
-        }
-
-
-        // ======================================================
-        // Validate rating
-        // ======================================================
-
-        if (!rating) {
-            setError("Please select a rating.");
-            return;
-        }
-
-
-        // ======================================================
-        // Validate comment
-        // ======================================================
-
-        if (!comment.trim()) {
-            setError("Please enter a comment.");
-            return;
-        }
-
-
-        // ======================================================
-        // Action text
-        // ======================================================
-
-        let actionText = action;
-
-        if (action === "approved") {
-            actionText = isAdmin
-                ? "final approve"
-                : "approve";
-        }
-
-        if (action === "rejected") {
-            actionText = "reject";
-        }
-
-        if (action === "returned") {
-            actionText = "return";
-        }
-
-
-        // ======================================================
-        // Confirmation
-        // ======================================================
-
-        const confirmed = window.confirm(
-            `Are you sure you want to ${actionText} this evaluation?`
-        );
-
-        if (!confirmed) {
-            return;
-        }
-
-
-        // ======================================================
-        // Submit Review
-        // ======================================================
 
         try {
+            setSaving(true);
 
-            setActionLoading(true);
+            // ==================================================
+            // Question Reviews
+            // ==================================================
 
-            const response = await api.post(
-                "/evaluation-reviews",
-                {
-                    evaluation_id: Number(id),
-                    rating: Number(rating),
-                    comment: comment.trim(),
-                    action: action,
-                }
-            );
+            const questionReviews =
+                getQuestions().map(
+                    (answer) => {
+                        const questionId =
+                            answer.question_id;
 
+                        const review =
+                            reviews[
+                                questionId
+                            ];
+
+                        return {
+                            question_id:
+                                Number(
+                                    questionId
+                                ),
+
+                            review_result:
+                                review.review_result,
+
+                            rating:
+                                Number(
+                                    review.rating
+                                ),
+
+                            comment:
+                                String(
+                                    review.comment ||
+                                        ""
+                                ).trim() ||
+                                null,
+                        };
+                    }
+                );
+
+            // ==================================================
+            // Payload
+            // ==================================================
+
+            const payload = {
+                evaluation_id:
+                    Number(id),
+
+                reviews:
+                    questionReviews,
+
+                overall_rating:
+                    Number(
+                        overallRating
+                    ),
+
+                overall_comment:
+                    String(
+                        overallComment ||
+                            ""
+                    ).trim() ||
+                    null,
+
+                action,
+
+                reviewed_at:
+                    new Date().toISOString(),
+            };
 
             console.log(
-                "Review Action Response:",
-                response.data
+                `${reviewerRole} Review Payload:`,
+                payload
             );
 
+            // ==================================================
+            // Submit
+            // ==================================================
 
-            if (response.data.success) {
-
-                // ==================================================
-                // Clear current review form immediately
-                // ==================================================
-
-                setRating("");
-                setComment("");
-
-
-                // ==================================================
-                // Show success message
-                // ==================================================
-
-                setSuccess(
-                    response.data.message ||
-                    `Evaluation ${actionText} successfully.`
-                );
-
-
-                // ==================================================
-                // Reload evaluation
-                // This will reload:
-                // - status
-                // - answers
-                // - review history
-                // ==================================================
-
-                await fetchEvaluation();
-
-            } else {
-
-                setError(
-                    response.data.message ||
-                    "Failed to process evaluation."
-                );
-            }
-
-        } catch (error) {
-
-            console.error(
-                "Review action error:",
-                error
+            await api.post(
+                "/evaluation-reviews",
+                payload
             );
 
-            console.error(
-                "Backend response:",
-                error.response?.data
-            );
+            // ==================================================
+            // Redirect
+            // ==================================================
 
-
-            // ======================================================
-            // Laravel validation errors
-            // ======================================================
-
-            const validationErrors =
-                error.response?.data?.errors;
-
-            if (validationErrors) {
-
-                const firstError =
-                    Object.values(validationErrors)
-                        .flat()[0];
-
-                setError(
-                    firstError ||
-                    error.response?.data?.message ||
-                    "Validation failed."
+            if (
+                reviewerRole === "Manager"
+            ) {
+                navigate(
+                    "/manager/evaluations"
                 );
 
                 return;
             }
 
+            if (
+                reviewerRole === "HR"
+            ) {
+                navigate(
+                    "/hr/evaluations"
+                );
 
-            // ======================================================
-            // General error
-            // ======================================================
+                return;
+            }
 
-            setError(
-                error.response?.data?.message ||
-                "Failed to process evaluation."
+            if (
+                reviewerRole === "Management"
+            ) {
+                navigate(
+                    "/management/evaluations"
+                );
+
+                return;
+            }
+
+        } catch (err) {
+            console.error(
+                "Failed to submit review:",
+                err
             );
 
+            setError(
+                err.response?.data?.message ||
+                    "Failed to submit evaluation review."
+            );
         } finally {
-
-            setActionLoading(false);
-
+            setSaving(false);
         }
     };
 
     // ==========================================================
-    // Status Badge
+    // Status Class
     // ==========================================================
 
-    const getStatusClass = (status) => {
-        switch (status) {
-            case "submitted":
-                return "status-active";
-
-            case "manager_approved":
-                return "status-completed";
-
-            case "admin_approved":
-                return "status-completed";
-
-            case "manager_rejected":
-                return "status-inactive";
-
-            case "admin_rejected":
-                return "status-inactive";
-
-            case "manager_returned":
-                return "status-extended";
-
-            case "admin_returned":
-                return "status-extended";
-
-            case "draft":
-                return "status-extended";
-
-            default:
-                return "status-extended";
+    const getStatusClass = (
+        status
+    ) => {
+        if (!status) {
+            return "";
         }
+
+        return `evaluation-status evaluation-status-${status
+            .replaceAll("_", "-")
+            .toLowerCase()}`;
     };
 
     // ==========================================================
-    // Status Label
+    // Format Status
     // ==========================================================
 
-    const getStatusLabel = (status) => {
-        switch (status) {
-            case "submitted":
-                return "Submitted";
-
-            case "manager_approved":
-                return "Manager Approved";
-
-            case "manager_rejected":
-                return "Manager Rejected";
-
-            case "manager_returned":
-                return "Returned by Manager";
-
-            case "admin_approved":
-                return "Admin Approved";
-
-            case "admin_rejected":
-                return "Admin Rejected";
-
-            case "admin_returned":
-                return "Returned by Admin";
-
-            case "draft":
-                return "Draft";
-
-            default:
-                return status || "-";
+    const formatStatus = (
+        status
+    ) => {
+        if (!status) {
+            return "-";
         }
+
+        return status
+            .replaceAll(
+                "_",
+                " "
+            )
+            .replace(
+                /\b\w/g,
+                (char) =>
+                    char.toUpperCase()
+            );
     };
 
     // ==========================================================
@@ -519,36 +884,15 @@ const ReviewEvaluation = () => {
         return (
             <div className="management-page">
 
-                <div className="page-header">
+                <PageHeader
+                    title={`${getRoleLabel()} Review Evaluation`}
+                />
 
-                    <div className="page-header-info">
+                <div className="management-form-section">
 
-                        <h1 className="page-header-title">
-                            Review Evaluation
-                        </h1>
-
-                        <p className="page-header-description">
-                            Loading employee evaluation...
-                        </p>
-
-                    </div>
-
-                </div>
-
-                <div className="data-table-container">
-
-                    <div className="data-table-empty">
-
-                        <div className="data-table-empty-title">
-                            Loading Evaluation...
-                        </div>
-
-                        <div className="data-table-empty-message">
-                            Please wait while the evaluation
-                            details are being loaded.
-                        </div>
-
-                    </div>
+                    <p>
+                        Loading evaluation...
+                    </p>
 
                 </div>
 
@@ -560,39 +904,31 @@ const ReviewEvaluation = () => {
     // Error
     // ==========================================================
 
-    if (error && !evaluation) {
+    if (
+        error &&
+        !evaluation
+    ) {
         return (
             <div className="management-page">
 
-                <div className="page-header">
+                <PageHeader
+                    title={`${getRoleLabel()} Review Evaluation`}
+                />
 
-                    <div className="page-header-info">
+                <div className="management-form-section">
 
-                        <h1 className="page-header-title">
-                            Review Evaluation
-                        </h1>
-
-                        <p className="page-header-description">
-                            Unable to load the requested
-                            evaluation.
-                        </p>
-
+                    <div className="management-error">
+                        {error}
                     </div>
-
-                </div>
-
-                <div className="management-form-error">
-                    {error}
-                </div>
-
-                <div className="management-form-actions">
 
                     <button
                         type="button"
-                        className="management-btn-secondary"
-                        onClick={handleBack}
+                        className="evaluation-back-button"
+                        onClick={() =>
+                            navigate(-1)
+                        }
                     >
-                        Back
+                        ← Back
                     </button>
 
                 </div>
@@ -609,47 +945,24 @@ const ReviewEvaluation = () => {
         return (
             <div className="management-page">
 
-                <div className="page-header">
+                <PageHeader
+                    title={`${getRoleLabel()} Review Evaluation`}
+                />
 
-                    <div className="page-header-info">
+                <div className="management-form-section">
 
-                        <h1 className="page-header-title">
-                            Review Evaluation
-                        </h1>
-
-                        <p className="page-header-description">
-                            Evaluation details
-                        </p>
-
-                    </div>
-
-                </div>
-
-                <div className="data-table-container">
-
-                    <div className="data-table-empty">
-
-                        <div className="data-table-empty-title">
-                            Evaluation Not Found
-                        </div>
-
-                        <div className="data-table-empty-message">
-                            The requested evaluation could
-                            not be found.
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <div className="management-form-actions">
+                    <p>
+                        Evaluation not found.
+                    </p>
 
                     <button
                         type="button"
-                        className="management-btn-secondary"
-                        onClick={handleBack}
+                        className="evaluation-back-button"
+                        onClick={() =>
+                            navigate(-1)
+                        }
                     >
-                        Back
+                        ← Back
                     </button>
 
                 </div>
@@ -659,14 +972,44 @@ const ReviewEvaluation = () => {
     }
 
     // ==========================================================
-    // Evaluation Data
+    // Data
     // ==========================================================
 
-    const employee = evaluation.employee;
+    const employee =
+        evaluation.employee;
 
-    const evaluationPeriod =
-        evaluation.evaluation_period ||
-        evaluation.evaluationPeriod;
+    const questions =
+        getQuestions();
+
+    const canReview =
+        canCurrentRoleReview();
+
+    const currentStageApproved =
+        isCurrentStageApproved();
+
+    // ==========================================================
+    // Overall Reviews
+    // ==========================================================
+
+    const managerOverall =
+        getOverallReview(
+            "Manager"
+        );
+
+    const hrOverall =
+        getOverallReview(
+            "HR"
+        );
+
+    const managementOverall =
+        getOverallReview(
+            "Management"
+        );
+
+    const currentOverallReview =
+        getOverallReview(
+            reviewerRole
+        );
 
     // ==========================================================
     // Page
@@ -675,128 +1018,24 @@ const ReviewEvaluation = () => {
     return (
         <div className="management-page">
 
-            {/* ==================================================
-                Header
-            ================================================== */}
+            <PageHeader
+                title={`${getRoleLabel()} Review Evaluation`}
+                subtitle={`Review employee self-evaluation as ${getRoleLabel()}`}
+            />
 
-            <div className="page-header">
-
-                <div className="page-header-info">
-
-                    <h1 className="page-header-title">
-                        Review Evaluation
-                    </h1>
-
-                    <p className="page-header-description">
-                        Review the employee's self-evaluation
-                        and provide your assessment.
-                    </p>
-
-                </div>
-
-                <button
-                    type="button"
-                    className="page-header-button"
-                    onClick={handleBack}
-                >
-                    Back
-                </button>
-
-            </div>
-
-
-            {/* ==================================================
-                Messages
-            ================================================== */}
+            {/* =====================================================
+                Error
+            ===================================================== */}
 
             {error && (
-                <div className="management-form-error">
+                <div className="management-error">
                     {error}
                 </div>
             )}
 
-            {success && (
-                <div className="management-form-success">
-                    {success}
-                </div>
-            )}
-
-
-            {/* ==================================================
-                Evaluation Information
-            ================================================== */}
-
-            <div className="management-form-section">
-
-                <div className="management-form-section-header">
-
-                    <h2>
-                        Evaluation Information
-                    </h2>
-
-                    <p>
-                        Basic information about this employee
-                        evaluation.
-                    </p>
-
-                </div>
-
-                <div className="management-form-grid">
-
-                    <div className="management-form-info">
-
-                        <span className="management-form-info-label">
-                            Evaluation ID
-                        </span>
-
-                        <span className="management-form-info-value">
-                            #{evaluation.id}
-                        </span>
-
-                    </div>
-
-                    <div className="management-form-info">
-
-                        <span className="management-form-info-label">
-                            Evaluation Period
-                        </span>
-
-                        <span className="management-form-info-value">
-                            {evaluationPeriod?.name || "-"}
-                        </span>
-
-                    </div>
-
-                    <div className="management-form-info">
-
-                        <span className="management-form-info-label">
-                            Status
-                        </span>
-
-                        <span className="management-form-info-value">
-
-                            <span
-                                className={`status-badge ${getStatusClass(
-                                    evaluation.status
-                                )}`}
-                            >
-                                {getStatusLabel(
-                                    evaluation.status
-                                )}
-                            </span>
-
-                        </span>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            {/* ==================================================
+            {/* =====================================================
                 Employee Information
-            ================================================== */}
+            ===================================================== */}
 
             <div className="management-form-section">
 
@@ -806,11 +1045,6 @@ const ReviewEvaluation = () => {
                         Employee Information
                     </h2>
 
-                    <p>
-                        Information about the employee who
-                        submitted this evaluation.
-                    </p>
-
                 </div>
 
                 <div className="management-form-grid">
@@ -818,11 +1052,11 @@ const ReviewEvaluation = () => {
                     <div className="management-form-info">
 
                         <span className="management-form-info-label">
-                            Employee Name
+                            Employee
                         </span>
 
                         <span className="management-form-info-value">
-                            {employee?.name || "N/A"}
+                            {employee?.name || "-"}
                         </span>
 
                     </div>
@@ -834,19 +1068,7 @@ const ReviewEvaluation = () => {
                         </span>
 
                         <span className="management-form-info-value">
-                            {employee?.employee_id || "N/A"}
-                        </span>
-
-                    </div>
-
-                    <div className="management-form-info">
-
-                        <span className="management-form-info-label">
-                            Email
-                        </span>
-
-                        <span className="management-form-info-value">
-                            {employee?.email || "N/A"}
+                            {employee?.employee_id || "-"}
                         </span>
 
                     </div>
@@ -858,7 +1080,7 @@ const ReviewEvaluation = () => {
                         </span>
 
                         <span className="management-form-info-value">
-                            {employee?.department?.name || "N/A"}
+                            {employee?.department?.name || "-"}
                         </span>
 
                     </div>
@@ -870,7 +1092,51 @@ const ReviewEvaluation = () => {
                         </span>
 
                         <span className="management-form-info-value">
-                            {employee?.position?.title || "N/A"}
+                            {employee?.position?.name || "-"}
+                        </span>
+
+                    </div>
+
+                    <div className="management-form-info">
+
+                        <span className="management-form-info-label">
+                            Evaluation Period
+                        </span>
+
+                        <span className="management-form-info-value">
+
+                            {evaluation
+                                ?.evaluation_period
+                                ?.name ||
+                                evaluation
+                                    ?.evaluationPeriod
+                                    ?.name ||
+                                evaluation
+                                    ?.evaluation_period
+                                    ?.title ||
+                                evaluation
+                                    ?.evaluationPeriod
+                                    ?.title ||
+                                "-"}
+
+                        </span>
+
+                    </div>
+
+                    <div className="management-form-info">
+
+                        <span className="management-form-info-label">
+                            Status
+                        </span>
+
+                        <span
+                            className={getStatusClass(
+                                evaluation.status
+                            )}
+                        >
+                            {formatStatus(
+                                evaluation.status
+                            )}
                         </span>
 
                     </div>
@@ -879,94 +1145,123 @@ const ReviewEvaluation = () => {
 
             </div>
 
-
-            {/* ==================================================
+            {/* =====================================================
                 Employee Comment
-            ================================================== */}
+            ===================================================== */}
 
-            <div className="management-form-section">
+            {evaluation.employee_comment && (
 
-                <div className="management-form-section-header">
+                <div className="management-form-section">
 
-                    <h2>
-                        Employee Comment
-                    </h2>
+                    <div className="management-form-section-header">
 
-                    <p>
-                        Comment provided by the employee.
-                    </p>
-
-                </div>
-
-                <div className="evaluation-review-comment">
-
-                    {evaluation.employee_comment ||
-                        "No comment provided."}
-
-                </div>
-
-            </div>
-
-
-            {/* ==================================================
-                ALL QUESTIONS & ANSWERS
-            ================================================== */}
-
-            <div className="management-form-section">
-
-                <div className="management-form-section-header">
-
-                    <h2>
-                        Evaluation Questions & Answers
-                    </h2>
-
-                    <p>
-                        All evaluation questions are displayed
-                        below, including questions that were not
-                        answered by the employee.
-                    </p>
-
-                </div>
-
-
-                {questions.length === 0 ? (
-
-                    <div className="data-table-empty">
-
-                        <div className="data-table-empty-title">
-                            No Questions Found
-                        </div>
-
-                        <div className="data-table-empty-message">
-                            No evaluation questions are
-                            currently available.
-                        </div>
+                        <h2>
+                            Employee Comment
+                        </h2>
 
                     </div>
 
-                ) : (
+                    <div className="evaluation-review-comment">
 
-                    <div className="evaluation-review-list">
+                        {evaluation.employee_comment}
 
-                        {questions.map(
-                            (question, index) => {
+                    </div>
 
-                                // Find employee answer
-                                const employeeAnswer =
-                                    getAnswerForQuestion(
-                                        question.id
+                </div>
+
+            )}
+
+            {/* =====================================================
+                Evaluation Questions
+            ===================================================== */}
+
+            <div className="management-form-section">
+
+                <div className="management-form-section-header">
+
+                    <h2>
+                        Evaluation Questions
+                    </h2>
+
+                </div>
+
+                <div className="evaluation-review-list">
+
+                    {questions.length === 0 ? (
+
+                        <p>
+                            No questions found.
+                        </p>
+
+                    ) : (
+
+                        questions.map(
+                            (
+                                answer,
+                                index
+                            ) => {
+
+                                const question =
+                                    answer.question;
+
+                                const questionId =
+                                    answer.question_id;
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | Current Role Review
+                                |--------------------------------------------------------------------------
+                                */
+
+                                const currentReview =
+                                    reviews[
+                                        questionId
+                                    ] || {};
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | Previous Role Reviews
+                                |--------------------------------------------------------------------------
+                                */
+
+                                const managerReview =
+                                    getReview(
+                                        questionId,
+                                        "Manager"
                                     );
+
+                                const hrReview =
+                                    getReview(
+                                        questionId,
+                                        "HR"
+                                    );
+
+                                const managementReview =
+                                    getReview(
+                                        questionId,
+                                        "Management"
+                                    );
+
+                                const isAccepted =
+                                    currentReview.review_result ===
+                                    "okay";
+
+                                const isRejected =
+                                    currentReview.review_result ===
+                                    "not_okay";
 
                                 return (
 
                                     <div
-                                        key={question.id}
                                         className="evaluation-review-card"
+                                        key={
+                                            questionId
+                                        }
                                     >
 
-                                        {/* ==================================
+                                        {/* =================================================
                                             Question
-                                        ================================== */}
+                                        ================================================= */}
 
                                         <div className="evaluation-review-question">
 
@@ -975,40 +1270,23 @@ const ReviewEvaluation = () => {
                                             </span>
 
                                             <strong>
-
-                                                {question.question}
-
-                                                {question.is_required && (
-                                                    <span className="required-star">
-                                                        {" "}*
-                                                    </span>
-                                                )}
-
+                                                {
+                                                    question?.question ||
+                                                    "-"
+                                                }
                                             </strong>
+
+                                            {question?.required && (
+                                                <span className="required-star">
+                                                    *
+                                                </span>
+                                            )}
 
                                         </div>
 
-
-                                        {/* ==================================
-                                            Required Status
-                                        ================================== */}
-
-                                        {/* {question.is_required && (
-                                            <div
-                                                style={{
-                                                    marginTop: "6px",
-                                                    fontSize: "13px",
-                                                    color: "#b45309",
-                                                }}
-                                            >
-                                                Required Question
-                                            </div>
-                                        )} */}
-
-
-                                        {/* ==================================
+                                        {/* =================================================
                                             Employee Answer
-                                        ================================== */}
+                                        ================================================= */}
 
                                         <div className="evaluation-review-answer">
 
@@ -1017,430 +1295,1056 @@ const ReviewEvaluation = () => {
                                             </span>
 
                                             <p>
-
-                                                {employeeAnswer?.answer
-                                                    ? employeeAnswer.answer
-                                                    : "No answer provided."}
-
+                                                {answer.answer ??
+                                                    answer.value ??
+                                                    "-"}
                                             </p>
 
                                         </div>
 
-
-                                        {/* ==================================
+                                        {/* =================================================
                                             Employee Rating
-                                        ================================== */}
+                                        ================================================= */}
 
-                                        <div className="evaluation-review-rating">
+                                        <div className="evaluation-review-answer">
 
                                             <span className="evaluation-review-label">
                                                 Employee Rating
                                             </span>
 
-                                            <span
-                                                className={
-                                                    employeeAnswer?.rating !==
-                                                        null &&
-                                                    employeeAnswer?.rating !==
-                                                        undefined
-                                                        ? "status-badge status-active"
-                                                        : "status-badge status-extended"
-                                                }
-                                            >
+                                            <p>
 
-                                                {employeeAnswer?.rating !==
+                                                {answer.rating !==
                                                     null &&
-                                                employeeAnswer?.rating !==
-                                                    undefined
-                                                    ? `${employeeAnswer.rating} / 5`
-                                                    : "Not provided"}
+                                                answer.rating !==
+                                                    undefined &&
+                                                answer.rating !==
+                                                    ""
+                                                    ? `${answer.rating} / 10`
+                                                    : "-"}
 
-                                            </span>
+                                            </p>
 
                                         </div>
 
+                                        {/* =================================================
+                                            MANAGER REVIEW
+                                            Only Management can see it
+                                        ================================================= */}
 
-                                        {/* ==================================
-                                            Employee Comment
-                                        ================================== */}
+                                        {reviewerRole ===
+                                            "Management" &&
+                                            managerReview && (
 
-                                        {employeeAnswer?.comment ? (
+                                                <div className="evaluation-review-manager evaluation-review-manager-view">
 
-                                            <div className="evaluation-review-answer">
+                                                    <div className="evaluation-review-answer">
 
-                                                <span className="evaluation-review-label">
-                                                    Employee Comment
-                                                </span>
+                                                        <span className="evaluation-review-label">
+                                                            Manager Rating
+                                                        </span>
 
-                                                <p>
-                                                    {
-                                                        employeeAnswer.comment
-                                                    }
-                                                </p>
+                                                        <p>
+                                                            {managerReview.rating !==
+                                                                null &&
+                                                            managerReview.rating !==
+                                                                undefined &&
+                                                            managerReview.rating !==
+                                                                ""
+                                                                ? `${managerReview.rating} / 10`
+                                                                : "-"}
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="evaluation-review-answer">
+
+                                                        <span className="evaluation-review-label">
+                                                            Manager Decision
+                                                        </span>
+
+                                                        <p>
+
+                                                            {managerReview.review_result ===
+                                                                "okay"
+                                                                ? "✓ Accept"
+                                                                : managerReview.review_result ===
+                                                                    "not_okay"
+                                                                ? "✕ Reject"
+                                                                : "-"}
+
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="evaluation-review-answer">
+
+                                                        <span className="evaluation-review-label">
+                                                            Manager Comment
+                                                        </span>
+
+                                                        <p>
+                                                            {managerReview.comment ||
+                                                                "-"}
+                                                        </p>
+
+                                                    </div>
+
+                                                </div>
+                                            )}
+
+                                        {/* =================================================
+                                            HR REVIEW
+                                            Only Management can see it
+                                        ================================================= */}
+
+                                        {reviewerRole ===
+                                            "Management" &&
+                                            hrReview && (
+
+                                                <div className="evaluation-review-manager evaluation-review-manager-view">
+
+                                                    <div className="evaluation-review-answer">
+
+                                                        <span className="evaluation-review-label">
+                                                            HR Rating
+                                                        </span>
+
+                                                        <p>
+                                                            {hrReview.rating !==
+                                                                null &&
+                                                            hrReview.rating !==
+                                                                undefined &&
+                                                            hrReview.rating !==
+                                                                ""
+                                                                ? `${hrReview.rating} / 10`
+                                                                : "-"}
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="evaluation-review-answer">
+
+                                                        <span className="evaluation-review-label">
+                                                            HR Decision
+                                                        </span>
+
+                                                        <p>
+
+                                                            {hrReview.review_result ===
+                                                                "okay"
+                                                                ? "✓ Accept"
+                                                                : hrReview.review_result ===
+                                                                    "not_okay"
+                                                                ? "✕ Reject"
+                                                                : "-"}
+
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="evaluation-review-answer">
+
+                                                        <span className="evaluation-review-label">
+                                                            HR Comment
+                                                        </span>
+
+                                                        <p>
+                                                            {hrReview.comment ||
+                                                                "-"}
+                                                        </p>
+
+                                                    </div>
+
+                                                </div>
+                                            )}
+
+                                        {/* =================================================
+                                            MANAGEMENT PREVIOUS REVIEW
+                                            Only show when management is NOT currently
+                                            editing a new review
+                                        ================================================= */}
+
+                                        {reviewerRole ===
+                                            "Management" &&
+                                            managementReview &&
+                                            !canReview && (
+
+                                                <div className="evaluation-review-manager evaluation-review-manager-view">
+
+                                                    <div className="evaluation-review-answer">
+
+                                                        <span className="evaluation-review-label">
+                                                            Management Rating
+                                                        </span>
+
+                                                        <p>
+                                                            {managementReview.rating !==
+                                                                null &&
+                                                            managementReview.rating !==
+                                                                undefined &&
+                                                            managementReview.rating !==
+                                                                ""
+                                                                ? `${managementReview.rating} / 10`
+                                                                : "-"}
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="evaluation-review-answer">
+
+                                                        <span className="evaluation-review-label">
+                                                            Management Decision
+                                                        </span>
+
+                                                        <p>
+
+                                                            {managementReview.review_result ===
+                                                                "okay"
+                                                                ? "✓ Accept"
+                                                                : managementReview.review_result ===
+                                                                    "not_okay"
+                                                                ? "✕ Reject"
+                                                                : "-"}
+
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="evaluation-review-answer">
+
+                                                        <span className="evaluation-review-label">
+                                                            Management Comment
+                                                        </span>
+
+                                                        <p>
+                                                            {managementReview.comment ||
+                                                                "-"}
+                                                        </p>
+
+                                                    </div>
+
+                                                </div>
+                                            )}
+
+                                        {/* =================================================
+                                            HR OWN REVIEW - VIEW MODE
+                                        ================================================= */}
+
+                                        {reviewerRole ===
+                                            "HR" &&
+                                            hrReview &&
+                                            !canReview && (
+
+                                                <div className="evaluation-review-manager evaluation-review-manager-view">
+
+                                                    <div className="evaluation-review-answer">
+
+                                                        <span className="evaluation-review-label">
+                                                            HR Rating
+                                                        </span>
+
+                                                        <p>
+                                                            {hrReview.rating !==
+                                                                null &&
+                                                            hrReview.rating !==
+                                                                undefined &&
+                                                            hrReview.rating !==
+                                                                ""
+                                                                ? `${hrReview.rating} / 10`
+                                                                : "-"}
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="evaluation-review-answer">
+
+                                                        <span className="evaluation-review-label">
+                                                            HR Decision
+                                                        </span>
+
+                                                        <p>
+
+                                                            {hrReview.review_result ===
+                                                                "okay"
+                                                                ? "✓ Accept"
+                                                                : hrReview.review_result ===
+                                                                    "not_okay"
+                                                                ? "✕ Reject"
+                                                                : "-"}
+
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="evaluation-review-answer">
+
+                                                        <span className="evaluation-review-label">
+                                                            HR Comment
+                                                        </span>
+
+                                                        <p>
+                                                            {hrReview.comment ||
+                                                                "-"}
+                                                        </p>
+
+                                                    </div>
+
+                                                </div>
+                                            )}
+
+                                        {/* =================================================
+                                            MANAGER OWN REVIEW - VIEW MODE
+                                        ================================================= */}
+
+                                        {reviewerRole ===
+                                            "Manager" &&
+                                            managerReview &&
+                                            !canReview && (
+
+                                                <div className="evaluation-review-manager evaluation-review-manager-view">
+
+                                                    <div className="evaluation-review-answer">
+
+                                                        <span className="evaluation-review-label">
+                                                            Manager Rating
+                                                        </span>
+
+                                                        <p>
+                                                            {managerReview.rating !==
+                                                                null &&
+                                                            managerReview.rating !==
+                                                                undefined &&
+                                                            managerReview.rating !==
+                                                                ""
+                                                                ? `${managerReview.rating} / 10`
+                                                                : "-"}
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="evaluation-review-answer">
+
+                                                        <span className="evaluation-review-label">
+                                                            Manager Decision
+                                                        </span>
+
+                                                        <p>
+
+                                                            {managerReview.review_result ===
+                                                                "okay"
+                                                                ? "✓ Accept"
+                                                                : managerReview.review_result ===
+                                                                    "not_okay"
+                                                                ? "✕ Reject"
+                                                                : "-"}
+
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="evaluation-review-answer">
+
+                                                        <span className="evaluation-review-label">
+                                                            Manager Comment
+                                                        </span>
+
+                                                        <p>
+                                                            {managerReview.comment ||
+                                                                "-"}
+                                                        </p>
+
+                                                    </div>
+
+                                                </div>
+                                            )}
+
+                                        {/* =================================================
+                                            CURRENT ROLE EDIT MODE
+                                        ================================================= */}
+
+                                        {canReview && (
+
+                                            <div className="evaluation-review-manager">
+
+                                                {/* -----------------------------------------
+                                                    Current Role Rating
+                                                ----------------------------------------- */}
+
+                                                <div className="evaluation-review-rating">
+
+                                                    <label className="evaluation-review-label">
+
+                                                        {getRoleLabel()} Rating
+
+                                                        <span className="required-star">
+                                                            *
+                                                        </span>
+
+                                                    </label>
+
+                                                    <select
+                                                        value={
+                                                            currentReview.rating ??
+                                                            ""
+                                                        }
+                                                        onChange={(
+                                                            e
+                                                        ) =>
+                                                            handleRatingChange(
+                                                                questionId,
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            saving
+                                                        }
+                                                    >
+
+                                                        <option value="">
+                                                            Select Rating
+                                                        </option>
+
+                                                        {Array.from(
+                                                            {
+                                                                length: 11,
+                                                            },
+                                                            (
+                                                                _,
+                                                                rating
+                                                            ) => (
+
+                                                                <option
+                                                                    key={
+                                                                        rating
+                                                                    }
+                                                                    value={
+                                                                        rating
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        rating
+                                                                    }{" "}
+                                                                    / 10
+                                                                </option>
+
+                                                            )
+                                                        )}
+
+                                                    </select>
+
+                                                </div>
+
+                                                {/* -----------------------------------------
+                                                    Accept / Reject
+                                                ----------------------------------------- */}
+
+                                                <div className="evaluation-review-actions">
+
+                                                    <button
+                                                        type="button"
+                                                        className={
+                                                            isAccepted
+                                                                ? "management-btn-primary evaluation-review-action active"
+                                                                : "management-btn-secondary evaluation-review-action"
+                                                        }
+                                                        onClick={() =>
+                                                            setReviewResult(
+                                                                questionId,
+                                                                "okay"
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            saving
+                                                        }
+                                                    >
+                                                        ✓ Accept
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        className={
+                                                            isRejected
+                                                                ? "action-button action-delete evaluation-review-action active"
+                                                                : "action-button action-delete evaluation-review-action"
+                                                        }
+                                                        onClick={() =>
+                                                            setReviewResult(
+                                                                questionId,
+                                                                "not_okay"
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            saving
+                                                        }
+                                                    >
+                                                        ✕ Reject
+                                                    </button>
+
+                                                </div>
+
+                                                {/* -----------------------------------------
+                                                    Comment
+                                                ----------------------------------------- */}
+
+                                                <div className="management-form-field">
+
+                                                    <label>
+
+                                                        {isRejected
+                                                            ? `${getRoleLabel()} Rejection Comment`
+                                                            : `${getRoleLabel()} Comment`}
+
+                                                        {isRejected && (
+                                                            <span className="required-star">
+                                                                *
+                                                            </span>
+                                                        )}
+
+                                                    </label>
+
+                                                    <textarea
+                                                        value={
+                                                            currentReview.comment ||
+                                                            ""
+                                                        }
+                                                        onChange={(
+                                                            e
+                                                        ) =>
+                                                            handleCommentChange(
+                                                                questionId,
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        placeholder={
+                                                            isRejected
+                                                                ? `Please explain why this answer is rejected...`
+                                                                : `Optional ${getRoleLabel().toLowerCase()} comment...`
+                                                        }
+                                                        disabled={
+                                                            saving
+                                                        }
+                                                    />
+
+                                                </div>
 
                                             </div>
 
-                                        ) : null}
+                                        )}
 
                                     </div>
                                 );
                             }
-                        )}
-
-                    </div>
-
-                )}
-
-            </div>
-
-
-            {/* ==================================================
-                Review History
-            ================================================== */}
-
-            <div className="management-form-section">
-
-                <div className="management-form-section-header">
-
-                    <h2>
-                        Review History
-                    </h2>
-
-                    <p>
-                        Previous review actions for this
-                        evaluation.
-                    </p>
+                        )
+                    )}
 
                 </div>
 
-                {evaluation.reviews &&
-                evaluation.reviews.length > 0 ? (
+            </div>
 
-                    <div className="evaluation-review-history">
+            {/* =====================================================
+                CURRENT ROLE OVERALL REVIEW - EDIT
+            ===================================================== */}
 
-                        {evaluation.reviews.map((review) => (
+            {canReview && (
 
-                            <div
-                                key={review.id}
-                                className="evaluation-history-card"
+                <div className="management-form-section">
+
+                    <div className="management-form-section-header">
+
+                        <h2>
+                            Overall {getRoleLabel()} Review
+                        </h2>
+
+                    </div>
+
+                    <div className="management-form">
+
+                        {/* Overall Rating */}
+
+                        <div className="management-form-field">
+
+                            <label>
+
+                                Overall Rating
+
+                                <span className="required-star">
+                                    *
+                                </span>
+
+                            </label>
+
+                            <select
+                                value={
+                                    overallRating
+                                }
+                                onChange={(
+                                    e
+                                ) =>
+                                    setOverallRating(
+                                        e.target.value
+                                    )
+                                }
+                                disabled={
+                                    saving
+                                }
                             >
 
-                                <div className="evaluation-history-header">
+                                <option value="">
+                                    Select Overall Rating
+                                </option>
 
-                                    <span className="status-badge status-completed">
+                                {Array.from(
+                                    {
+                                        length: 11,
+                                    },
+                                    (
+                                        _,
+                                        rating
+                                    ) => (
 
-                                        Rating:{" "}
-                                        {review.rating}
-                                        / 5
+                                        <option
+                                            key={
+                                                rating
+                                            }
+                                            value={
+                                                rating
+                                            }
+                                        >
+                                            {rating} / 10
+                                        </option>
 
-                                    </span>
+                                    )
+                                )}
 
-                                    <span className="status-badge status-active">
-                                        {review.action}
-                                    </span>
+                            </select>
 
-                                    {review.reviewer_role && (
-                                        <span className="status-badge status-extended">
-                                            {review.reviewer_role}
-                                        </span>
-                                    )}
+                        </div>
 
-                                </div>
+                        {/* Overall Comment */}
 
-                                <div className="evaluation-history-comment">
+                        <div className="management-form-field">
 
-                                    <span className="evaluation-review-label">
-                                        Comment
-                                    </span>
+                            <label>
+                                Overall Comment
+                            </label>
 
-                                    <p>
-                                        {review.comment || "-"}
-                                    </p>
+                            <textarea
+                                value={
+                                    overallComment
+                                }
+                                onChange={(
+                                    e
+                                ) =>
+                                    setOverallComment(
+                                        e.target.value
+                                    )
+                                }
+                                placeholder={`Enter overall ${getRoleLabel().toLowerCase()} comment...`}
+                                disabled={
+                                    saving
+                                }
+                            />
 
-                                </div>
+                        </div>
 
-                                <div className="evaluation-history-date">
+                        {/* Actions */}
 
-                                    <span className="evaluation-review-label">
-                                        Reviewed At
-                                    </span>
+                        <div className="management-form-actions">
 
-                                    <span>
-                                        {formatDateTime(
-                                            review.reviewed_at
-                                        )}
-                                    </span>
+                            <button
+                                type="button"
+                                className="management-btn-primary"
+                                onClick={() =>
+                                    handleReviewAction(
+                                        "approved"
+                                    )
+                                }
+                                disabled={
+                                    saving ||
+                                    !allQuestionsReviewed()
+                                }
+                            >
+                                {saving
+                                    ? "Processing..."
+                                    : "Approve"}
+                            </button>
 
-                                </div>
+                            <button
+                                type="button"
+                                className="management-btn-secondary"
+                                onClick={() =>
+                                    handleReviewAction(
+                                        "returned"
+                                    )
+                                }
+                                disabled={
+                                    saving ||
+                                    !allQuestionsReviewed()
+                                }
+                            >
+                                Return
+                            </button>
+
+                            <button
+                                type="button"
+                                className="action-button action-delete"
+                                onClick={() =>
+                                    handleReviewAction(
+                                        "rejected"
+                                    )
+                                }
+                                disabled={
+                                    saving ||
+                                    !allQuestionsReviewed()
+                                }
+                            >
+                                Reject Evaluation
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            )}
+
+            {/* =====================================================
+                CURRENT ROLE APPROVED - VIEW
+            ===================================================== */}
+
+            {currentStageApproved && (
+
+                <div className="management-form-section">
+
+                    <div className="management-form-section-header">
+
+                        <h2>
+                            {getRoleLabel()} Review
+                        </h2>
+
+                    </div>
+
+                    <div className="evaluation-locked-message">
+
+                        This evaluation has already been
+                        approved by {getRoleLabel()}.
+                        You can view the review data, but
+                        cannot modify anything.
+
+                    </div>
+
+                    {/* Overall Rating */}
+
+                    <div className="evaluation-review-answer">
+
+                        <span className="evaluation-review-label">
+                            Overall {getRoleLabel()} Rating
+                        </span>
+
+                        <p>
+
+                            {currentOverallReview?.rating !==
+                                null &&
+                            currentOverallReview?.rating !==
+                                undefined &&
+                            currentOverallReview?.rating !==
+                                ""
+                                ? `${currentOverallReview.rating} / 10`
+                                : overallRating !==
+                                      null &&
+                                  overallRating !==
+                                      undefined &&
+                                  overallRating !==
+                                      ""
+                                ? `${overallRating} / 10`
+                                : "-"}
+
+                        </p>
+
+                    </div>
+
+                    {/* Overall Comment */}
+
+                    <div className="evaluation-review-answer">
+
+                        <span className="evaluation-review-label">
+                            Overall {getRoleLabel()} Comment
+                        </span>
+
+                        <p>
+
+                            {currentOverallReview?.comment ||
+                                overallComment ||
+                                "-"}
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            )}
+
+            {/* =====================================================
+                MANAGEMENT - PREVIOUS OVERALL REVIEWS
+                Management can see Manager + HR
+            ===================================================== */}
+
+            {reviewerRole ===
+                "Management" && (
+
+                <>
+
+                    {/* =================================================
+                        Manager Overall
+                    ================================================= */}
+
+                    {managerOverall && (
+
+                        <div className="management-form-section">
+
+                            <div className="management-form-section-header">
+
+                                <h2>
+                                    Manager Overall Review
+                                </h2>
 
                             </div>
 
-                        ))}
+                            <div className="evaluation-review-answer">
 
-                    </div>
+                                <span className="evaluation-review-label">
+                                    Manager Overall Rating
+                                </span>
 
-                ) : (
+                                <p>
+                                    {managerOverall.rating !==
+                                        null &&
+                                    managerOverall.rating !==
+                                        undefined &&
+                                    managerOverall.rating !==
+                                        ""
+                                        ? `${managerOverall.rating} / 10`
+                                        : "-"}
+                                </p>
 
-                    <div className="data-table-empty">
+                            </div>
 
-                        <div className="data-table-empty-title">
-                            No Reviews Yet
+                            <div className="evaluation-review-answer">
+
+                                <span className="evaluation-review-label">
+                                    Manager Overall Comment
+                                </span>
+
+                                <p>
+                                    {managerOverall.comment ||
+                                        "-"}
+                                </p>
+
+                            </div>
+
+                            <div className="evaluation-review-answer">
+
+                                <span className="evaluation-review-label">
+                                    Manager Decision
+                                </span>
+
+                                <p>
+
+                                    {managerOverall.action ===
+                                        "approved"
+                                        ? "✓ Approved"
+                                        : managerOverall.action ===
+                                            "returned"
+                                        ? "↩ Returned"
+                                        : managerOverall.action ===
+                                            "rejected"
+                                        ? "✕ Rejected"
+                                        : "-"}
+
+                                </p>
+
+                            </div>
+
                         </div>
 
-                        <div className="data-table-empty-message">
-                            This evaluation has not been
-                            reviewed yet.
+                    )}
+
+                    {/* =================================================
+                        HR Overall
+                    ================================================= */}
+
+                    {hrOverall && (
+
+                        <div className="management-form-section">
+
+                            <div className="management-form-section-header">
+
+                                <h2>
+                                    HR Overall Review
+                                </h2>
+
+                            </div>
+
+                            <div className="evaluation-review-answer">
+
+                                <span className="evaluation-review-label">
+                                    HR Overall Rating
+                                </span>
+
+                                <p>
+                                    {hrOverall.rating !==
+                                        null &&
+                                    hrOverall.rating !==
+                                        undefined &&
+                                    hrOverall.rating !==
+                                        ""
+                                        ? `${hrOverall.rating} / 10`
+                                        : "-"}
+                                </p>
+
+                            </div>
+
+                            <div className="evaluation-review-answer">
+
+                                <span className="evaluation-review-label">
+                                    HR Overall Comment
+                                </span>
+
+                                <p>
+                                    {hrOverall.comment ||
+                                        "-"}
+                                </p>
+
+                            </div>
+
+                            <div className="evaluation-review-answer">
+
+                                <span className="evaluation-review-label">
+                                    HR Decision
+                                </span>
+
+                                <p>
+
+                                    {hrOverall.action ===
+                                        "approved"
+                                        ? "✓ Approved"
+                                        : hrOverall.action ===
+                                            "returned"
+                                        ? "↩ Returned"
+                                        : hrOverall.action ===
+                                            "rejected"
+                                        ? "✕ Rejected"
+                                        : "-"}
+
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    )}
+
+                </>
+            )}
+
+            {/* =====================================================
+                MANAGEMENT OWN OVERALL REVIEW
+                If already completed
+            ===================================================== */}
+
+            {reviewerRole ===
+                "Management" &&
+                currentStageApproved &&
+                managementOverall && (
+
+                    <div className="management-form-section">
+
+                        <div className="management-form-section-header">
+
+                            <h2>
+                                Management Overall Review
+                            </h2>
+
+                        </div>
+
+                        <div className="evaluation-review-answer">
+
+                            <span className="evaluation-review-label">
+                                Management Overall Rating
+                            </span>
+
+                            <p>
+                                {managementOverall.rating !==
+                                    null &&
+                                managementOverall.rating !==
+                                    undefined &&
+                                managementOverall.rating !==
+                                    ""
+                                    ? `${managementOverall.rating} / 10`
+                                    : "-"}
+                            </p>
+
+                        </div>
+
+                        <div className="evaluation-review-answer">
+
+                            <span className="evaluation-review-label">
+                                Management Overall Comment
+                            </span>
+
+                            <p>
+                                {managementOverall.comment ||
+                                    "-"}
+                            </p>
+
+                        </div>
+
+                        <div className="evaluation-review-answer">
+
+                            <span className="evaluation-review-label">
+                                Management Decision
+                            </span>
+
+                            <p>
+
+                                {managementOverall.action ===
+                                    "approved"
+                                    ? "✓ Approved"
+                                    : managementOverall.action ===
+                                        "returned"
+                                    ? "↩ Returned"
+                                    : managementOverall.action ===
+                                        "rejected"
+                                    ? "✕ Rejected"
+                                    : "-"}
+
+                            </p>
+
                         </div>
 
                     </div>
-
                 )}
 
-            </div>
-
-
-            {/* ==================================================
-                MANAGER REVIEW
-            ================================================== */}
-
-            {isManager &&
-            evaluation.status === "submitted" && (
-
-                <div className="management-form-section">
-
-                    <div className="management-form-section-header">
-
-                        <h2>
-                            Manager Review
-                        </h2>
-
-                        <p>
-                            Review the employee evaluation and
-                            approve, reject, or return it.
-                        </p>
-
-                    </div>
-
-                    <ReviewForm
-                        rating={rating}
-                        setRating={setRating}
-                        comment={comment}
-                        setComment={setComment}
-                        actionLoading={actionLoading}
-                        ratingId="manager-rating"
-                        commentId="manager-comment"
-                        commentPlaceholder="Enter your manager review comments..."
-                        onApprove={() =>
-                            handleReviewAction("approved")
-                        }
-                        onReject={() =>
-                            handleReviewAction("rejected")
-                        }
-                        onReturn={() =>
-                            handleReviewAction("returned")
-                        }
-                        approveText="Approve"
-                        rejectText="Reject"
-                        returnText="Return"
-                        onCancel={handleBack}
-                    />
-
-                </div>
-            )}
-
-
-            {/* ==================================================
-                ADMIN FINAL REVIEW
-            ================================================== */}
-
-            {isAdmin &&
-            evaluation.status === "manager_approved" && (
-
-                <div className="management-form-section">
-
-                    <div className="management-form-section-header">
-
-                        <h2>
-                            Final Admin Review
-                        </h2>
-
-                        <p>
-                            The manager has approved this
-                            evaluation. Review it and make the
-                            final decision.
-                        </p>
-
-                    </div>
-
-                    <ReviewForm
-                        rating={rating}
-                        setRating={setRating}
-                        comment={comment}
-                        setComment={setComment}
-                        actionLoading={actionLoading}
-                        ratingId="admin-rating"
-                        commentId="admin-comment"
-                        commentPlaceholder="Enter your final admin decision comments..."
-                        onApprove={() =>
-                            handleReviewAction("approved")
-                        }
-                        onReject={() =>
-                            handleReviewAction("rejected")
-                        }
-                        onReturn={() =>
-                            handleReviewAction("returned")
-                        }
-                        approveText="Final Approve"
-                        rejectText="Reject"
-                        returnText="Return"
-                        onCancel={handleBack}
-                    />
-
-                </div>
-            )}
-
-        </div>
-    );
-};
-
-
-// ==========================================================
-// Reusable Review Form
-// ==========================================================
-
-const ReviewForm = ({
-    rating,
-    setRating,
-    comment,
-    setComment,
-    actionLoading,
-    ratingId,
-    commentId,
-    commentPlaceholder,
-    onApprove,
-    onReject,
-    onReturn,
-    approveText,
-    rejectText,
-    returnText,
-    onCancel,
-}) => {
-
-    return (
-        <div className="management-form">
-
-            {/* Rating */}
-
-            <div className="management-form-field">
-
-                <label htmlFor={ratingId}>
-                    Rating
-                </label>
-
-                <select
-                    id={ratingId}
-                    value={rating}
-                    onChange={(e) =>
-                        setRating(e.target.value)
-                    }
-                    disabled={actionLoading}
-                >
-
-                    <option value="">
-                        Select Rating
-                    </option>
-
-                    <option value="1">
-                        1 - Poor
-                    </option>
-
-                    <option value="2">
-                        2 - Needs Improvement
-                    </option>
-
-                    <option value="3">
-                        3 - Meets Expectations
-                    </option>
-
-                    <option value="4">
-                        4 - Very Good
-                    </option>
-
-                    <option value="5">
-                        5 - Excellent
-                    </option>
-
-                </select>
-
-            </div>
-
-
-            {/* Comment */}
-
-            <div className="management-form-field">
-
-                <label htmlFor={commentId}>
-                    Comment
-                </label>
-
-                <textarea
-                    id={commentId}
-                    value={comment}
-                    onChange={(e) =>
-                        setComment(e.target.value)
-                    }
-                    rows="6"
-                    disabled={actionLoading}
-                    placeholder={commentPlaceholder}
-                />
-
-            </div>
-
-
-            {/* Actions */}
+            {/* =====================================================
+                Back Button
+            ===================================================== */}
 
             <div className="management-form-actions">
 
                 <button
                     type="button"
-                    className="management-btn-primary"
-                    disabled={actionLoading}
-                    onClick={onApprove}
+                    className="evaluation-back-button"
+                    onClick={() =>
+                        navigate(-1)
+                    }
+                    disabled={
+                        saving
+                    }
                 >
-                    {actionLoading
-                        ? "Processing..."
-                        : approveText}
-                </button>
-
-                <button
-                    type="button"
-                    className="action-button action-delete"
-                    disabled={actionLoading}
-                    onClick={onReject}
-                >
-                    {actionLoading
-                        ? "Processing..."
-                        : rejectText}
-                </button>
-
-                <button
-                    type="button"
-                    className="action-button action-password"
-                    disabled={actionLoading}
-                    onClick={onReturn}
-                >
-                    {actionLoading
-                        ? "Processing..."
-                        : returnText}
-                </button>
-
-                <button
-                    type="button"
-                    className="management-btn-secondary"
-                    disabled={actionLoading}
-                    onClick={onCancel}
-                >
-                    Cancel
+                    ← Back
                 </button>
 
             </div>
