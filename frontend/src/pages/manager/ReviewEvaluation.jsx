@@ -711,6 +711,7 @@ const ReviewEvaluation = () => {
 
             <EmployeeInformation
                 evaluation={evaluation}
+                reviewerRole={reviewerRole}
             />
 
             {/* Employee Comment */}

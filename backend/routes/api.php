@@ -20,6 +20,9 @@ use App\Http\Controllers\EmployeeProfileController;
 use App\Http\Controllers\EmployeeEducationController;
 
 
+
+
+
 // ==========================================================================
 // PUBLIC ROUTES
 // ==========================================================================
@@ -446,5 +449,13 @@ Route::middleware('auth:sanctum')->group(function () {
         );
 
     });
+
+    Route::get(
+        '/evaluations/{evaluation}/pdf',
+        [EvaluationController::class, 'downloadPdf']
+    );
+
+
+    
 
 });

@@ -16,6 +16,7 @@ class EvaluationQuestion extends Model
         'question',
         'question_type',
         'max_rating',
+        'max_answer_words',
         'weight',
         'is_required',
         'sort_order',
@@ -23,6 +24,8 @@ class EvaluationQuestion extends Model
     ];
 
     protected $casts = [
+        'max_rating' => 'integer',
+        'max_answer_words' => 'integer',
         'weight' => 'decimal:2',
         'is_required' => 'boolean',
         'status' => 'boolean',

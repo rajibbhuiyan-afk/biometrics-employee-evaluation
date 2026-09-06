@@ -1,8 +1,8 @@
-const EmployeeInformation = ({
-    evaluation,
-}) => {
-    const employee =
-        evaluation?.employee;
+import api from "../../../api/axios";
+
+const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
+
+    const employee = evaluation?.employee;
 
     const period =
         evaluation?.evaluation_period ||
@@ -17,10 +17,10 @@ const EmployeeInformation = ({
             .replaceAll("_", " ")
             .replace(
                 /\b\w/g,
-                (char) =>
-                    char.toUpperCase()
+                (char) => char.toUpperCase()
             );
     };
+    
 
     const getStatusClass = (status) => {
         if (!status) {
@@ -31,6 +31,61 @@ const EmployeeInformation = ({
             .replaceAll("_", "-")
             .toLowerCase()}`;
     };
+
+    const handleDownloadPdf = async () => {
+        if (!evaluation?.id) {
+            alert("Evaluation ID not found.");
+            return;
+        }
+
+        try {
+            const response = await api.get(
+                `/evaluations/${evaluation.id}/pdf`,
+                {
+                    responseType: "blob",
+                }
+            );
+
+            const blob = new Blob(
+                [response.data],
+                {
+                    type: "application/pdf",
+                }
+            );
+
+            const url =
+                window.URL.createObjectURL(blob);
+
+            const link =
+                document.createElement("a");
+
+            link.href = url;
+
+            link.download =
+                `evaluation-${employee?.employee_id || evaluation.id}.pdf`;
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            document.body.removeChild(link);
+
+            window.URL.revokeObjectURL(url);
+
+            
+        } catch (error) {
+            console.error(
+                "PDF download error:",
+                error
+            );
+
+            alert(
+                "Failed to download evaluation PDF."
+            );
+        }
+    };
+
+    
 
     return (
         <div className="management-form-section">
@@ -43,6 +98,7 @@ const EmployeeInformation = ({
 
             <div className="management-form-grid">
 
+                {/* Employee */}
                 <div className="management-form-info">
                     <span className="management-form-info-label">
                         Employee
@@ -53,7 +109,7 @@ const EmployeeInformation = ({
                     </span>
                 </div>
 
-
+                {/* Employee ID */}
                 <div className="management-form-info">
                     <span className="management-form-info-label">
                         Employee ID
@@ -64,7 +120,7 @@ const EmployeeInformation = ({
                     </span>
                 </div>
 
-
+                {/* Department */}
                 <div className="management-form-info">
                     <span className="management-form-info-label">
                         Department
@@ -75,18 +131,18 @@ const EmployeeInformation = ({
                     </span>
                 </div>
 
-
+                {/* Position */}
                 <div className="management-form-info">
                     <span className="management-form-info-label">
                         Position
                     </span>
 
                     <span className="management-form-info-value">
-                        {employee?.position?.name || "-"}
+                        {employee?.position?.title  || "-"}
                     </span>
                 </div>
 
-
+                {/* Evaluation Period */}
                 <div className="management-form-info">
                     <span className="management-form-info-label">
                         Evaluation Period
@@ -99,7 +155,7 @@ const EmployeeInformation = ({
                     </span>
                 </div>
 
-
+                {/* Status */}
                 <div className="management-form-info">
                     <span className="management-form-info-label">
                         Status
@@ -107,17 +163,33 @@ const EmployeeInformation = ({
 
                     <span
                         className={getStatusClass(
-                            evaluation.status
+                            evaluation?.status
                         )}
                     >
                         {formatStatus(
-                            evaluation.status
+                            evaluation?.status
                         )}
                     </span>
                 </div>
 
-            </div>
+                {/* Download */}
+              {["HR", "Management", "Admin"].includes(reviewerRole) && (
+                    <div className="management-form-info">
+                        <span className="management-form-info-label">
+                            Download
+                        </span>
 
+                        <button
+                            type="button"
+                            className="evaluation-pdf-download-button"
+                            onClick={handleDownloadPdf}
+                        >
+                            Download PDF
+                        </button>
+                    </div>
+                )}
+
+            </div>
         </div>
     );
 };

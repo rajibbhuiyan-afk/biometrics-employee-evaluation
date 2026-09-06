@@ -37,6 +37,13 @@ class StoreEvaluationQuestionRequest extends FormRequest
                 'max:100',
             ],
 
+            'max_answer_words' => [
+                'nullable',
+                'integer',
+                'min:1',
+                'max:10000',
+            ],
+
             'weight' => [
                 'nullable',
                 'numeric',

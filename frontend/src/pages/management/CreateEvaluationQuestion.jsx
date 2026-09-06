@@ -12,6 +12,7 @@ const CreateEvaluationQuestion = () => {
         question: "",
         question_type: "rating",
         max_rating: 5,
+        max_answer_words: 30,
         weight: 1,
         is_required: true,
         sort_order: 0,
@@ -117,13 +118,20 @@ const CreateEvaluationQuestion = () => {
 
         const payload = {
             category_id: Number(form.category_id),
+
             question: form.question,
+
             question_type: form.question_type,
 
             max_rating:
                 form.question_type === "rating"
                     ? Number(form.max_rating)
                     : null,
+
+            max_answer_words:
+                form.max_answer_words
+                    ? Number(form.max_answer_words)
+                    : 30,
 
             weight: Number(form.weight),
 
@@ -266,8 +274,12 @@ const CreateEvaluationQuestion = () => {
                         <option value="rating">
                             Rating
                         </option>
-                        
                     </select>
+
+                    <ValidationError
+                        errors={validationErrors}
+                        field="question_type"
+                    />
 
                 </div>
 
@@ -297,6 +309,36 @@ const CreateEvaluationQuestion = () => {
 
                     </div>
                 )}
+
+                {/* Maximum Answer Words */}
+
+                <div className="management-form-field">
+
+                    <label htmlFor="max_answer_words">
+                        Maximum Answer Words
+                    </label>
+
+                    <input
+                        id="max_answer_words"
+                        type="number"
+                        name="max_answer_words"
+                        value={form.max_answer_words}
+                        onChange={handleChange}
+                        min="1"
+                        max="10000"
+                        placeholder="e.g. 30"
+                    />
+
+                    <small>
+                        Maximum number of words allowed for this answer.
+                    </small>
+
+                    <ValidationError
+                        errors={validationErrors}
+                        field="max_answer_words"
+                    />
+
+                </div>
 
                 {/* Weight */}
 
@@ -406,6 +448,7 @@ const CreateEvaluationQuestion = () => {
                                 "/management/evaluation-questions"
                             )
                         }
+                        disabled={loading}
                     >
                         Cancel
                     </button>

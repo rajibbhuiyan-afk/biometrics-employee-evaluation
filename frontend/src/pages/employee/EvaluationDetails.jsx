@@ -62,10 +62,8 @@ const EvaluationDetails = () => {
             setEvaluation(evaluationData);
 
             // =====================================================
-            // IMPORTANT:
             // Use questions attached to this evaluation.
-            // This preserves historical questions even if a
-            // question is currently inactive.
+            // This preserves historical questions even if inactive.
             // =====================================================
 
             let evaluationQuestions = [];
@@ -85,8 +83,10 @@ const EvaluationDetails = () => {
                         );
             }
 
-            // Fallback only if backend does not return
-            // answer.question relationship.
+            // =====================================================
+            // Fallback
+            // =====================================================
+
             if (evaluationQuestions.length === 0) {
                 const questionsResponse = await api.get(
                     "/evaluation-questions"
@@ -132,6 +132,7 @@ const EvaluationDetails = () => {
 
             setAnswers(existingAnswers);
             answersRef.current = existingAnswers;
+
         } catch (error) {
             console.error(
                 "Failed to load evaluation:",
@@ -162,6 +163,58 @@ const EvaluationDetails = () => {
     };
 
     // =========================================================
+    // Word Count
+    // =========================================================
+
+    const getWordCount = (text) => {
+        if (!text || !String(text).trim()) {
+            return 0;
+        }
+
+        return String(text)
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .length;
+    };
+
+    // =========================================================
+    // Get Answer Word Limit
+    // =========================================================
+
+    const getAnswerWordLimit = (question) => {
+        const limit = Number(
+            question.max_answer_words
+        );
+
+        if (!limit || limit <= 0) {
+            return null;
+        }
+
+        return limit;
+    };
+
+    // =========================================================
+    // Check Answer Over Limit
+    // =========================================================
+
+    const isAnswerOverLimit = (
+        question,
+        answer
+    ) => {
+        const limit =
+            getAnswerWordLimit(question);
+
+        if (!limit) {
+            return false;
+        }
+
+        return (
+            getWordCount(answer) > limit
+        );
+    };
+
+    // =========================================================
     // Save Single Answer
     // =========================================================
 
@@ -169,19 +222,24 @@ const EvaluationDetails = () => {
         questionId,
         answerData = null
     ) => {
-        // Extra protection:
-        // Never save an answer if evaluation is not draft.
-        if (!evaluation || evaluation.status !== "draft") {
+        // Never save if evaluation is not draft.
+        if (
+            !evaluation ||
+            evaluation.status !== "draft"
+        ) {
             return;
         }
 
         const currentAnswer =
-            answerData || getCurrentAnswer(questionId);
+            answerData ||
+            getCurrentAnswer(questionId);
 
         const answer =
             currentAnswer.answer !== null &&
             currentAnswer.answer !== undefined
-                ? String(currentAnswer.answer).trim()
+                ? String(
+                      currentAnswer.answer
+                  ).trim()
                 : "";
 
         const rating =
@@ -194,7 +252,9 @@ const EvaluationDetails = () => {
         const comment =
             currentAnswer.comment !== null &&
             currentAnswer.comment !== undefined
-                ? String(currentAnswer.comment).trim()
+                ? String(
+                      currentAnswer.comment
+                  ).trim()
                 : "";
 
         const promise = api.post(
@@ -203,8 +263,10 @@ const EvaluationDetails = () => {
                 evaluation_id: Number(id),
                 question_id: Number(questionId),
 
-                // Send null when cleared.
-                answer: answer !== "" ? answer : null,
+                answer:
+                    answer !== ""
+                        ? answer
+                        : null,
 
                 rating: rating,
 
@@ -215,8 +277,9 @@ const EvaluationDetails = () => {
             }
         );
 
-        autoSavePromisesRef.current[questionId] =
-            promise;
+        autoSavePromisesRef.current[
+            questionId
+        ] = promise;
 
         try {
             await promise;
@@ -235,9 +298,10 @@ const EvaluationDetails = () => {
         questionId,
         answerData
     ) => {
-        // Extra protection:
-        // Do not schedule auto-save for read-only evaluation.
-        if (!evaluation || evaluation.status !== "draft") {
+        if (
+            !evaluation ||
+            evaluation.status !== "draft"
+        ) {
             return;
         }
 
@@ -247,56 +311,120 @@ const EvaluationDetails = () => {
             [questionId]: answerData,
         };
 
-        // Cancel previous timer for this question.
-        if (autoSaveTimersRef.current[questionId]) {
+        // Cancel previous timer.
+        if (
+            autoSaveTimersRef.current[
+                questionId
+            ]
+        ) {
             clearTimeout(
-                autoSaveTimersRef.current[questionId]
+                autoSaveTimersRef.current[
+                    questionId
+                ]
             );
         }
 
-        setSaveStatus("Unsaved changes...");
+        setSaveStatus(
+            "Unsaved changes..."
+        );
 
-        // Debounce: wait 800ms after user stops typing.
-        autoSaveTimersRef.current[questionId] =
-            setTimeout(async () => {
-                try {
-                    // Check again before saving.
-                    if (
-                        !evaluation ||
-                        evaluation.status !== "draft"
-                    ) {
-                        return;
-                    }
+        // =====================================================
+        // Debounce 800ms
+        // =====================================================
 
-                    setAutoSaving(true);
-                    setSaveStatus("Saving...");
+        autoSaveTimersRef.current[
+            questionId
+        ] = setTimeout(async () => {
+            try {
+                if (
+                    !evaluation ||
+                    evaluation.status !== "draft"
+                ) {
+                    return;
+                }
 
-                    await saveSingleAnswer(
-                        questionId,
-                        answersRef.current[questionId]
+                /*
+                 * -------------------------------------------------
+                 * IMPORTANT
+                 *
+                 * Over-limit answer auto-save করবে না।
+                 * এতে backend word-limit validation থাকলেও
+                 * page-এর উপরে error দেখাবে না।
+                 *
+                 * User নিচেই warning দেখতে পাবে।
+                 * -------------------------------------------------
+                 */
+
+                const question =
+                    questions.find(
+                        (item) =>
+                            Number(item.id) ===
+                            Number(questionId)
                     );
 
-                    setSaveStatus("Saved");
-                } catch (error) {
-                    console.error(
-                        "Auto-save failed:",
-                        error
-                    );
-
-                    setSaveStatus("Auto-save failed");
-
-                    setError(
-                        error.response?.data?.message ||
-                            "Failed to auto-save answer."
-                    );
-                } finally {
-                    setAutoSaving(false);
-
-                    delete autoSaveTimersRef.current[
+                const latestAnswer =
+                    answersRef.current[
                         questionId
                     ];
+
+                if (question) {
+                    const limit =
+                        getAnswerWordLimit(
+                            question
+                        );
+
+                    const wordCount =
+                        getWordCount(
+                            latestAnswer?.answer ||
+                                ""
+                        );
+
+                    if (
+                        limit &&
+                        wordCount > limit
+                    ) {
+                        setSaveStatus(
+                            "Answer exceeds word limit"
+                        );
+
+                        return;
+                    }
                 }
-            }, 800);
+
+                setAutoSaving(true);
+                setSaveStatus("Saving...");
+
+                await saveSingleAnswer(
+                    questionId,
+                    latestAnswer
+                );
+
+                setSaveStatus("Saved");
+
+            } catch (error) {
+                console.error(
+                    "Auto-save failed:",
+                    error
+                );
+
+                setSaveStatus(
+                    "Auto-save failed"
+                );
+
+                setError(
+                    error.response?.data
+                        ?.message ||
+                        "Failed to auto-save answer."
+                );
+
+            } finally {
+                setAutoSaving(false);
+
+                delete autoSaveTimersRef.current[
+                    questionId
+                ];
+            }
+        }, 800);
     };
 
     // =========================================================
@@ -304,8 +432,10 @@ const EvaluationDetails = () => {
     // =========================================================
 
     const flushPendingAutoSaves = async () => {
-        // Never flush/save if evaluation is not editable.
-        if (!evaluation || evaluation.status !== "draft") {
+        if (
+            !evaluation ||
+            evaluation.status !== "draft"
+        ) {
             return;
         }
 
@@ -313,53 +443,98 @@ const EvaluationDetails = () => {
             autoSaveTimersRef.current
         );
 
-        // Cancel all debounce timers.
-        questionIds.forEach((questionId) => {
-            clearTimeout(
-                autoSaveTimersRef.current[questionId]
-            );
-
-            delete autoSaveTimersRef.current[
-                questionId
-            ];
-        });
-
-        // Save latest pending values immediately.
-        const pendingSaves = questionIds.map(
-            async (questionId) => {
-                const currentAnswer =
-                    answersRef.current[questionId];
-
-                if (!currentAnswer) {
-                    return;
-                }
-
-                // If an API request is already running,
-                // wait for that request.
-                const existingPromise =
-                    autoSavePromisesRef.current[
+        // Cancel all timers.
+        questionIds.forEach(
+            (questionId) => {
+                clearTimeout(
+                    autoSaveTimersRef.current[
                         questionId
-                    ];
-
-                if (existingPromise) {
-                    await existingPromise;
-                    return;
-                }
-
-                await saveSingleAnswer(
-                    questionId,
-                    currentAnswer
+                    ]
                 );
+
+                delete autoSaveTimersRef.current[
+                    questionId
+                ];
             }
         );
+
+        // =====================================================
+        // Save latest pending values
+        // =====================================================
+
+        const pendingSaves =
+            questionIds.map(
+                async (questionId) => {
+                    const currentAnswer =
+                        answersRef.current[
+                            questionId
+                        ];
+
+                    if (!currentAnswer) {
+                        return;
+                    }
+
+                    /*
+                     * -------------------------------------------------
+                     * Do not save over-limit answer.
+                     * -------------------------------------------------
+                     */
+
+                    const question =
+                        questions.find(
+                            (item) =>
+                                Number(item.id) ===
+                                Number(questionId)
+                        );
+
+                    if (question) {
+                        const limit =
+                            getAnswerWordLimit(
+                                question
+                            );
+
+                        const wordCount =
+                            getWordCount(
+                                currentAnswer.answer ||
+                                    ""
+                            );
+
+                        if (
+                            limit &&
+                            wordCount > limit
+                        ) {
+                            return;
+                        }
+                    }
+
+                    const existingPromise =
+                        autoSavePromisesRef.current[
+                            questionId
+                        ];
+
+                    if (existingPromise) {
+                        await existingPromise;
+                        return;
+                    }
+
+                    await saveSingleAnswer(
+                        questionId,
+                        currentAnswer
+                    );
+                }
+            );
 
         if (pendingSaves.length > 0) {
             setAutoSaving(true);
             setSaveStatus("Saving...");
 
             try {
-                await Promise.all(pendingSaves);
+                await Promise.all(
+                    pendingSaves
+                );
+
                 setSaveStatus("Saved");
+
             } finally {
                 setAutoSaving(false);
             }
@@ -374,8 +549,10 @@ const EvaluationDetails = () => {
         questionId,
         value
     ) => {
-        // Extra frontend protection.
-        if (!evaluation || evaluation.status !== "draft") {
+        if (
+            !evaluation ||
+            evaluation.status !== "draft"
+        ) {
             return;
         }
 
@@ -387,10 +564,12 @@ const EvaluationDetails = () => {
 
             const updatedAnswers = {
                 ...previous,
-                [questionId]: updatedAnswer,
+                [questionId]:
+                    updatedAnswer,
             };
 
-            answersRef.current = updatedAnswers;
+            answersRef.current =
+                updatedAnswers;
 
             scheduleAutoSave(
                 questionId,
@@ -409,8 +588,10 @@ const EvaluationDetails = () => {
         questionId,
         value
     ) => {
-        // Extra frontend protection.
-        if (!evaluation || evaluation.status !== "draft") {
+        if (
+            !evaluation ||
+            evaluation.status !== "draft"
+        ) {
             return;
         }
 
@@ -425,10 +606,12 @@ const EvaluationDetails = () => {
 
             const updatedAnswers = {
                 ...previous,
-                [questionId]: updatedAnswer,
+                [questionId]:
+                    updatedAnswer,
             };
 
-            answersRef.current = updatedAnswers;
+            answersRef.current =
+                updatedAnswers;
 
             scheduleAutoSave(
                 questionId,
@@ -446,35 +629,92 @@ const EvaluationDetails = () => {
     const validateRequiredQuestions = () => {
         const missingQuestions = [];
 
-        questions.forEach((question, index) => {
-            if (!question.is_required) {
-                return;
+        questions.forEach(
+            (question, index) => {
+                if (!question.is_required) {
+                    return;
+                }
+
+                const currentAnswer =
+                    answersRef.current[
+                        question.id
+                    ];
+
+                const hasAnswer =
+                    currentAnswer?.answer &&
+                    String(
+                        currentAnswer.answer
+                    ).trim() !== "";
+
+                const hasRating =
+                    currentAnswer?.rating !==
+                        "" &&
+                    currentAnswer?.rating !==
+                        null &&
+                    currentAnswer?.rating !==
+                        undefined;
+
+                if (
+                    !hasAnswer &&
+                    !hasRating
+                ) {
+                    missingQuestions.push({
+                        number: index + 1,
+                        question:
+                            question.question,
+                    });
+                }
             }
-
-            const currentAnswer =
-                answersRef.current[question.id];
-
-            const hasAnswer =
-                currentAnswer?.answer &&
-                String(
-                    currentAnswer.answer
-                ).trim() !== "";
-
-            const hasRating =
-                currentAnswer?.rating !== "" &&
-                currentAnswer?.rating !== null &&
-                currentAnswer?.rating !== undefined;
-
-            // Rating or text answer is accepted.
-            if (!hasAnswer && !hasRating) {
-                missingQuestions.push({
-                    number: index + 1,
-                    question: question.question,
-                });
-            }
-        });
+        );
 
         return missingQuestions;
+    };
+
+    // =========================================================
+    // Check Answer Word Limits
+    // =========================================================
+
+    const validateAnswerWordLimits = () => {
+        const exceededQuestions = [];
+
+        questions.forEach(
+            (question, index) => {
+                const currentAnswer =
+                    answersRef.current[
+                        question.id
+                    ];
+
+                const answer =
+                    currentAnswer?.answer ||
+                    "";
+
+                const limit =
+                    getAnswerWordLimit(
+                        question
+                    );
+
+                if (!limit) {
+                    return;
+                }
+
+                const wordCount =
+                    getWordCount(answer);
+
+                if (
+                    wordCount > limit
+                ) {
+                    exceededQuestions.push({
+                        number: index + 1,
+                        wordCount,
+                        limit,
+                        question:
+                            question.question,
+                    });
+                }
+            }
+        );
+
+        return exceededQuestions;
     };
 
     // =========================================================
@@ -482,12 +722,13 @@ const EvaluationDetails = () => {
     // =========================================================
 
     const saveAnswers = async () => {
-        // Never save submitted/locked evaluation.
-        if (!evaluation || evaluation.status !== "draft") {
+        if (
+            !evaluation ||
+            evaluation.status !== "draft"
+        ) {
             return;
         }
 
-        // First flush any pending debounce saves.
         await flushPendingAutoSaves();
 
         const currentAnswers =
@@ -495,9 +736,35 @@ const EvaluationDetails = () => {
 
         for (const question of questions) {
             const currentAnswer =
-                currentAnswers[question.id];
+                currentAnswers[
+                    question.id
+                ];
 
             if (!currentAnswer) {
+                continue;
+            }
+
+            /*
+             * -------------------------------------------------
+             * Never save over-limit answer.
+             * -------------------------------------------------
+             */
+
+            const limit =
+                getAnswerWordLimit(
+                    question
+                );
+
+            const wordCount =
+                getWordCount(
+                    currentAnswer.answer ||
+                        ""
+                );
+
+            if (
+                limit &&
+                wordCount > limit
+            ) {
                 continue;
             }
 
@@ -513,8 +780,32 @@ const EvaluationDetails = () => {
     // =========================================================
 
     const handleSaveAnswers = async () => {
-        // Do nothing if evaluation is read-only.
-        if (!evaluation || evaluation.status !== "draft") {
+        if (
+            !evaluation ||
+            evaluation.status !== "draft"
+        ) {
+            return;
+        }
+
+        /*
+         * -------------------------------------------------
+         * First check word limit.
+         *
+         * No page-level error.
+         * Warning is already shown under the question.
+         * -------------------------------------------------
+         */
+
+        const exceededQuestions =
+            validateAnswerWordLimits();
+
+        if (
+            exceededQuestions.length > 0
+        ) {
+            setSaveStatus(
+                "Please reduce answers exceeding the word limit."
+            );
+
             return;
         }
 
@@ -532,9 +823,8 @@ const EvaluationDetails = () => {
 
             setSaveStatus("Saved");
 
-            // Reload from server so UI reflects
-            // actual database values.
             await loadEvaluation();
+
         } catch (error) {
             console.error(
                 "Failed to save answers:",
@@ -542,11 +832,15 @@ const EvaluationDetails = () => {
             );
 
             setError(
-                error.response?.data?.message ||
+                error.response?.data
+                    ?.message ||
                     "Failed to save answers."
             );
 
-            setSaveStatus("Save failed");
+            setSaveStatus(
+                "Save failed"
+            );
+
         } finally {
             setSaving(false);
         }
@@ -556,34 +850,45 @@ const EvaluationDetails = () => {
     // Submit Evaluation
     // =========================================================
 
-    const handleSubmitEvaluation = async () => {
-        // Do nothing if evaluation is already submitted/locked.
-        if (!evaluation || evaluation.status !== "draft") {
-            return;
-        }
+    const handleSubmitEvaluation =
+        async () => {
+            if (
+                !evaluation ||
+                evaluation.status !== "draft"
+            ) {
+                return;
+            }
 
-        setError("");
-        setSuccess("");
+            setError("");
+            setSuccess("");
 
-        try {
-            setSubmitting(true);
-            setSaveStatus("Saving...");
-
-            // First save anything waiting for auto-save.
-            await flushPendingAutoSaves();
+            /*
+             * =================================================
+             * IMPORTANT
+             *
+             * Validation BEFORE flush/save.
+             *
+             * This prevents an over-limit answer from being
+             * sent to backend and generating a page-level
+             * error.
+             * =================================================
+             */
 
             // =================================================
-            // Validate Required Questions
+            // Required Validation
             // =================================================
 
             const missingQuestions =
                 validateRequiredQuestions();
 
-            if (missingQuestions.length > 0) {
+            if (
+                missingQuestions.length > 0
+            ) {
                 const questionNumbers =
                     missingQuestions
                         .map(
-                            (item) => item.number
+                            (item) =>
+                                item.number
                         )
                         .join(", ");
 
@@ -595,72 +900,118 @@ const EvaluationDetails = () => {
             }
 
             // =================================================
+            // Word Limit Validation
+            // =================================================
+
+            const exceededQuestions =
+                validateAnswerWordLimits();
+
+            if (
+                exceededQuestions.length > 0
+            ) {
+                /*
+                 * -------------------------------------------------
+                 * DO NOT call setError() here.
+                 *
+                 * The warning is displayed directly below
+                 * each question's textarea.
+                 * -------------------------------------------------
+                 */
+
+                setSaveStatus(
+                    "Please reduce answers exceeding the word limit."
+                );
+
+                return;
+            }
+
+            // =================================================
             // Confirmation
             // =================================================
 
-            const confirmed = window.confirm(
-                "Are you sure you want to submit this evaluation? You will not be able to edit it after submission."
-            );
+            const confirmed =
+                window.confirm(
+                    "Are you sure you want to submit this evaluation? You will not be able to edit it after submission."
+                );
 
             if (!confirmed) {
                 return;
             }
 
-            // =================================================
-            // Save all answers
-            // =================================================
-
-            await saveAnswers();
-
-            // =================================================
-            // Submit Evaluation
-            // =================================================
-
-            const response = await api.post(
-                `/evaluations/${id}/submit`
-            );
-
-            setEvaluation(response.data.data);
-
-            setSuccess(
-                "Your evaluation has been submitted successfully."
-            );
-
-            setSaveStatus("Submitted");
-
-            // Clear any remaining auto-save timers.
-            Object.values(
-                autoSaveTimersRef.current
-            ).forEach((timer) =>
-                clearTimeout(timer)
-            );
-
-            autoSaveTimersRef.current = {};
-
-            setTimeout(() => {
-                navigate(
-                    "/management/employee/evaluations"
+            try {
+                setSubmitting(true);
+                setSaveStatus(
+                    "Saving..."
                 );
-            }, 1200);
-        } catch (error) {
-            console.error(
-                "Submit error:",
-                error
-            );
 
-            console.error(
-                "Submit response:",
-                error.response?.data
-            );
+                // =================================================
+                // Save All Answers
+                // =================================================
 
-            setError(
-                error.response?.data?.message ||
-                    "Failed to submit evaluation."
-            );
-        } finally {
-            setSubmitting(false);
-        }
-    };
+                await saveAnswers();
+
+                // =================================================
+                // Submit Evaluation
+                // =================================================
+
+                setSaveStatus(
+                    "Submitting..."
+                );
+
+                const response =
+                    await api.post(
+                        `/evaluations/${id}/submit`
+                    );
+
+                setEvaluation(
+                    response.data.data
+                );
+
+                setSuccess(
+                    "Your evaluation has been submitted successfully."
+                );
+
+                setSaveStatus(
+                    "Submitted"
+                );
+
+                // Clear timers.
+                Object.values(
+                    autoSaveTimersRef.current
+                ).forEach((timer) =>
+                    clearTimeout(timer)
+                );
+
+                autoSaveTimersRef.current =
+                    {};
+
+                setTimeout(() => {
+                    navigate(
+                        "/management/employee/evaluations"
+                    );
+                }, 1200);
+
+            } catch (error) {
+                console.error(
+                    "Submit error:",
+                    error
+                );
+
+                console.error(
+                    "Submit response:",
+                    error.response?.data
+                );
+
+                setError(
+                    error.response?.data
+                        ?.message ||
+                        "Failed to submit evaluation."
+                );
+
+            } finally {
+                setSubmitting(false);
+            }
+        };
 
     // =========================================================
     // Back
@@ -670,17 +1021,20 @@ const EvaluationDetails = () => {
         try {
             setError("");
 
-            // Only save pending changes if still editable.
             if (
                 evaluation &&
                 evaluation.status === "draft"
             ) {
+                /*
+                 * Over-limit answers will not be saved.
+                 */
                 await flushPendingAutoSaves();
             }
 
             navigate(
                 "/management/employee/evaluations"
             );
+
         } catch (error) {
             console.error(
                 "Failed to save before leaving:",
@@ -688,7 +1042,8 @@ const EvaluationDetails = () => {
             );
 
             setError(
-                error.response?.data?.message ||
+                error.response?.data
+                    ?.message ||
                     "Failed to save your latest changes."
             );
         }
@@ -701,8 +1056,11 @@ const EvaluationDetails = () => {
     if (loading) {
         return (
             <div className="management-page">
+
                 <div className="data-table-container">
+
                     <div className="data-table-empty">
+
                         <div className="data-table-empty-title">
                             Loading Evaluation...
                         </div>
@@ -712,8 +1070,11 @@ const EvaluationDetails = () => {
                             evaluation details are
                             being loaded.
                         </div>
+
                     </div>
+
                 </div>
+
             </div>
         );
     }
@@ -725,6 +1086,7 @@ const EvaluationDetails = () => {
     if (error && !evaluation) {
         return (
             <div className="management-page">
+
                 <div className="management-error">
                     {error}
                 </div>
@@ -740,6 +1102,7 @@ const EvaluationDetails = () => {
                 >
                     Back to My Evaluations
                 </button>
+
             </div>
         );
     }
@@ -751,8 +1114,11 @@ const EvaluationDetails = () => {
     if (!evaluation) {
         return (
             <div className="management-page">
+
                 <div className="data-table-container">
+
                     <div className="data-table-empty">
+
                         <div className="data-table-empty-title">
                             Evaluation Not Found
                         </div>
@@ -761,22 +1127,17 @@ const EvaluationDetails = () => {
                             The requested evaluation
                             could not be found.
                         </div>
+
                     </div>
+
                 </div>
+
             </div>
         );
     }
 
     // =========================================================
     // Edit Permission
-    // =========================================================
-    //
-    // IMPORTANT:
-    // Employee can edit ONLY while evaluation is draft.
-    //
-    // Once submitted, approved, returned, rejected, etc.
-    // employee can ONLY VIEW the evaluation.
-    //
     // =========================================================
 
     const canEdit =
@@ -790,6 +1151,7 @@ const EvaluationDetails = () => {
 
     const getStatusClass = (status) => {
         switch (status) {
+
             case "completed":
                 return "evaluation-status approved";
 
@@ -820,53 +1182,44 @@ const EvaluationDetails = () => {
     // Rating Options
     // =========================================================
 
-    const getRatingOptions = (question) => {
-        const maxRating = Math.min(
-            Number(question.max_rating) || 10,
-            10
-        );
+    const getRatingOptions = () => {
+    const options = [];
 
-        const options = [];
+    for (let rating = 0; rating <= 10; rating++) {
+        let label = `${rating}`;
 
-        for (
-            let rating = 0;
-            rating <= maxRating;
-            rating++
-        ) {
-            let label = `${rating}`;
-
-            if (rating === 0) {
-                label = "0 - Not Rated";
-            } else if (rating === 1) {
-                label = "1 - Very Poor";
-            } else if (rating === 2) {
-                label = "2 - Poor";
-            } else if (rating === 3) {
-                label = "3 - Needs Improvement";
-            } else if (rating === 4) {
-                label = "4 - Below Expectations";
-            } else if (rating === 5) {
-                label = "5 - Meets Expectations";
-            } else if (rating === 6) {
-                label = "6 - Satisfactory";
-            } else if (rating === 7) {
-                label = "7 - Good";
-            } else if (rating === 8) {
-                label = "8 - Very Good";
-            } else if (rating === 9) {
-                label = "9 - Excellent";
-            } else if (rating === 10) {
-                label = "10 - Outstanding";
-            }
-
-            options.push({
-                value: rating,
-                label,
-            });
+        if (rating === 0) {
+            label = "0 - Not Rated";
+        } else if (rating === 1) {
+            label = "1 - Very Poor";
+        } else if (rating === 2) {
+            label = "2 - Poor";
+        } else if (rating === 3) {
+            label = "3 - Needs Improvement";
+        } else if (rating === 4) {
+            label = "4 - Below Expectations";
+        } else if (rating === 5) {
+            label = "5 - Meets Expectations";
+        } else if (rating === 6) {
+            label = "6 - Satisfactory";
+        } else if (rating === 7) {
+            label = "7 - Good";
+        } else if (rating === 8) {
+            label = "8 - Very Good";
+        } else if (rating === 9) {
+            label = "9 - Excellent";
+        } else if (rating === 10) {
+            label = "10 - Outstanding";
         }
 
-        return options;
-    };
+        options.push({
+            value: rating,
+            label,
+        });
+    }
+
+    return options;
+};
 
     // =========================================================
     // Page
@@ -880,7 +1233,9 @@ const EvaluationDetails = () => {
             ================================================= */}
 
             <div className="page-header">
+
                 <div className="page-header-info">
+
                     <h1 className="page-header-title">
                         Evaluation Details
                     </h1>
@@ -890,6 +1245,7 @@ const EvaluationDetails = () => {
                             ? "Complete your self-evaluation and submit it for review."
                             : "View your submitted evaluation and its current status."}
                     </p>
+
                 </div>
 
                 <button
@@ -904,10 +1260,11 @@ const EvaluationDetails = () => {
                 >
                     My Evaluations
                 </button>
+
             </div>
 
             {/* =================================================
-                Messages
+                Global Messages
             ================================================= */}
 
             {error && (
@@ -933,9 +1290,10 @@ const EvaluationDetails = () => {
                         marginBottom: "16px",
                     }}
                 >
-                    This evaluation is read-only. You can
-                    view your answers, but you cannot edit,
-                    save, or submit them.
+                    This evaluation is read-only.
+                    You can view your answers,
+                    but you cannot edit, save,
+                    or submit them.
                 </div>
             )}
 
@@ -962,8 +1320,11 @@ const EvaluationDetails = () => {
             ================================================= */}
 
             <div className="evaluation-summary">
+
                 <div className="evaluation-summary-header">
+
                     <div>
+
                         <span className="evaluation-summary-label">
                             Evaluation Period
                         </span>
@@ -977,6 +1338,7 @@ const EvaluationDetails = () => {
                                     ?.name ||
                                 "Evaluation"}
                         </h2>
+
                     </div>
 
                     <span
@@ -986,11 +1348,13 @@ const EvaluationDetails = () => {
                     >
                         {evaluation.status}
                     </span>
+
                 </div>
 
                 <div className="evaluation-summary-grid">
 
                     <div className="evaluation-summary-item">
+
                         <span>
                             Evaluation ID
                         </span>
@@ -998,9 +1362,11 @@ const EvaluationDetails = () => {
                         <strong>
                             #{evaluation.id}
                         </strong>
+
                     </div>
 
                     <div className="evaluation-summary-item">
+
                         <span>
                             Status
                         </span>
@@ -1008,9 +1374,11 @@ const EvaluationDetails = () => {
                         <strong>
                             {evaluation.status}
                         </strong>
+
                     </div>
 
                     <div className="evaluation-summary-item">
+
                         <span>
                             Employee Comment
                         </span>
@@ -1019,9 +1387,11 @@ const EvaluationDetails = () => {
                             {evaluation.employee_comment ||
                                 "No comment provided"}
                         </strong>
+
                     </div>
 
                 </div>
+
             </div>
 
             {/* =================================================
@@ -1033,6 +1403,7 @@ const EvaluationDetails = () => {
                 <div className="evaluation-section-header">
 
                     <div>
+
                         <h2>
                             Self-Evaluation
                         </h2>
@@ -1042,6 +1413,7 @@ const EvaluationDetails = () => {
                                 ? "Please answer all required questions and provide a rating from 0 to 10."
                                 : "Your submitted answers are shown below in read-only mode."}
                         </p>
+
                     </div>
 
                     <span className="evaluation-question-count">
@@ -1051,6 +1423,7 @@ const EvaluationDetails = () => {
                 </div>
 
                 {questions.length === 0 ? (
+
                     <div className="data-table-empty">
 
                         <div className="data-table-empty-title">
@@ -1064,17 +1437,44 @@ const EvaluationDetails = () => {
                         </div>
 
                     </div>
+
                 ) : (
+
                     <div className="evaluation-question-list">
 
                         {questions.map(
-                            (question, index) => {
+                            (
+                                question,
+                                index
+                            ) => {
+
                                 const currentAnswer =
                                     answers[
                                         question.id
                                     ] || {};
 
+                                const answerText =
+                                    currentAnswer.answer ||
+                                    "";
+
+                                const wordCount =
+                                    getWordCount(
+                                        answerText
+                                    );
+
+                                const wordLimit =
+                                    getAnswerWordLimit(
+                                        question
+                                    );
+
+                                const overWordLimit =
+                                    isAnswerOverLimit(
+                                        question,
+                                        answerText
+                                    );
+
                                 return (
+
                                     <div
                                         key={
                                             question.id
@@ -1111,139 +1511,191 @@ const EvaluationDetails = () => {
                                         </div>
 
                                         {/* =========================
-                                            Answer
+                                            Answer + Rating
                                         ========================= */}
 
-                                        <div className="management-form-field">
+                                        <div className="evaluation-question-content">
 
-                                            <label
-                                                htmlFor={`answer-${question.id}`}
-                                            >
+                                            {/* =========================
                                                 Your Answer
+                                            ========================= */}
 
-                                                {question.is_required && (
-                                                    <span
-                                                        className="required-star"
-                                                        title="Required"
-                                                    >
-                                                        {" "}
-                                                        *
-                                                    </span>
-                                                )}
-                                            </label>
+                                            <div className="evaluation-answer-area">
 
-                                            <textarea
-                                                id={`answer-${question.id}`}
-                                                rows="5"
-                                                value={
-                                                    currentAnswer.answer ||
-                                                    ""
-                                                }
-                                                disabled={
-                                                    isReadOnly ||
-                                                    submitting
-                                                }
-                                                onChange={(
-                                                    e
-                                                ) =>
-                                                    handleAnswerChange(
-                                                        question.id,
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder={
-                                                    canEdit
-                                                        ? "Write your answer here..."
-                                                        : ""
-                                                }
-                                            />
+                                                <label
+                                                    htmlFor={`answer-${question.id}`}
+                                                    className="evaluation-field-label"
+                                                >
+                                                    Your Answer
 
-                                            {question.max_answer_words && (
-                                                <small>
-                                                    Maximum{" "}
-                                                    {
-                                                        question.max_answer_words
-                                                    }{" "}
-                                                    words
-                                                </small>
-                                            )}
-
-                                        </div>
-
-                                        {/* =========================
-                                            Rating
-                                        ========================= */}
-
-                                        <div className="management-form-field">
-
-                                            <label
-                                                htmlFor={`rating-${question.id}`}
-                                            >
-                                                Performance Rating
-
-                                                {question.is_required && (
-                                                    <span
-                                                        className="required-star"
-                                                        title="Required"
-                                                    >
-                                                        {" "}
-                                                        *
-                                                    </span>
-                                                )}
-                                            </label>
-
-                                            <select
-                                                id={`rating-${question.id}`}
-                                                value={
-                                                    currentAnswer.rating !==
-                                                        "" &&
-                                                    currentAnswer.rating !==
-                                                        null &&
-                                                    currentAnswer.rating !==
-                                                        undefined
-                                                        ? currentAnswer.rating
-                                                        : ""
-                                                }
-                                                disabled={
-                                                    isReadOnly ||
-                                                    submitting
-                                                }
-                                                onChange={(
-                                                    e
-                                                ) =>
-                                                    handleRatingChange(
-                                                        question.id,
-                                                        e.target.value
-                                                    )
-                                                }
-                                            >
-
-                                                <option value="">
-                                                    Select Rating
-                                                </option>
-
-                                                {getRatingOptions(
-                                                    question
-                                                ).map(
-                                                    (
-                                                        option
-                                                    ) => (
-                                                        <option
-                                                            key={
-                                                                option.value
-                                                            }
-                                                            value={
-                                                                option.value
-                                                            }
+                                                    {question.is_required && (
+                                                        <span
+                                                            className="required-star"
+                                                            title="Required"
                                                         >
-                                                            {
-                                                                option.label
-                                                            }
-                                                        </option>
-                                                    )
+                                                            {" "}
+                                                            *
+                                                        </span>
+                                                    )}
+                                                </label>
+
+                                                <textarea
+                                                    id={`answer-${question.id}`}
+                                                    rows="5"
+                                                    value={
+                                                        answerText
+                                                    }
+                                                    disabled={
+                                                        isReadOnly ||
+                                                        submitting
+                                                    }
+                                                    onChange={(
+                                                        e
+                                                    ) =>
+                                                        handleAnswerChange(
+                                                            question.id,
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder={
+                                                        canEdit
+                                                            ? "Write your answer here..."
+                                                            : ""
+                                                    }
+                                                />
+
+                                                {/* =================================================
+                                                    WORD COUNT
+                                                    This is directly below the textarea.
+                                                ================================================== */}
+
+                                                {wordLimit && (
+                                                    <div
+                                                        className={
+                                                            overWordLimit
+                                                                ? "evaluation-answer-limit evaluation-answer-limit-danger"
+                                                                : "evaluation-answer-limit"
+                                                        }
+                                                        style={{
+                                                            marginTop:
+                                                                "6px",
+                                                            fontSize:
+                                                                "13px",
+                                                        }}
+                                                    >
+                                                        Words:{" "}
+                                                        {
+                                                            wordCount
+                                                        }{" "}
+                                                        /{" "}
+                                                        {
+                                                            wordLimit
+                                                        }
+                                                    </div>
                                                 )}
 
-                                            </select>
+                                                {/* =================================================
+                                                    WORD LIMIT WARNING
+                                                    This is directly below the word counter.
+                                                ================================================== */}
+
+                                               {overWordLimit && (
+                                                    <div
+                                                        className="evaluation-answer-warning"
+                                                        style={{
+                                                            marginTop: "6px",
+                                                            fontSize: "13px",
+                                                            color: "#dc2626",
+                                                            fontWeight: "600",
+                                                        }}
+                                                    >
+                                                        ⚠ Maximum{" "}
+                                                        {wordLimit}{" "}
+                                                        words allowed.
+                                                        Please reduce your answer.
+                                                    </div>
+                                                )}
+
+                                            </div>
+
+                                            {/* =========================
+                                                Performance Rating
+                                            ========================= */}
+
+                                            <div className="evaluation-rating-area">
+
+                                                <label
+                                                    htmlFor={`rating-${question.id}`}
+                                                    className="evaluation-field-label"
+                                                >
+                                                    Performance Rating
+
+                                                    {question.is_required && (
+                                                        <span
+                                                            className="required-star"
+                                                            title="Required"
+                                                        >
+                                                            {" "}
+                                                            *
+                                                        </span>
+                                                    )}
+                                                </label>
+
+                                                <select
+                                                    id={`rating-${question.id}`}
+                                                    className="evaluation-rating-select"
+                                                    value={
+                                                        currentAnswer.rating !==
+                                                            "" &&
+                                                        currentAnswer.rating !==
+                                                            null &&
+                                                        currentAnswer.rating !==
+                                                            undefined
+                                                            ? currentAnswer.rating
+                                                            : ""
+                                                    }
+                                                    disabled={
+                                                        isReadOnly ||
+                                                        submitting
+                                                    }
+                                                    onChange={(
+                                                        e
+                                                    ) =>
+                                                        handleRatingChange(
+                                                            question.id,
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                >
+
+                                                    <option value="">
+                                                        Select Rating
+                                                    </option>
+
+                                                    {getRatingOptions(
+                                                        question
+                                                    ).map(
+                                                        (
+                                                            option
+                                                        ) => (
+                                                            <option
+                                                                key={
+                                                                    option.value
+                                                                }
+                                                                value={
+                                                                    option.value
+                                                                }
+                                                            >
+                                                                {
+                                                                    option.label
+                                                                }
+                                                            </option>
+                                                        )
+                                                    )}
+
+                                                </select>
+
+                                            </div>
 
                                         </div>
 
@@ -1264,7 +1716,9 @@ const EvaluationDetails = () => {
             <div className="evaluation-actions">
 
                 {canEdit ? (
+
                     <>
+
                         {/* ===============================
                             Manual Save
                         =============================== */}
@@ -1306,9 +1760,13 @@ const EvaluationDetails = () => {
                                 ? "Submitting..."
                                 : "Submit Evaluation"}
                         </button>
+
                     </>
+
                 ) : (
+
                     <div className="evaluation-locked-message">
+
                         This evaluation is{" "}
                         <strong>
                             {evaluation.status}
@@ -1318,6 +1776,7 @@ const EvaluationDetails = () => {
                             read-only
                         </strong>
                         .
+
                     </div>
                 )}
 

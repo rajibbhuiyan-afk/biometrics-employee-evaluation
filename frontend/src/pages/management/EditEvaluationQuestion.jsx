@@ -14,6 +14,7 @@ const EditEvaluationQuestion = () => {
         question: "",
         question_type: "rating",
         max_rating: 5,
+        max_answer_words: 30,
         weight: 1,
         is_required: true,
         sort_order: 0,
@@ -24,6 +25,12 @@ const EditEvaluationQuestion = () => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [validationErrors, setValidationErrors] = useState({});
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load Question + Categories
+    |--------------------------------------------------------------------------
+    */
 
     useEffect(() => {
         fetchData();
@@ -42,8 +49,7 @@ const EditEvaluationQuestion = () => {
                 api.get("/evaluation-categories"),
             ]);
 
-            const question =
-                questionResponse.data.data;
+            const question = questionResponse.data.data;
 
             setCategories(
                 categoriesResponse.data.data || []
@@ -51,16 +57,21 @@ const EditEvaluationQuestion = () => {
 
             setForm({
                 category_id:
-                    question.category_id || "",
+                    question.category_id ?? "",
 
                 question:
-                    question.question || "",
+                    question.question ?? "",
 
                 question_type:
-                    question.question_type || "rating",
+                    question.question_type ?? "rating",
 
                 max_rating:
                     question.max_rating ?? 5,
+
+                // IMPORTANT:
+                // Backend field is max_answer_words
+                max_answer_words:
+                    question.max_answer_words ?? 30,
 
                 weight:
                     question.weight ?? 1,
@@ -88,6 +99,12 @@ const EditEvaluationQuestion = () => {
         }
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Input Change
+    |--------------------------------------------------------------------------
+    */
+
     const handleChange = (e) => {
         const {
             name,
@@ -98,12 +115,19 @@ const EditEvaluationQuestion = () => {
 
         setForm((prev) => ({
             ...prev,
+
             [name]:
                 type === "checkbox"
                     ? checked
                     : value,
         }));
     };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Question Type Change
+    |--------------------------------------------------------------------------
+    */
 
     const handleQuestionTypeChange = (e) => {
         const value = e.target.value;
@@ -119,6 +143,12 @@ const EditEvaluationQuestion = () => {
                     : null,
         }));
     };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Submit
+    |--------------------------------------------------------------------------
+    */
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -141,6 +171,13 @@ const EditEvaluationQuestion = () => {
                 form.question_type === "rating"
                     ? Number(form.max_rating)
                     : null,
+
+            // IMPORTANT:
+            // Backend field is max_answer_words
+            max_answer_words:
+                form.max_answer_words
+                    ? Number(form.max_answer_words)
+                    : 30,
 
             weight:
                 Number(form.weight),
@@ -191,18 +228,33 @@ const EditEvaluationQuestion = () => {
         }
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Loading
+    |--------------------------------------------------------------------------
+    */
+
     if (loading) {
         return (
             <div className="management-form-page">
+
                 <h2>
                     Loading Evaluation Question...
                 </h2>
+
             </div>
         );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Render
+    |--------------------------------------------------------------------------
+    */
+
     return (
         <div className="management-form-page">
+
             <h1>
                 Edit Evaluation Question
             </h1>
@@ -222,11 +274,12 @@ const EditEvaluationQuestion = () => {
 
                 <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="category_id">
                         Category
                     </label>
 
                     <select
+                        id="category_id"
                         name="category_id"
                         value={form.category_id}
                         onChange={handleChange}
@@ -260,11 +313,12 @@ const EditEvaluationQuestion = () => {
 
                 <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="question">
                         Question
                     </label>
 
                     <textarea
+                        id="question"
                         name="question"
                         value={form.question}
                         onChange={handleChange}
@@ -284,11 +338,12 @@ const EditEvaluationQuestion = () => {
 
                 <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="question_type">
                         Question Type
                     </label>
 
                     <select
+                        id="question_type"
                         name="question_type"
                         value={form.question_type}
                         onChange={handleQuestionTypeChange}
@@ -297,9 +352,6 @@ const EditEvaluationQuestion = () => {
                         <option value="rating">
                             Rating
                         </option>
-
-                        
-
                     </select>
 
                     <ValidationError
@@ -315,11 +367,12 @@ const EditEvaluationQuestion = () => {
 
                     <div className="management-form-field">
 
-                        <label>
+                        <label htmlFor="max_rating">
                             Max Rating
                         </label>
 
                         <input
+                            id="max_rating"
                             type="number"
                             name="max_rating"
                             value={
@@ -337,17 +390,52 @@ const EditEvaluationQuestion = () => {
                         />
 
                     </div>
+
                 )}
+
+                {/* Maximum Answer Words */}
+
+                <div className="management-form-field">
+
+                    <label htmlFor="max_answer_words">
+                        Maximum Answer Words
+                    </label>
+
+                    <input
+                        id="max_answer_words"
+                        type="number"
+                        name="max_answer_words"
+                        value={
+                            form.max_answer_words ?? ""
+                        }
+                        onChange={handleChange}
+                        min="1"
+                        max="10000"
+                        placeholder="e.g. 30"
+                        required
+                    />
+
+                    <small>
+                        Maximum number of words allowed for this answer.
+                    </small>
+
+                    <ValidationError
+                        errors={validationErrors}
+                        field="max_answer_words"
+                    />
+
+                </div>
 
                 {/* Weight */}
 
                 <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="weight">
                         Weight
                     </label>
 
                     <input
+                        id="weight"
                         type="number"
                         name="weight"
                         value={form.weight}
@@ -369,11 +457,12 @@ const EditEvaluationQuestion = () => {
 
                 <div className="management-form-field">
 
-                    <label>
+                    <label htmlFor="sort_order">
                         Sort Order
                     </label>
 
                     <input
+                        id="sort_order"
                         type="number"
                         name="sort_order"
                         value={form.sort_order}
@@ -394,13 +483,14 @@ const EditEvaluationQuestion = () => {
                 <div className="management-form-checkbox">
 
                     <input
+                        id="is_required"
                         type="checkbox"
                         name="is_required"
                         checked={form.is_required}
                         onChange={handleChange}
                     />
 
-                    <label>
+                    <label htmlFor="is_required">
                         Required Question
                     </label>
 
@@ -411,19 +501,18 @@ const EditEvaluationQuestion = () => {
                 <div className="management-form-checkbox">
 
                     <input
+                        id="status"
                         type="checkbox"
                         name="status"
                         checked={form.status}
                         onChange={handleChange}
                     />
 
-                    <label>
+                    <label htmlFor="status">
                         Active
                     </label>
 
                 </div>
-
-                
 
                 {/* Actions */}
 
@@ -458,6 +547,12 @@ const EditEvaluationQuestion = () => {
         </div>
     );
 };
+
+/*
+|--------------------------------------------------------------------------
+| Validation Error
+|--------------------------------------------------------------------------
+*/
 
 const ValidationError = ({
     errors,

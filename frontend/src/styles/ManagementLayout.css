@@ -1482,7 +1482,7 @@
 
 .evaluation-question-card
 .management-form-field textarea {
-    min-height: 120px;
+    min-height: 80px;
 
     resize: vertical;
 
@@ -2539,33 +2539,118 @@
 }
 
 
+
+
+
+
 /* =========================================================
-   Mobile
-========================================================= */
+   Answer + Rating Layout
+   ========================================================= */
 
-@media (max-width: 900px) {
+.evaluation-question-content {
+    display: grid;
 
-    .evaluation-review-panels {
-        grid-template-columns: 1fr;
-    }
+    grid-template-columns: minmax(0, 1fr) 280px;
 
-    .evaluation-review-main {
-        grid-template-columns: 1fr;
-    }
+    gap: 30px;
 
+    align-items: start;
 }
 
-@media (max-width: 600px) {
 
-    .evaluation-review-card {
-        padding: 16px;
-    }
+/* =========================================================
+   Answer Area
+   ========================================================= */
 
-    .evaluation-review-question {
-        font-size: 14px;
-    }
-
+.evaluation-answer-area {
+    display: flex;
+    flex-direction: column;
 }
+
+.evaluation-answer-area textarea {
+    width: 100%;
+
+    min-height: 120px;
+
+    box-sizing: border-box;
+
+    resize: vertical;
+
+    line-height: 1.6;
+}
+
+
+/* =========================================================
+   Field Label
+   ========================================================= */
+
+.evaluation-field-label {
+    display: block;
+
+    margin-bottom: 8px;
+
+    color: #374151;
+
+    font-size: 14px;
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   Rating Area
+   ========================================================= */
+
+.evaluation-rating-area {
+    display: flex;
+    flex-direction: column;
+}
+
+.evaluation-rating-select {
+    width: 100%;
+
+    height: 44px;
+
+    box-sizing: border-box;
+
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   Answer Word Limit
+   ========================================================= */
+
+.evaluation-answer-limit {
+    margin-top: 6px;
+
+    color: #6b7280;
+
+    font-size: 12px;
+}
+
+.evaluation-pdf-download-button {
+    width: fit-content;
+    padding: 6px 10px;
+    border: 1px solid #0d6efd;
+    border-radius: 5px;
+    background: #0d6efd;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.evaluation-pdf-download-button::before {
+    content: "↓";
+    margin-right: 5px;
+}
+
+.evaluation-pdf-download-button:hover {
+    background: #0b5ed7;
+    border-color: #0b5ed7;
+}
+
 
 
 
@@ -2618,6 +2703,22 @@
     }
 }
 
+/* =========================================================
+   Mobile
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .evaluation-review-panels {
+        grid-template-columns: 1fr;
+    }
+
+    .evaluation-review-main {
+        grid-template-columns: 1fr;
+    }
+
+}
+
 
 @media (max-width: 768px) {
     .management-sidebar {
@@ -2668,7 +2769,31 @@
     .brand-subtitle {
         font-size: 12px;
     }
+        .evaluation-question-card {
+        padding: 17px;
+    }
+
+    .evaluation-question-title {
+        font-size: 14px;
+    }
+
+    .evaluation-question-content {
+        grid-template-columns: 1fr;
+
+        gap: 18px;
+    }
+
+    .evaluation-question-card
+    .management-form-field select {
+        max-width: 100%;
+    }
+
+    .evaluation-rating-select {
+        width: 100%;
+    }
 }
+
+
 
 
 @media (max-width: 600px) {
@@ -2779,6 +2904,13 @@
 
     .evaluation-review-rating select {
         width: 100%;
+    }
+     .evaluation-review-card {
+        padding: 16px;
+    }
+
+    .evaluation-review-question {
+        font-size: 14px;
     }
 }
 

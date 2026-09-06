@@ -47,7 +47,7 @@ const CurrentQuestionReview = ({
                         Select
                     </option>
 
-                    {Array.from(
+                    {/* {Array.from(
                         { length: 11 },
                         (_, rating) => (
                             <option
@@ -57,6 +57,32 @@ const CurrentQuestionReview = ({
                                 {rating}
                             </option>
                         )
+                    )} */}
+                    {Array.from({ length: 11 }, (_, index) => index).map(
+                        (rating) => {
+                            const labels = {
+                                0: "0 - Not Rated",
+                                1: "1 - Very Poor",
+                                2: "2 - Poor",
+                                3: "3 - Needs Improvement",
+                                4: "4 - Below Expectations",
+                                5: "5 - Meets Expectations",
+                                6: "6 - Satisfactory",
+                                7: "7 - Good",
+                                8: "8 - Very Good",
+                                9: "9 - Excellent",
+                                10: "10 - Outstanding",
+                            };
+
+                            return (
+                                <option
+                                    key={rating}
+                                    value={rating}
+                                >
+                                    {labels[rating]}
+                                </option>
+                            );
+                        }
                     )}
                 </select>
 

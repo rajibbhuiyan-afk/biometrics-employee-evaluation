@@ -26,7 +26,7 @@ return new class extends Migration
 
             $table->integer('max_rating')->default(5);
 
-            $table->unsignedInteger('max_answer_words')->nullable();
+            $table->unsignedInteger('max_answer_words')->default(30);
 
             $table->decimal('weight', 5, 2)->default(1.00);
 
