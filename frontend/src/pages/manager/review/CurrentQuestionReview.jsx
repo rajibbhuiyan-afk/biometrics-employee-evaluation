@@ -21,7 +21,7 @@ const CurrentQuestionReview = ({
         reviewResult === "not_okay";
 
     const isIgnored =
-        reviewResult === "ignored";
+        reviewResult === "ignore";
 
     const ratingLabels = {
         0: "0 - Not Rated",
@@ -36,6 +36,11 @@ const CurrentQuestionReview = ({
         9: "9 - Excellent",
         10: "10 - Outstanding",
     };
+
+    const ratingOptions = Array.from(
+        { length: 11 },
+        (_, index) => index
+    );
 
     return (
         <div className="evaluation-current-review">
@@ -95,7 +100,7 @@ const CurrentQuestionReview = ({
                     onClick={() =>
                         onResultChange(
                             questionId,
-                            "ignored"
+                            "ignore"
                         )
                     }
                     disabled={saving}
@@ -136,10 +141,7 @@ const CurrentQuestionReview = ({
                             Select Rating
                         </option>
 
-                        {Array.from(
-                            { length: 11 },
-                            (_, index) => index
-                        ).map((rating) => (
+                        {ratingOptions.map((rating) => (
                             <option
                                 key={rating}
                                 value={rating}

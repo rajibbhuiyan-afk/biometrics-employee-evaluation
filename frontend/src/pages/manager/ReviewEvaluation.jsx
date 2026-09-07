@@ -282,48 +282,50 @@ const ReviewEvaluation = () => {
         // ------------------------------------------------------
         // Manager
         // ------------------------------------------------------
+        //
+        // Manager can review ONLY submitted.
+        //
+        // manager_rejected হলে employee আগে resubmit করবে.
+        //
 
         if (
             reviewerRole === "Manager"
         ) {
-            return [
-                "submitted",
-                "manager_returned",
-                "manager_rejected",
-            ].includes(
-                evaluation.status
+            return (
+                evaluation.status ===
+                "submitted"
             );
         }
 
         // ------------------------------------------------------
         // HR
         // ------------------------------------------------------
+        //
+        // HR can review ONLY manager approved.
+        //
 
         if (
             reviewerRole === "HR"
         ) {
-            return [
-                "manager_approved",
-                "hr_returned",
-                "hr_rejected",
-            ].includes(
-                evaluation.status
+            return (
+                evaluation.status ===
+                "manager_approved"
             );
         }
 
         // ------------------------------------------------------
         // Management
         // ------------------------------------------------------
+        //
+        // Management can review ONLY HR approved.
+        //
 
         if (
             reviewerRole === "Management"
         ) {
-            return [
-                "hr_approved",
-                "management_returned",
-                "management_rejected",
-            ].includes(
-                evaluation.status
+            return (
+                evaluation.status ===
+                "hr_approved"
             );
         }
 
@@ -428,9 +430,6 @@ const ReviewEvaluation = () => {
 
             // ==================================================
             // ACCEPT
-            //
-            // Question immediately becomes reviewed.
-            // Rating can then be selected.
             // ==================================================
 
             if (result === "okay") {
@@ -450,9 +449,6 @@ const ReviewEvaluation = () => {
 
             // ==================================================
             // REJECT
-            //
-            // Question immediately becomes reviewed.
-            // Comment can then be entered.
             // ==================================================
 
             if (result === "not_okay") {
@@ -472,9 +468,6 @@ const ReviewEvaluation = () => {
 
             // ==================================================
             // IGNORE
-            //
-            // Question immediately becomes reviewed.
-            // No rating/comment required.
             // ==================================================
 
             if (result === "ignore") {
@@ -565,16 +558,6 @@ const ReviewEvaluation = () => {
     // ==========================================================
     // Question Reviewed
     // ==========================================================
-    //
-    // IMPORTANT:
-    //
-    // Accept / Reject / Ignore
-    // যেকোনো একটি select করলেই question reviewed.
-    //
-    // Accept-এর rating এবং Reject-এর comment
-    // final validation-এর সময় check হবে.
-    //
-    // ==========================================================
 
     const isQuestionReviewed = (review) => {
         return Boolean(
@@ -641,8 +624,6 @@ const ReviewEvaluation = () => {
 
                 // ------------------------------------------------
                 // Ignore
-                //
-                // Nothing else is required.
                 // ------------------------------------------------
 
                 if (
@@ -653,8 +634,6 @@ const ReviewEvaluation = () => {
 
                 // ------------------------------------------------
                 // Accept
-                //
-                // Rating is required.
                 // ------------------------------------------------
 
                 if (
@@ -675,8 +654,6 @@ const ReviewEvaluation = () => {
 
                 // ------------------------------------------------
                 // Reject
-                //
-                // Comment is required.
                 // ------------------------------------------------
 
                 if (
@@ -721,6 +698,22 @@ const ReviewEvaluation = () => {
         action
     ) => {
         setError("");
+
+        // ======================================================
+        // Only approved / rejected allowed
+        // ======================================================
+
+        if (
+            !["approved", "rejected"].includes(
+                action
+            )
+        ) {
+            setError(
+                "Invalid review action."
+            );
+
+            return;
+        }
 
         // ======================================================
         // Validate Question Reviews

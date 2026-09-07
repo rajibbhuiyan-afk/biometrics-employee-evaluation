@@ -27,6 +27,21 @@ const EvaluationDetails = () => {
     const autoSaveTimersRef = useRef({});
     const autoSavePromisesRef = useRef({});
 
+    // =========================================================
+    // Editable Statuses
+    // =========================================================
+
+    const editableStatuses = [
+        "draft",
+        "manager_rejected",
+        "hr_rejected",
+        "management_rejected",
+    ];
+
+    const canEditEvaluation = (status) => {
+        return editableStatuses.includes(status);
+    };
+
     // Keep latest answers available without stale closure problems
     useEffect(() => {
         answersRef.current = answers;
@@ -222,10 +237,10 @@ const EvaluationDetails = () => {
         questionId,
         answerData = null
     ) => {
-        // Never save if evaluation is not draft.
+        // Save only when employee is allowed to edit.
         if (
             !evaluation ||
-            evaluation.status !== "draft"
+            !canEditEvaluation(evaluation.status)
         ) {
             return;
         }
@@ -300,7 +315,7 @@ const EvaluationDetails = () => {
     ) => {
         if (
             !evaluation ||
-            evaluation.status !== "draft"
+            !canEditEvaluation(evaluation.status)
         ) {
             return;
         }
@@ -338,22 +353,16 @@ const EvaluationDetails = () => {
             try {
                 if (
                     !evaluation ||
-                    evaluation.status !== "draft"
+                    !canEditEvaluation(
+                        evaluation.status
+                    )
                 ) {
                     return;
                 }
 
-                /*
-                 * -------------------------------------------------
-                 * IMPORTANT
-                 *
-                 * Over-limit answer auto-save করবে না।
-                 * এতে backend word-limit validation থাকলেও
-                 * page-এর উপরে error দেখাবে না।
-                 *
-                 * User নিচেই warning দেখতে পাবে।
-                 * -------------------------------------------------
-                 */
+                // =================================================
+                // Find Question
+                // =================================================
 
                 const question =
                     questions.find(
@@ -366,6 +375,10 @@ const EvaluationDetails = () => {
                     answersRef.current[
                         questionId
                     ];
+
+                // =================================================
+                // Do not auto-save over-limit answer.
+                // =================================================
 
                 if (question) {
                     const limit =
@@ -434,7 +447,7 @@ const EvaluationDetails = () => {
     const flushPendingAutoSaves = async () => {
         if (
             !evaluation ||
-            evaluation.status !== "draft"
+            !canEditEvaluation(evaluation.status)
         ) {
             return;
         }
@@ -474,11 +487,9 @@ const EvaluationDetails = () => {
                         return;
                     }
 
-                    /*
-                     * -------------------------------------------------
-                     * Do not save over-limit answer.
-                     * -------------------------------------------------
-                     */
+                    // =================================================
+                    // Do not save over-limit answer.
+                    // =================================================
 
                     const question =
                         questions.find(
@@ -551,7 +562,7 @@ const EvaluationDetails = () => {
     ) => {
         if (
             !evaluation ||
-            evaluation.status !== "draft"
+            !canEditEvaluation(evaluation.status)
         ) {
             return;
         }
@@ -590,7 +601,7 @@ const EvaluationDetails = () => {
     ) => {
         if (
             !evaluation ||
-            evaluation.status !== "draft"
+            !canEditEvaluation(evaluation.status)
         ) {
             return;
         }
@@ -724,7 +735,7 @@ const EvaluationDetails = () => {
     const saveAnswers = async () => {
         if (
             !evaluation ||
-            evaluation.status !== "draft"
+            !canEditEvaluation(evaluation.status)
         ) {
             return;
         }
@@ -744,11 +755,9 @@ const EvaluationDetails = () => {
                 continue;
             }
 
-            /*
-             * -------------------------------------------------
-             * Never save over-limit answer.
-             * -------------------------------------------------
-             */
+            // =================================================
+            // Never save over-limit answer.
+            // =================================================
 
             const limit =
                 getAnswerWordLimit(
@@ -782,19 +791,10 @@ const EvaluationDetails = () => {
     const handleSaveAnswers = async () => {
         if (
             !evaluation ||
-            evaluation.status !== "draft"
+            !canEditEvaluation(evaluation.status)
         ) {
             return;
         }
-
-        /*
-         * -------------------------------------------------
-         * First check word limit.
-         *
-         * No page-level error.
-         * Warning is already shown under the question.
-         * -------------------------------------------------
-         */
 
         const exceededQuestions =
             validateAnswerWordLimits();
@@ -847,32 +847,20 @@ const EvaluationDetails = () => {
     };
 
     // =========================================================
-    // Submit Evaluation
+    // Submit / Resubmit Evaluation
     // =========================================================
 
     const handleSubmitEvaluation =
         async () => {
             if (
                 !evaluation ||
-                evaluation.status !== "draft"
+                !canEditEvaluation(evaluation.status)
             ) {
                 return;
             }
 
             setError("");
             setSuccess("");
-
-            /*
-             * =================================================
-             * IMPORTANT
-             *
-             * Validation BEFORE flush/save.
-             *
-             * This prevents an over-limit answer from being
-             * sent to backend and generating a page-level
-             * error.
-             * =================================================
-             */
 
             // =================================================
             // Required Validation
@@ -909,15 +897,6 @@ const EvaluationDetails = () => {
             if (
                 exceededQuestions.length > 0
             ) {
-                /*
-                 * -------------------------------------------------
-                 * DO NOT call setError() here.
-                 *
-                 * The warning is displayed directly below
-                 * each question's textarea.
-                 * -------------------------------------------------
-                 */
-
                 setSaveStatus(
                     "Please reduce answers exceeding the word limit."
                 );
@@ -931,7 +910,9 @@ const EvaluationDetails = () => {
 
             const confirmed =
                 window.confirm(
-                    "Are you sure you want to submit this evaluation? You will not be able to edit it after submission."
+                    evaluation.status === "draft"
+                        ? "Are you sure you want to submit this evaluation? You will not be able to edit it after submission."
+                        : "Are you sure you want to resubmit this evaluation? It will be sent back through the Manager, HR, and Management review process."
                 );
 
             if (!confirmed) {
@@ -951,7 +932,7 @@ const EvaluationDetails = () => {
                 await saveAnswers();
 
                 // =================================================
-                // Submit Evaluation
+                // Submit / Resubmit Evaluation
                 // =================================================
 
                 setSaveStatus(
@@ -968,7 +949,9 @@ const EvaluationDetails = () => {
                 );
 
                 setSuccess(
-                    "Your evaluation has been submitted successfully."
+                    evaluation.status === "draft"
+                        ? "Your evaluation has been submitted successfully."
+                        : "Your evaluation has been resubmitted successfully."
                 );
 
                 setSaveStatus(
@@ -1023,11 +1006,10 @@ const EvaluationDetails = () => {
 
             if (
                 evaluation &&
-                evaluation.status === "draft"
+                canEditEvaluation(
+                    evaluation.status
+                )
             ) {
-                /*
-                 * Over-limit answers will not be saved.
-                 */
                 await flushPendingAutoSaves();
             }
 
@@ -1141,11 +1123,9 @@ const EvaluationDetails = () => {
     // =========================================================
 
     const canEdit =
-        evaluation.status === [
-            "draft",
-            "manager_returned",
-            "manager_rejected",
-        ].includes(evaluation.status);
+        canEditEvaluation(
+            evaluation.status
+        );
 
     const isReadOnly = !canEdit;
 
@@ -1171,11 +1151,6 @@ const EvaluationDetails = () => {
             case "management_rejected":
                 return "evaluation-status rejected";
 
-            case "manager_returned":
-            case "hr_returned":
-            case "management_returned":
-                return "evaluation-status returned";
-
             case "draft":
             default:
                 return "evaluation-status draft";
@@ -1187,43 +1162,43 @@ const EvaluationDetails = () => {
     // =========================================================
 
     const getRatingOptions = () => {
-    const options = [];
+        const options = [];
 
-    for (let rating = 0; rating <= 10; rating++) {
-        let label = `${rating}`;
+        for (let rating = 0; rating <= 10; rating++) {
+            let label = `${rating}`;
 
-        if (rating === 0) {
-            label = "0 - Not Rated";
-        } else if (rating === 1) {
-            label = "1 - Very Poor";
-        } else if (rating === 2) {
-            label = "2 - Poor";
-        } else if (rating === 3) {
-            label = "3 - Needs Improvement";
-        } else if (rating === 4) {
-            label = "4 - Below Expectations";
-        } else if (rating === 5) {
-            label = "5 - Meets Expectations";
-        } else if (rating === 6) {
-            label = "6 - Satisfactory";
-        } else if (rating === 7) {
-            label = "7 - Good";
-        } else if (rating === 8) {
-            label = "8 - Very Good";
-        } else if (rating === 9) {
-            label = "9 - Excellent";
-        } else if (rating === 10) {
-            label = "10 - Outstanding";
+            if (rating === 0) {
+                label = "0 - Not Rated";
+            } else if (rating === 1) {
+                label = "1 - Very Poor";
+            } else if (rating === 2) {
+                label = "2 - Poor";
+            } else if (rating === 3) {
+                label = "3 - Needs Improvement";
+            } else if (rating === 4) {
+                label = "4 - Below Expectations";
+            } else if (rating === 5) {
+                label = "5 - Meets Expectations";
+            } else if (rating === 6) {
+                label = "6 - Satisfactory";
+            } else if (rating === 7) {
+                label = "7 - Good";
+            } else if (rating === 8) {
+                label = "8 - Very Good";
+            } else if (rating === 9) {
+                label = "9 - Excellent";
+            } else if (rating === 10) {
+                label = "10 - Outstanding";
+            }
+
+            options.push({
+                value: rating,
+                label,
+            });
         }
 
-        options.push({
-            value: rating,
-            label,
-        });
-    }
-
-    return options;
-};
+        return options;
+    };
 
     // =========================================================
     // Page
@@ -1246,7 +1221,9 @@ const EvaluationDetails = () => {
 
                     <p className="page-header-description">
                         {canEdit
-                            ? "Complete your self-evaluation and submit it for review."
+                            ? evaluation.status === "draft"
+                                ? "Complete your self-evaluation and submit it for review."
+                                : "Correct the rejected evaluation and resubmit it for review."
                             : "View your submitted evaluation and its current status."}
                     </p>
 
@@ -1284,6 +1261,30 @@ const EvaluationDetails = () => {
             )}
 
             {/* =================================================
+                Rejected Notice
+            ================================================= */}
+
+            {canEdit &&
+                evaluation.status !== "draft" && (
+                    <div
+                        className="management-form-error"
+                        style={{
+                            marginBottom: "16px",
+                        }}
+                    >
+                        This evaluation was{" "}
+                        <strong>
+                            {evaluation.status.replace(
+                                /_/g,
+                                " "
+                            )}
+                        </strong>
+                        . You can correct your answers
+                        and resubmit the evaluation.
+                    </div>
+                )}
+
+            {/* =================================================
                 Read Only Notice
             ================================================= */}
 
@@ -1301,18 +1302,12 @@ const EvaluationDetails = () => {
                 </div>
             )}
 
-            {/* =================================================
-                Auto Save Status
+           {/* =================================================
+                Auto Save Floating Notification
             ================================================= */}
 
             {canEdit && saveStatus && (
-                <div
-                    className="evaluation-save-status"
-                    style={{
-                        marginBottom: "16px",
-                        fontSize: "14px",
-                    }}
-                >
+                <div className="evaluation-auto-save-status">
                     {autoSaving
                         ? "Saving..."
                         : saveStatus}
@@ -1570,7 +1565,6 @@ const EvaluationDetails = () => {
 
                                                 {/* =================================================
                                                     WORD COUNT
-                                                    This is directly below the textarea.
                                                 ================================================== */}
 
                                                 {wordLimit && (
@@ -1600,23 +1594,27 @@ const EvaluationDetails = () => {
 
                                                 {/* =================================================
                                                     WORD LIMIT WARNING
-                                                    This is directly below the word counter.
                                                 ================================================== */}
 
-                                               {overWordLimit && (
+                                                {overWordLimit && (
                                                     <div
                                                         className="evaluation-answer-warning"
                                                         style={{
-                                                            marginTop: "6px",
-                                                            fontSize: "13px",
-                                                            color: "#dc2626",
-                                                            fontWeight: "600",
+                                                            marginTop:
+                                                                "6px",
+                                                            fontSize:
+                                                                "13px",
+                                                            color:
+                                                                "#dc2626",
+                                                            fontWeight:
+                                                                "600",
                                                         }}
                                                     >
                                                         ⚠ Maximum{" "}
                                                         {wordLimit}{" "}
                                                         words allowed.
-                                                        Please reduce your answer.
+                                                        Please reduce
+                                                        your answer.
                                                     </div>
                                                 )}
 
@@ -1727,7 +1725,8 @@ const EvaluationDetails = () => {
                             Manual Save
                         =============================== */}
 
-                        {/* <button
+                        {/* 
+                        <button
                             type="button"
                             className="evaluation-save-button"
                             disabled={
@@ -1742,10 +1741,11 @@ const EvaluationDetails = () => {
                             {saving
                                 ? "Saving..."
                                 : "Save Answers"}
-                        </button> */}
+                        </button>
+                        */}
 
                         {/* ===============================
-                            Submit
+                            Submit / Resubmit
                         =============================== */}
 
                         <button
@@ -1762,7 +1762,9 @@ const EvaluationDetails = () => {
                         >
                             {submitting
                                 ? "Submitting..."
-                                : "Submit Evaluation"}
+                                : evaluation.status === "draft"
+                                    ? "Submit Evaluation"
+                                    : "Resubmit Evaluation"}
                         </button>
 
                     </>

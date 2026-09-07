@@ -39,7 +39,6 @@ class EvaluationAnswerController extends Controller
             $query->whereHas(
                 'evaluation',
                 function ($evaluationQuery) use ($user) {
-
                     $evaluationQuery->where(
                         'employee_id',
                         $user->id
@@ -59,7 +58,6 @@ class EvaluationAnswerController extends Controller
             $query->whereHas(
                 'evaluation.employee',
                 function ($employeeQuery) use ($user) {
-
                     $employeeQuery->where(
                         'manager_id',
                         $user->id
@@ -80,7 +78,6 @@ class EvaluationAnswerController extends Controller
                 ['HR', 'Management', 'Admin']
             )
         ) {
-
             // Allowed to view all evaluation answers.
         }
 
@@ -111,7 +108,7 @@ class EvaluationAnswerController extends Controller
      *
      * Employee only.
      *
-     * This method can be used for auto-save.
+     * This method is used for auto-save.
      */
     public function store(
         StoreEvaluationAnswerRequest $request
@@ -177,22 +174,32 @@ class EvaluationAnswerController extends Controller
         |--------------------------------------------------------------------------
         | Editable Statuses
         |--------------------------------------------------------------------------
+        |
+        | Employee can edit/autosave when:
+        |
+        | draft
+        | manager_rejected
+        | hr_rejected
+        | management_rejected
+        |
+        | Returned statuses are completely removed.
+        |
         */
 
         $editableStatuses = [
             'draft',
-            'manager_returned',
             'manager_rejected',
-            'hr_returned',
             'hr_rejected',
-            'management_returned',
             'management_rejected',
         ];
 
-        if (!in_array(
-            $evaluation->status,
-            $editableStatuses
-        )) {
+        if (
+            !in_array(
+                $evaluation->status,
+                $editableStatuses,
+                true
+            )
+        ) {
 
             return response()->json([
                 'success' => false,
@@ -218,12 +225,12 @@ class EvaluationAnswerController extends Controller
             'evaluation_id',
             $evaluation->id
         )
-        ->where(
-            'question_id',
-            $request->question_id
-        )
-        ->with('question')
-        ->first();
+            ->where(
+                'question_id',
+                $request->question_id
+            )
+            ->with('question')
+            ->first();
 
         if (!$answer) {
 
@@ -257,16 +264,6 @@ class EvaluationAnswerController extends Controller
         |--------------------------------------------------------------------------
         | Maximum Answer Words
         |--------------------------------------------------------------------------
-        |
-        | HR controls this value when creating the question.
-        |
-        | Example:
-        |
-        | 10   -> maximum 10 words
-        | 50   -> maximum 50 words
-        | 100  -> maximum 100 words
-        | NULL -> no word limit
-        |
         */
 
         if (
@@ -274,7 +271,9 @@ class EvaluationAnswerController extends Controller
             $request->answer !== null
         ) {
 
-            $answerText = trim($request->answer);
+            $answerText = trim(
+                $request->answer
+            );
 
             $wordCount = $answerText === ''
                 ? 0
@@ -351,7 +350,8 @@ class EvaluationAnswerController extends Controller
             'question.category',
         ]);
 
-        $evaluation = $evaluationAnswer->evaluation;
+        $evaluation =
+            $evaluationAnswer->evaluation;
 
 
         /*
@@ -413,7 +413,6 @@ class EvaluationAnswerController extends Controller
                 ['HR', 'Management', 'Admin']
             )
         ) {
-
             // Allowed.
         }
 
@@ -483,7 +482,9 @@ class EvaluationAnswerController extends Controller
             'question',
         ]);
 
-        $evaluation = $evaluationAnswer->evaluation;
+        $evaluation =
+            $evaluationAnswer->evaluation;
+
 
         if (!$evaluation) {
 
@@ -521,18 +522,18 @@ class EvaluationAnswerController extends Controller
 
         $editableStatuses = [
             'draft',
-            'manager_returned',
             'manager_rejected',
-            'hr_returned',
             'hr_rejected',
-            'management_returned',
             'management_rejected',
         ];
 
-        if (!in_array(
-            $evaluation->status,
-            $editableStatuses
-        )) {
+        if (
+            !in_array(
+                $evaluation->status,
+                $editableStatuses,
+                true
+            )
+        ) {
 
             return response()->json([
                 'success' => false,
@@ -567,7 +568,9 @@ class EvaluationAnswerController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $question = $evaluationAnswer->question;
+        $question =
+            $evaluationAnswer->question;
+
 
         if (!$question) {
 
@@ -590,7 +593,9 @@ class EvaluationAnswerController extends Controller
             $request->answer !== null
         ) {
 
-            $answerText = trim($request->answer);
+            $answerText = trim(
+                $request->answer
+            );
 
             $wordCount = $answerText === ''
                 ? 0
@@ -687,9 +692,13 @@ class EvaluationAnswerController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $evaluationAnswer->load('evaluation');
+        $evaluationAnswer->load(
+            'evaluation'
+        );
 
-        $evaluation = $evaluationAnswer->evaluation;
+        $evaluation =
+            $evaluationAnswer->evaluation;
+
 
         if (!$evaluation) {
 
@@ -727,18 +736,18 @@ class EvaluationAnswerController extends Controller
 
         $editableStatuses = [
             'draft',
-            'manager_returned',
             'manager_rejected',
-            'hr_returned',
             'hr_rejected',
-            'management_returned',
             'management_rejected',
         ];
 
-        if (!in_array(
-            $evaluation->status,
-            $editableStatuses
-        )) {
+        if (
+            !in_array(
+                $evaluation->status,
+                $editableStatuses,
+                true
+            )
+        ) {
 
             return response()->json([
                 'success' => false,
@@ -759,6 +768,7 @@ class EvaluationAnswerController extends Controller
             'answer' => null,
             'comment' => null,
         ]);
+
 
         return response()->json([
             'success' => true,

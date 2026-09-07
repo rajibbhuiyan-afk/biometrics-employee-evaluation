@@ -145,7 +145,7 @@ const OverallReviewForm = ({
                         Return
                     ------------------------------------------------ */}
 
-                    <button
+                    {/* <button
                         type="button"
                         className="management-btn-secondary"
                         onClick={() =>
@@ -154,7 +154,7 @@ const OverallReviewForm = ({
                         disabled={actionsDisabled}
                     >
                         Return
-                    </button>
+                    </button> */}
 
                     {/* ------------------------------------------------
                         Reject
@@ -187,7 +187,7 @@ const OverallReviewForm = ({
                 {allQuestionsReviewed && !saving && (
                     <div className="evaluation-review-ready-message">
                         ✓ All questions have been reviewed.
-                        You can now Approve, Return or Reject
+                        You can now Approve or Reject
                         the evaluation.
                     </div>
                 )}

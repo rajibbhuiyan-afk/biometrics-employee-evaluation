@@ -143,7 +143,7 @@ class StoreEvaluationReviewRequest extends FormRequest
 
             'action' => [
                 'required',
-                'in:approved,rejected,returned',
+                'in:approved,rejected',
             ],
 
 

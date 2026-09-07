@@ -76,24 +76,27 @@ const QuestionReviewCard = ({
 
     // ==========================================================
     // Rating Options
+    // Reviewer Rating: Always 0 - 10
     // ==========================================================
 
-    const maxRating = Math.min(
-        Number(
-            question?.max_rating
-        ) || 10,
-        10
-    );
+    const ratingLabels = {
+        0: "Not Rated",
+        1: "Very Poor",
+        2: "Poor",
+        3: "Needs Improvement",
+        4: "Below Expectations",
+        5: "Meets Expectations",
+        6: "Satisfactory",
+        7: "Good",
+        8: "Very Good",
+        9: "Excellent",
+        10: "Outstanding",
+    };
 
-    const ratingOptions =
-        Array.from(
-            {
-                length:
-                    maxRating + 1,
-            },
-            (_, index) =>
-                index
-        );
+    const ratingOptions = Array.from(
+        { length: 11 },
+        (_, index) => index
+    );
 
     // ==========================================================
     // Employee Answer
@@ -336,6 +339,9 @@ const QuestionReviewCard = ({
                                 ratingOptions={
                                     ratingOptions
                                 }
+                                ratingLabels={
+                                    ratingLabels
+                                }
                                 onResultChange={
                                     handleResultChange
                                 }
@@ -354,6 +360,7 @@ const QuestionReviewCard = ({
                             "Manager" &&
                             !canReview &&
                             managerReview && (
+
                             <PreviousQuestionReview
                                 title="Manager"
                                 review={
@@ -422,6 +429,9 @@ const QuestionReviewCard = ({
                                 ratingOptions={
                                     ratingOptions
                                 }
+                                ratingLabels={
+                                    ratingLabels
+                                }
                                 onResultChange={
                                     handleResultChange
                                 }
@@ -440,6 +450,7 @@ const QuestionReviewCard = ({
                             "HR" &&
                             !canReview &&
                             hrReview && (
+
                             <PreviousQuestionReview
                                 title="HR"
                                 review={
@@ -509,6 +520,9 @@ const QuestionReviewCard = ({
                                 ratingOptions={
                                     ratingOptions
                                 }
+                                ratingLabels={
+                                    ratingLabels
+                                }
                                 onResultChange={
                                     handleResultChange
                                 }
@@ -545,6 +559,7 @@ const ReviewControls = ({
     canReview,
     saving,
     ratingOptions,
+    ratingLabels,
     onResultChange,
     onRatingChange,
     onCommentChange,
@@ -667,6 +682,7 @@ const ReviewControls = ({
                             saving
                         }
                     >
+
                         <option value="">
                             Select Rating
                         </option>
@@ -681,7 +697,12 @@ const ReviewControls = ({
                                         value
                                     }
                                 >
-                                    {value}
+                                    {value} -{" "}
+                                    {
+                                        ratingLabels[
+                                            value
+                                        ]
+                                    }
                                 </option>
                             )
                         )}

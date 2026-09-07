@@ -91,39 +91,80 @@ class EvaluationReviewController extends Controller
     /**
      * Create evaluation review.
      *
-     * Manager:
+     * Workflow:
      *
+     * Employee submits
+     *       |
+     *       v
      * submitted
-     *      |
-     *      +---- approved  -> manager_approved
-     *      |
-     *      +---- returned  -> manager_returned
-     *      |
-     *      +---- rejected  -> manager_rejected
+     *       |
+     *       +---- Manager approved
+     *       |          |
+     *       |          v
+     *       |   manager_approved
+     *       |          |
+     *       |          v
+     *       |         HR
+     *       |
+     *       +---- Manager rejected
+     *                  |
+     *                  v
+     *           manager_rejected
+     *                  |
+     *                  v
+     *            Employee edits
+     *                  |
+     *                  v
+     *              Resubmits
+     *                  |
+     *                  v
+     *              submitted
      *
-     * manager_returned / manager_rejected
-     *      |
-     *      +---- Manager can review again
-     *
-     * manager_approved
-     *      |
-     *      +---- HR
-     *
-     * HR:
-     *
-     * manager_approved
-     *      |
-     *      +---- approved  -> hr_approved
-     *      +---- returned  -> hr_returned
-     *      +---- rejected  -> hr_rejected
-     *
-     * Management:
-     *
+     * HR approved
+     *       |
+     *       v
      * hr_approved
-     *      |
-     *      +---- approved  -> completed
-     *      +---- returned  -> management_returned
-     *      +---- rejected  -> management_rejected
+     *       |
+     *       v
+     * Management
+     *
+     * HR rejected
+     *       |
+     *       v
+     * hr_rejected
+     *       |
+     *       v
+     * Employee edits and resubmits
+     *       |
+     *       v
+     * submitted
+     *       |
+     *       v
+     * Manager -> HR -> Management
+     *
+     * Management approved
+     *       |
+     *       v
+     * completed
+     *
+     * Management rejected
+     *       |
+     *       v
+     * management_rejected
+     *       |
+     *       v
+     * Employee edits and resubmits
+     *       |
+     *       v
+     * submitted
+     *       |
+     *       v
+     * Manager -> HR -> Management
+     *
+     * IMPORTANT:
+     *
+     * Review history is append-only.
+     * Existing review records are never updated or deleted.
      */
     public function store(
         StoreEvaluationReviewRequest $request
@@ -184,18 +225,36 @@ class EvaluationReviewController extends Controller
         |--------------------------------------------------------------------------
         */
 
+
         /*
         |--------------------------------------------------------------------------
         | MANAGER
         |--------------------------------------------------------------------------
+        |
+        | Manager can ONLY review submitted evaluations.
+        |
+        | If Manager rejects:
+        |
+        | submitted
+        |    ↓
+        | manager_rejected
+        |    ↓
+        | Employee edits
+        |    ↓
+        | Employee resubmits
+        |    ↓
+        | submitted
+        |
+        | Therefore manager_rejected itself is NOT reviewable.
+        |
         */
 
         if ($role === 'Manager') {
 
             /*
-            |------------------------------------------------------------------
+            |--------------------------------------------------------------------------
             | Manager can review only assigned employees
-            |------------------------------------------------------------------
+            |--------------------------------------------------------------------------
             */
 
             if (
@@ -213,27 +272,21 @@ class EvaluationReviewController extends Controller
 
 
             /*
-            |------------------------------------------------------------------
-            | Allowed Manager Statuses
-            |
-            | submitted
-            | manager_returned
-            | manager_rejected
-            |
-            | manager_approved is VIEW ONLY.
-            |------------------------------------------------------------------
+            |--------------------------------------------------------------------------
+            | Allowed Manager Status
+            |--------------------------------------------------------------------------
             */
 
             $allowedManagerStatuses = [
                 'submitted',
-                'manager_returned',
-                'manager_rejected',
             ];
+
 
             if (
                 !in_array(
                     $evaluation->status,
-                    $allowedManagerStatuses
+                    $allowedManagerStatuses,
+                    true
                 )
             ) {
 
@@ -250,6 +303,9 @@ class EvaluationReviewController extends Controller
         |--------------------------------------------------------------------------
         | HR
         |--------------------------------------------------------------------------
+        |
+        | HR can review only manager-approved evaluations.
+        |
         */
 
         elseif ($role === 'HR') {
@@ -272,6 +328,9 @@ class EvaluationReviewController extends Controller
         |--------------------------------------------------------------------------
         | MANAGEMENT
         |--------------------------------------------------------------------------
+        |
+        | Management can review only HR-approved evaluations.
+        |
         */
 
         elseif ($role === 'Management') {
@@ -294,10 +353,6 @@ class EvaluationReviewController extends Controller
         |--------------------------------------------------------------------------
         | Get Evaluation Answers
         |--------------------------------------------------------------------------
-        |
-        | The questions belonging to this evaluation are taken from
-        | evaluation_answers.
-        |
         */
 
         $evaluationAnswers = $evaluation->answers;
@@ -462,8 +517,9 @@ class EvaluationReviewController extends Controller
                 |--------------------------------------------------------------------------
                 |
                 | IMPORTANT:
-                | Every review submission creates NEW history.
-                | Existing review records are never updated or deleted.
+                |
+                | Every review submission creates NEW records.
+                | Existing records are never updated or deleted.
                 |
                 */
 
@@ -495,10 +551,10 @@ class EvaluationReviewController extends Controller
                             ?? null,
 
                         /*
-                        |------------------------------------------------------
+                        |--------------------------------------------------------------------------
                         | Question-level review does not store action.
                         | Action is stored in stage-level review below.
-                        |------------------------------------------------------
+                        |--------------------------------------------------------------------------
                         */
 
                         'action' => null,
@@ -545,9 +601,9 @@ class EvaluationReviewController extends Controller
 
 
                     /*
-                    |--------------------------------------------------------------
+                    |--------------------------------------------------------------------------
                     | APPROVED
-                    |--------------------------------------------------------------
+                    |--------------------------------------------------------------------------
                     */
 
                     if (
@@ -567,25 +623,9 @@ class EvaluationReviewController extends Controller
 
 
                     /*
-                    |--------------------------------------------------------------
-                    | RETURNED
-                    |--------------------------------------------------------------
-                    */
-
-                    elseif (
-                        $request->action ===
-                        'returned'
-                    ) {
-
-                        $updateData['status'] =
-                            'manager_returned';
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------
+                    |--------------------------------------------------------------------------
                     | REJECTED
-                    |--------------------------------------------------------------
+                    |--------------------------------------------------------------------------
                     */
 
                     elseif (
@@ -625,9 +665,9 @@ class EvaluationReviewController extends Controller
 
 
                     /*
-                    |--------------------------------------------------------------
+                    |--------------------------------------------------------------------------
                     | APPROVED
-                    |--------------------------------------------------------------
+                    |--------------------------------------------------------------------------
                     */
 
                     if (
@@ -647,25 +687,9 @@ class EvaluationReviewController extends Controller
 
 
                     /*
-                    |--------------------------------------------------------------
-                    | RETURNED
-                    |--------------------------------------------------------------
-                    */
-
-                    elseif (
-                        $request->action ===
-                        'returned'
-                    ) {
-
-                        $updateData['status'] =
-                            'hr_returned';
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------
+                    |--------------------------------------------------------------------------
                     | REJECTED
-                    |--------------------------------------------------------------
+                    |--------------------------------------------------------------------------
                     */
 
                     elseif (
@@ -705,9 +729,9 @@ class EvaluationReviewController extends Controller
 
 
                     /*
-                    |--------------------------------------------------------------
+                    |--------------------------------------------------------------------------
                     | APPROVED
-                    |--------------------------------------------------------------
+                    |--------------------------------------------------------------------------
                     */
 
                     if (
@@ -733,25 +757,9 @@ class EvaluationReviewController extends Controller
 
 
                     /*
-                    |--------------------------------------------------------------
-                    | RETURNED
-                    |--------------------------------------------------------------
-                    */
-
-                    elseif (
-                        $request->action ===
-                        'returned'
-                    ) {
-
-                        $updateData['status'] =
-                            'management_returned';
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------
+                    |--------------------------------------------------------------------------
                     | REJECTED
-                    |--------------------------------------------------------------
+                    |--------------------------------------------------------------------------
                     */
 
                     elseif (
@@ -783,7 +791,7 @@ class EvaluationReviewController extends Controller
                 |
                 | question_id = null
                 |
-                | This record stores:
+                | Stores:
                 | - overall rating
                 | - overall comment
                 | - action
@@ -946,13 +954,6 @@ class EvaluationReviewController extends Controller
 
     /**
      * Review history cannot be updated.
-     *
-     * IMPORTANT:
-     * Do NOT use StoreEvaluationReviewRequest here.
-     *
-     * StoreEvaluationReviewRequest contains required fields
-     * for creating a review, so using it here causes validation
-     * errors before this method is executed.
      */
     public function update(
         Request $request,
