@@ -171,6 +171,27 @@ const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
                         )}
                     </span>
                 </div>
+                {/* Submitted At */}
+                <div className="management-form-info">
+                    <span className="management-form-info-label">
+                        Submitted At
+                    </span>
+
+                    <span className="management-form-info-value">
+                        {evaluation?.submitted_at
+                            ? new Date(
+                                evaluation.submitted_at
+                            ).toLocaleString("en-GB", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: true,
+                            })
+                            : "-"}
+                    </span>
+                </div>
 
                 {/* Download */}
               {["HR", "Management", "Admin"].includes(reviewerRole) && (

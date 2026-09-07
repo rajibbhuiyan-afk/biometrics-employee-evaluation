@@ -14,11 +14,27 @@ const EvaluationQuestions = ({
     return (
         <div className="management-form-section">
 
+            {/* ==================================================
+                Header
+            ================================================== */}
+
             <div className="management-form-section-header">
+
                 <h2>
                     Evaluation Questions
                 </h2>
+
+                {canReview && (
+                    <span className="evaluation-review-auto-save-label">
+                        Changes are saved automatically
+                    </span>
+                )}
+
             </div>
+
+            {/* ==================================================
+                Questions
+            ================================================== */}
 
             <div className="evaluation-review-list">
 

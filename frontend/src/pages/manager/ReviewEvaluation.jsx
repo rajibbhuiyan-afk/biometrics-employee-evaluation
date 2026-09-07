@@ -13,7 +13,6 @@ import ReviewSummary from "./review/ReviewSummary";
 import {
     detectReviewerRole,
     getRoleLabel,
-    getReviewByQuestion,
     getOverallReviewByRole,
 } from "./review/reviewHelpers";
 
@@ -36,13 +35,24 @@ const ReviewEvaluation = () => {
     const [overallRating, setOverallRating] = useState("");
     const [overallComment, setOverallComment] = useState("");
 
+    const [autoSaved, setAutoSaved] = useState(false);
+
     // ==========================================================
     // Reviewer Role
     // ==========================================================
 
     const reviewerRole = detectReviewerRole();
 
-    const roleLabel = getRoleLabel(reviewerRole);
+    const roleLabel = getRoleLabel(
+        reviewerRole
+    );
+
+    // ==========================================================
+    // Draft Storage Key
+    // ==========================================================
+
+    const draftStorageKey =
+        `evaluation-review-draft-${id}-${reviewerRole}`;
 
     // ==========================================================
     // Fetch Evaluation
@@ -67,15 +77,13 @@ const ReviewEvaluation = () => {
 
             setEvaluation(data);
 
-            // --------------------------------------------------
-            // Question Reviews
-            // --------------------------------------------------
+            // ==================================================
+            // Existing Backend Question Reviews
+            // ==================================================
 
             const existingReviews = {};
 
-            if (
-                Array.isArray(data?.reviews)
-            ) {
+            if (Array.isArray(data?.reviews)) {
                 data.reviews.forEach((review) => {
                     if (
                         review.question_id !== null &&
@@ -93,22 +101,56 @@ const ReviewEvaluation = () => {
                                 "",
 
                             rating:
-                                review.rating ??
-                                "",
+                                review.rating ?? "",
 
                             comment:
-                                review.comment ||
-                                "",
+                                review.comment || "",
                         };
                     }
                 });
             }
 
-            setReviews(existingReviews);
+            // ==================================================
+            // Restore Local Draft
+            // ==================================================
 
-            // --------------------------------------------------
-            // Overall Review
-            // --------------------------------------------------
+            let finalReviews = {
+                ...existingReviews,
+            };
+
+            try {
+                const savedDraft =
+                    localStorage.getItem(
+                        draftStorageKey
+                    );
+
+                if (savedDraft) {
+                    const parsedDraft =
+                        JSON.parse(savedDraft);
+
+                    if (
+                        parsedDraft?.reviews &&
+                        typeof parsedDraft.reviews ===
+                            "object"
+                    ) {
+                        finalReviews = {
+                            ...existingReviews,
+                            ...parsedDraft.reviews,
+                        };
+                    }
+                }
+            } catch (storageError) {
+                console.warn(
+                    "Unable to restore review draft:",
+                    storageError
+                );
+            }
+
+            setReviews(finalReviews);
+
+            // ==================================================
+            // Existing Overall Review
+            // ==================================================
 
             const currentOverall =
                 getOverallReviewByRole(
@@ -122,9 +164,9 @@ const ReviewEvaluation = () => {
             let stageOverallComment =
                 currentOverall?.comment || "";
 
-            // --------------------------------------------------
-            // Fallback
-            // --------------------------------------------------
+            // ==================================================
+            // Fallback Overall Rating
+            // ==================================================
 
             if (
                 stageOverallRating === "" ||
@@ -156,6 +198,47 @@ const ReviewEvaluation = () => {
                 }
             }
 
+            // ==================================================
+            // Restore Overall Draft
+            // ==================================================
+
+            try {
+                const savedDraft =
+                    localStorage.getItem(
+                        draftStorageKey
+                    );
+
+                if (savedDraft) {
+                    const parsedDraft =
+                        JSON.parse(savedDraft);
+
+                    if (
+                        parsedDraft?.overallRating !==
+                            undefined &&
+                        parsedDraft?.overallRating !==
+                            null
+                    ) {
+                        stageOverallRating =
+                            parsedDraft.overallRating;
+                    }
+
+                    if (
+                        parsedDraft?.overallComment !==
+                            undefined &&
+                        parsedDraft?.overallComment !==
+                            null
+                    ) {
+                        stageOverallComment =
+                            parsedDraft.overallComment;
+                    }
+                }
+            } catch (storageError) {
+                console.warn(
+                    "Unable to restore overall draft:",
+                    storageError
+                );
+            }
+
             setOverallRating(
                 stageOverallRating
             );
@@ -163,7 +246,6 @@ const ReviewEvaluation = () => {
             setOverallComment(
                 stageOverallComment
             );
-
         } catch (err) {
             console.error(
                 "Failed to load evaluation:",
@@ -189,43 +271,17 @@ const ReviewEvaluation = () => {
             : [];
 
     // ==========================================================
-    // Review State
-    // ==========================================================
-
-    const updateReview = (
-        questionId,
-        field,
-        value
-    ) => {
-        setReviews((prev) => ({
-            ...prev,
-
-            [questionId]: {
-                ...(prev[questionId] || {}),
-                [field]: value,
-            },
-        }));
-    };
-
-    const setReviewResult = (
-        questionId,
-        result
-    ) => {
-        updateReview(
-            questionId,
-            "review_result",
-            result
-        );
-    };
-
-    // ==========================================================
-    // Can Review
+    // Can Current Role Review
     // ==========================================================
 
     const canCurrentRoleReview = () => {
         if (!evaluation) {
             return false;
         }
+
+        // ------------------------------------------------------
+        // Manager
+        // ------------------------------------------------------
 
         if (
             reviewerRole === "Manager"
@@ -239,6 +295,10 @@ const ReviewEvaluation = () => {
             );
         }
 
+        // ------------------------------------------------------
+        // HR
+        // ------------------------------------------------------
+
         if (
             reviewerRole === "HR"
         ) {
@@ -250,6 +310,10 @@ const ReviewEvaluation = () => {
                 evaluation.status
             );
         }
+
+        // ------------------------------------------------------
+        // Management
+        // ------------------------------------------------------
 
         if (
             reviewerRole === "Management"
@@ -278,6 +342,10 @@ const ReviewEvaluation = () => {
             return false;
         }
 
+        // ------------------------------------------------------
+        // Manager
+        // ------------------------------------------------------
+
         if (
             reviewerRole === "Manager"
         ) {
@@ -287,6 +355,10 @@ const ReviewEvaluation = () => {
             );
         }
 
+        // ------------------------------------------------------
+        // HR
+        // ------------------------------------------------------
+
         if (
             reviewerRole === "HR"
         ) {
@@ -295,6 +367,10 @@ const ReviewEvaluation = () => {
                 "hr_approved"
             );
         }
+
+        // ------------------------------------------------------
+        // Management
+        // ------------------------------------------------------
 
         if (
             reviewerRole === "Management"
@@ -312,23 +388,203 @@ const ReviewEvaluation = () => {
         isCurrentStageApproved();
 
     // ==========================================================
-    // Validation
+    // Update Review
     // ==========================================================
 
-    const isQuestionReviewed = (
-        questionId
+    const updateReview = (
+        questionId,
+        field,
+        value
     ) => {
-        const review =
-            reviews[questionId];
+        if (!canReview) {
+            return;
+        }
 
-        return (
-            review &&
-            review.review_result &&
-            review.rating !== "" &&
-            review.rating !== null &&
-            review.rating !== undefined
+        setReviews((prev) => ({
+            ...prev,
+
+            [questionId]: {
+                ...(prev[questionId] || {}),
+                [field]: value,
+            },
+        }));
+    };
+
+    // ==========================================================
+    // Set Review Result
+    // ==========================================================
+
+    const setReviewResult = (
+        questionId,
+        result
+    ) => {
+        if (!canReview) {
+            return;
+        }
+
+        setReviews((prev) => {
+            const previous =
+                prev[questionId] || {};
+
+            // ==================================================
+            // ACCEPT
+            //
+            // Question immediately becomes reviewed.
+            // Rating can then be selected.
+            // ==================================================
+
+            if (result === "okay") {
+                return {
+                    ...prev,
+
+                    [questionId]: {
+                        ...previous,
+
+                        review_result:
+                            "okay",
+
+                        comment: "",
+                    },
+                };
+            }
+
+            // ==================================================
+            // REJECT
+            //
+            // Question immediately becomes reviewed.
+            // Comment can then be entered.
+            // ==================================================
+
+            if (result === "not_okay") {
+                return {
+                    ...prev,
+
+                    [questionId]: {
+                        ...previous,
+
+                        review_result:
+                            "not_okay",
+
+                        rating: "",
+                    },
+                };
+            }
+
+            // ==================================================
+            // IGNORE
+            //
+            // Question immediately becomes reviewed.
+            // No rating/comment required.
+            // ==================================================
+
+            if (result === "ignore") {
+                return {
+                    ...prev,
+
+                    [questionId]: {
+                        ...previous,
+
+                        review_result:
+                            "ignore",
+
+                        rating: "",
+
+                        comment: "",
+                    },
+                };
+            }
+
+            return {
+                ...prev,
+
+                [questionId]: {
+                    ...previous,
+
+                    review_result:
+                        result,
+                },
+            };
+        });
+    };
+
+    // ==========================================================
+    // Auto Save Draft
+    // ==========================================================
+
+    useEffect(() => {
+        if (
+            loading ||
+            !evaluation ||
+            !canReview
+        ) {
+            return;
+        }
+
+        const timer =
+            setTimeout(() => {
+                try {
+                    const draft = {
+                        reviews,
+                        overallRating,
+                        overallComment,
+                        savedAt:
+                            new Date().toISOString(),
+                    };
+
+                    localStorage.setItem(
+                        draftStorageKey,
+                        JSON.stringify(draft)
+                    );
+
+                    setAutoSaved(true);
+
+                    setTimeout(() => {
+                        setAutoSaved(false);
+                    }, 1500);
+                } catch (storageError) {
+                    console.error(
+                        "Failed to auto-save review draft:",
+                        storageError
+                    );
+                }
+            }, 500);
+
+        return () => {
+            clearTimeout(timer);
+        };
+    }, [
+        reviews,
+        overallRating,
+        overallComment,
+        loading,
+        evaluation,
+        canReview,
+        draftStorageKey,
+    ]);
+
+    // ==========================================================
+    // Question Reviewed
+    // ==========================================================
+    //
+    // IMPORTANT:
+    //
+    // Accept / Reject / Ignore
+    // যেকোনো একটি select করলেই question reviewed.
+    //
+    // Accept-এর rating এবং Reject-এর comment
+    // final validation-এর সময় check হবে.
+    //
+    // ==========================================================
+
+    const isQuestionReviewed = (review) => {
+        return Boolean(
+            review?.review_result
         );
     };
+
+    // ==========================================================
+    // All Questions Reviewed
+    // ==========================================================
 
     const allQuestionsReviewed = () => {
         if (
@@ -338,86 +594,123 @@ const ReviewEvaluation = () => {
         }
 
         return questions.every(
-            (answer) =>
-                isQuestionReviewed(
-                    answer.question_id
-                )
+            (answer) => {
+                const review =
+                    reviews[
+                        answer.question_id
+                    ] || {};
+
+                return isQuestionReviewed(
+                    review
+                );
+            }
         );
     };
 
+    // ==========================================================
+    // Validate Reviews
+    // ==========================================================
+
     const validateReviews = () => {
-        if (
-            questions.length === 0
-        ) {
-            return "No evaluation questions found.";
-        }
+        const errors = [];
 
-        for (
-            const answer of questions
-        ) {
-            const questionId =
-                answer.question_id;
+        questions.forEach(
+            (answer, index) => {
+                const questionId =
+                    answer.question_id;
 
-            const review =
-                reviews[questionId];
+                const review =
+                    reviews[
+                        questionId
+                    ] || {};
 
-            if (
-                !review ||
-                !review.review_result
-            ) {
-                return `Please Accept or Reject Question ${questionId}.`;
+                const result =
+                    review.review_result;
+
+                // ------------------------------------------------
+                // No result
+                // ------------------------------------------------
+
+                if (!result) {
+                    errors.push(
+                        `Question ${index + 1}: Please select Accept, Reject, or Ignore.`
+                    );
+
+                    return;
+                }
+
+                // ------------------------------------------------
+                // Ignore
+                //
+                // Nothing else is required.
+                // ------------------------------------------------
+
+                if (
+                    result === "ignore"
+                ) {
+                    return;
+                }
+
+                // ------------------------------------------------
+                // Accept
+                //
+                // Rating is required.
+                // ------------------------------------------------
+
+                if (
+                    result === "okay"
+                ) {
+                    if (
+                        review.rating === "" ||
+                        review.rating === null ||
+                        review.rating === undefined
+                    ) {
+                        errors.push(
+                            `Question ${index + 1}: Please provide a review rating.`
+                        );
+                    }
+
+                    return;
+                }
+
+                // ------------------------------------------------
+                // Reject
+                //
+                // Comment is required.
+                // ------------------------------------------------
+
+                if (
+                    result === "not_okay"
+                ) {
+                    if (
+                        !review.comment ||
+                        !review.comment.trim()
+                    ) {
+                        errors.push(
+                            `Question ${index + 1}: Please provide a rejection comment.`
+                        );
+                    }
+
+                    return;
+                }
             }
+        );
 
-            if (
-                review.rating === "" ||
-                review.rating === null ||
-                review.rating === undefined
-            ) {
-                return `Please provide a rating for Question ${questionId}.`;
-            }
-
-            const rating =
-                Number(review.rating);
-
-            if (
-                Number.isNaN(rating) ||
-                rating < 0 ||
-                rating > 10
-            ) {
-                return `Rating for Question ${questionId} must be between 0 and 10.`;
-            }
-
-            if (
-                review.review_result ===
-                    "not_okay" &&
-                !String(
-                    review.comment || ""
-                ).trim()
-            ) {
-                return `Please provide a comment for rejected Question ${questionId}.`;
-            }
-        }
+        // ======================================================
+        // Overall Rating
+        // ======================================================
 
         if (
             overallRating === "" ||
             overallRating === null ||
             overallRating === undefined
         ) {
-            return `Please provide the overall ${roleLabel.toLowerCase()} rating.`;
+            errors.push(
+                "Please provide the overall rating."
+            );
         }
 
-        const overall =
-            Number(overallRating);
-
-        if (
-            Number.isNaN(overall) ||
-            overall < 0 ||
-            overall > 10
-        ) {
-            return "Overall rating must be between 0 and 10.";
-        }
-
-        return null;
+        return errors;
     };
 
     // ==========================================================
@@ -429,22 +722,32 @@ const ReviewEvaluation = () => {
     ) => {
         setError("");
 
-        const validationError =
+        // ======================================================
+        // Validate Question Reviews
+        // ======================================================
+
+        const validationErrors =
             validateReviews();
 
-        if (validationError) {
+        if (
+            validationErrors.length > 0
+        ) {
             setError(
-                validationError
+                validationErrors.join("\n")
             );
 
             return;
         }
 
+        // ======================================================
+        // Validate All Questions
+        // ======================================================
+
         if (
             !allQuestionsReviewed()
         ) {
             setError(
-                `Please Accept or Reject all questions before submitting the ${roleLabel} review.`
+                `Please Accept, Reject or Ignore all questions before submitting the ${roleLabel} review.`
             );
 
             return;
@@ -452,6 +755,10 @@ const ReviewEvaluation = () => {
 
         try {
             setSaving(true);
+
+            // ==================================================
+            // Question Reviews
+            // ==================================================
 
             const questionReviews =
                 questions.map(
@@ -462,7 +769,11 @@ const ReviewEvaluation = () => {
                         const review =
                             reviews[
                                 questionId
-                            ];
+                            ] || {};
+
+                        const isIgnored =
+                            review.review_result ===
+                            "ignore";
 
                         return {
                             question_id:
@@ -474,9 +785,18 @@ const ReviewEvaluation = () => {
                                 review.review_result,
 
                             rating:
-                                Number(
-                                    review.rating
-                                ),
+                                isIgnored
+                                    ? null
+                                    : review.rating !==
+                                          "" &&
+                                      review.rating !==
+                                          null &&
+                                      review.rating !==
+                                          undefined
+                                    ? Number(
+                                          review.rating
+                                      )
+                                    : null,
 
                             comment:
                                 String(
@@ -487,6 +807,10 @@ const ReviewEvaluation = () => {
                         };
                     }
                 );
+
+            // ==================================================
+            // Payload
+            // ==================================================
 
             const payload = {
                 evaluation_id:
@@ -518,13 +842,32 @@ const ReviewEvaluation = () => {
                 payload
             );
 
+            // ==================================================
+            // Submit To Backend
+            // ==================================================
+
             await api.post(
                 "/evaluation-reviews",
                 payload
             );
 
             // ==================================================
-            // Correct Redirect
+            // Clear Local Draft
+            // ==================================================
+
+            try {
+                localStorage.removeItem(
+                    draftStorageKey
+                );
+            } catch (storageError) {
+                console.warn(
+                    "Failed to clear review draft:",
+                    storageError
+                );
+            }
+
+            // ==================================================
+            // Redirect
             // ==================================================
 
             if (
@@ -556,7 +899,6 @@ const ReviewEvaluation = () => {
 
                 return;
             }
-
         } catch (err) {
             console.error(
                 "Failed to submit review:",
@@ -585,9 +927,11 @@ const ReviewEvaluation = () => {
                 />
 
                 <div className="management-form-section">
+
                     <p>
                         Loading evaluation...
                     </p>
+
                 </div>
 
             </div>
@@ -595,7 +939,7 @@ const ReviewEvaluation = () => {
     }
 
     // ==========================================================
-    // Error
+    // Error Without Evaluation
     // ==========================================================
 
     if (
@@ -632,7 +976,7 @@ const ReviewEvaluation = () => {
     }
 
     // ==========================================================
-    // Not Found
+    // Evaluation Not Found
     // ==========================================================
 
     if (!evaluation) {
@@ -666,7 +1010,7 @@ const ReviewEvaluation = () => {
     }
 
     // ==========================================================
-    // Previous Reviews
+    // Previous Overall Reviews
     // ==========================================================
 
     const managerOverall =
@@ -688,18 +1032,44 @@ const ReviewEvaluation = () => {
         );
 
     // ==========================================================
+    // Current Question Review Status
+    // ==========================================================
+
+    const questionsReviewed =
+        allQuestionsReviewed();
+
+    // ==========================================================
     // Render
     // ==========================================================
 
     return (
         <div className="management-page">
 
+            {/* ==================================================
+                Page Header
+            ================================================== */}
+
             <PageHeader
                 title={`${roleLabel} Review Evaluation`}
-                subtitle={`Review employee self-evaluation as ${roleLabel}`}
+                subtitle={
+                    `Review employee self-evaluation as ${roleLabel}`
+                }
             />
 
-            {/* Error */}
+            {/* ==================================================
+                Auto Save Status
+            ================================================== */}
+
+            {canReview &&
+                autoSaved && (
+                    <div className="evaluation-auto-save-status">
+                        ✓ Draft saved automatically
+                    </div>
+                )}
+
+            {/* ==================================================
+                Error
+            ================================================== */}
 
             {error && (
                 <div className="management-error">
@@ -707,14 +1077,18 @@ const ReviewEvaluation = () => {
                 </div>
             )}
 
-            {/* Employee Information */}
+            {/* ==================================================
+                Employee Information
+            ================================================== */}
 
             <EmployeeInformation
                 evaluation={evaluation}
                 reviewerRole={reviewerRole}
             />
 
-            {/* Employee Comment */}
+            {/* ==================================================
+                Employee Comment
+            ================================================== */}
 
             <EmployeeComment
                 comment={
@@ -722,7 +1096,9 @@ const ReviewEvaluation = () => {
                 }
             />
 
-            {/* Questions */}
+            {/* ==================================================
+                Evaluation Questions
+            ================================================== */}
 
             <EvaluationQuestions
                 questions={questions}
@@ -758,12 +1134,20 @@ const ReviewEvaluation = () => {
                 }
             />
 
-            {/* Current Overall Review */}
+            {/* ==================================================
+                Overall Review
+            ================================================== */}
 
             <OverallReviewForm
-                reviewerRole={reviewerRole}
-                canReview={canReview}
-                saving={saving}
+                reviewerRole={
+                    reviewerRole
+                }
+                canReview={
+                    canReview
+                }
+                saving={
+                    saving
+                }
                 overallRating={
                     overallRating
                 }
@@ -771,7 +1155,7 @@ const ReviewEvaluation = () => {
                     overallComment
                 }
                 allQuestionsReviewed={
-                    allQuestionsReviewed()
+                    questionsReviewed
                 }
                 onRatingChange={
                     setOverallRating
@@ -784,7 +1168,9 @@ const ReviewEvaluation = () => {
                 }
             />
 
-            {/* Review Summary */}
+            {/* ==================================================
+                Review Summary
+            ================================================== */}
 
             <ReviewSummary
                 reviewerRole={
@@ -816,7 +1202,9 @@ const ReviewEvaluation = () => {
                 }
             />
 
-            {/* Back */}
+            {/* ==================================================
+                Back Button
+            ================================================== */}
 
             <div className="management-form-actions">
 

@@ -58,8 +58,6 @@ return new class extends Migration
             | Reviewer Role
             |--------------------------------------------------------------------------
             |
-            | Admin is NOT a reviewer.
-            |
             | Workflow:
             | Manager → HR → Management
             |
@@ -76,11 +74,19 @@ return new class extends Migration
             |--------------------------------------------------------------------------
             | Question Review Result
             |--------------------------------------------------------------------------
+            |
+            | okay     = Accept
+            | not_okay = Reject
+            | ignore   = Ignore
+            |
+            | nullable because stage-level review has question_id = NULL
+            |
             */
 
             $table->enum('review_result', [
                 'okay',
                 'not_okay',
+                'ignore',
             ])->nullable();
 
 
@@ -89,11 +95,17 @@ return new class extends Migration
             | Rating
             |--------------------------------------------------------------------------
             |
-            | Rating scale: 0 - 10
+            | Rating is required only for "okay" at validation level.
+            | Database column must be nullable because:
+            |
+            | not_okay → rating = NULL
+            | ignore   → rating = NULL
+            | stage review → rating can be overall rating
             |
             */
 
-            $table->decimal('rating', 4, 2)->nullable();
+            $table->decimal('rating', 4, 2)
+                ->nullable();
 
 
             /*
@@ -101,12 +113,14 @@ return new class extends Migration
             | Comment / Reason
             |--------------------------------------------------------------------------
             |
-            | For question review:
-            | not_okay → comment/reason required
+            | not_okay → comment required at validation level
+            | okay      → comment optional
+            | ignore    → comment NULL
             |
             */
 
-            $table->text('comment')->nullable();
+            $table->text('comment')
+                ->nullable();
 
 
             /*
@@ -114,7 +128,7 @@ return new class extends Migration
             | Overall Review Action
             |--------------------------------------------------------------------------
             |
-            | This is mainly used for the stage-level review
+            | Used mainly for stage-level review
             | where question_id is NULL.
             |
             */
@@ -132,7 +146,9 @@ return new class extends Migration
             |--------------------------------------------------------------------------
             */
 
-            $table->timestamp('reviewed_at')->nullable();
+            $table->timestamp('reviewed_at')
+                ->nullable();
+
 
             $table->timestamps();
         });

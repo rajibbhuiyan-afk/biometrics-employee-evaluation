@@ -1141,7 +1141,11 @@ const EvaluationDetails = () => {
     // =========================================================
 
     const canEdit =
-        evaluation.status === "draft";
+        evaluation.status === [
+            "draft",
+            "manager_returned",
+            "manager_rejected",
+        ].includes(evaluation.status);
 
     const isReadOnly = !canEdit;
 
@@ -1723,7 +1727,7 @@ const EvaluationDetails = () => {
                             Manual Save
                         =============================== */}
 
-                        <button
+                        {/* <button
                             type="button"
                             className="evaluation-save-button"
                             disabled={
@@ -1738,7 +1742,7 @@ const EvaluationDetails = () => {
                             {saving
                                 ? "Saving..."
                                 : "Save Answers"}
-                        </button>
+                        </button> */}
 
                         {/* ===============================
                             Submit

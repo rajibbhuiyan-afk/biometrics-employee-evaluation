@@ -11,88 +11,42 @@ const CurrentQuestionReview = ({
 }) => {
     const roleLabel = getRoleLabel(reviewerRole);
 
+    const reviewResult =
+        currentReview?.review_result || "";
+
     const isAccepted =
-        currentReview?.review_result === "okay";
+        reviewResult === "okay";
 
     const isRejected =
-        currentReview?.review_result === "not_okay";
+        reviewResult === "not_okay";
+
+    const isIgnored =
+        reviewResult === "ignored";
+
+    const ratingLabels = {
+        0: "0 - Not Rated",
+        1: "1 - Very Poor",
+        2: "2 - Poor",
+        3: "3 - Needs Improvement",
+        4: "4 - Below Expectations",
+        5: "5 - Meets Expectations",
+        6: "6 - Satisfactory",
+        7: "7 - Good",
+        8: "8 - Very Good",
+        9: "9 - Excellent",
+        10: "10 - Outstanding",
+    };
 
     return (
         <div className="evaluation-current-review">
 
-            {/* Rating */}
-
-            <div className="evaluation-review-form-group">
-
-                <label>
-                    Rating
-                    <span className="required-star">
-                        *
-                    </span>
-                </label>
-
-                <select
-                    value={
-                        currentReview?.rating ?? ""
-                    }
-                    onChange={(e) =>
-                        onRatingChange(
-                            questionId,
-                            e.target.value
-                        )
-                    }
-                    disabled={saving}
-                >
-                    <option value="">
-                        Select
-                    </option>
-
-                    {/* {Array.from(
-                        { length: 11 },
-                        (_, rating) => (
-                            <option
-                                key={rating}
-                                value={rating}
-                            >
-                                {rating}
-                            </option>
-                        )
-                    )} */}
-                    {Array.from({ length: 11 }, (_, index) => index).map(
-                        (rating) => {
-                            const labels = {
-                                0: "0 - Not Rated",
-                                1: "1 - Very Poor",
-                                2: "2 - Poor",
-                                3: "3 - Needs Improvement",
-                                4: "4 - Below Expectations",
-                                5: "5 - Meets Expectations",
-                                6: "6 - Satisfactory",
-                                7: "7 - Good",
-                                8: "8 - Very Good",
-                                9: "9 - Excellent",
-                                10: "10 - Outstanding",
-                            };
-
-                            return (
-                                <option
-                                    key={rating}
-                                    value={rating}
-                                >
-                                    {labels[rating]}
-                                </option>
-                            );
-                        }
-                    )}
-                </select>
-
-            </div>
-
-
-            {/* Accept / Reject */}
+            {/* ==================================================
+                Accept / Reject / Ignore
+            ================================================== */}
 
             <div className="evaluation-review-decision">
 
+                {/* Accept */}
                 <button
                     type="button"
                     className={
@@ -111,6 +65,7 @@ const CurrentQuestionReview = ({
                     ✓ Accept
                 </button>
 
+                {/* Reject */}
                 <button
                     type="button"
                     className={
@@ -129,45 +84,117 @@ const CurrentQuestionReview = ({
                     ✕ Reject
                 </button>
 
+                {/* Ignore */}
+                <button
+                    type="button"
+                    className={
+                        isIgnored
+                            ? "evaluation-review-ignore active"
+                            : "evaluation-review-ignore"
+                    }
+                    onClick={() =>
+                        onResultChange(
+                            questionId,
+                            "ignored"
+                        )
+                    }
+                    disabled={saving}
+                >
+                    — Ignore
+                </button>
+
             </div>
 
 
-            {/* Comment */}
+            {/* ==================================================
+                Accept -> Rating
+            ================================================== */}
 
-            <div className="evaluation-review-form-group">
+            {isAccepted && (
+                <div className="evaluation-review-form-group">
 
-                <label>
-                    {isRejected
-                        ? `${roleLabel} Comment`
-                        : "Comment"}
-
-                    {isRejected && (
+                    <label>
+                        Rating
                         <span className="required-star">
                             *
                         </span>
-                    )}
-                </label>
+                    </label>
 
-                <textarea
-                    value={
-                        currentReview?.comment || ""
-                    }
-                    onChange={(e) =>
-                        onCommentChange(
-                            questionId,
-                            e.target.value
-                        )
-                    }
-                    placeholder={
-                        isRejected
-                            ? "Reason for rejection..."
-                            : "Optional comment..."
-                    }
-                    disabled={saving}
-                    rows="3"
-                />
+                    <select
+                        value={
+                            currentReview?.rating ?? ""
+                        }
+                        onChange={(e) =>
+                            onRatingChange(
+                                questionId,
+                                e.target.value
+                            )
+                        }
+                        disabled={saving}
+                    >
+                        <option value="">
+                            Select Rating
+                        </option>
 
-            </div>
+                        {Array.from(
+                            { length: 11 },
+                            (_, index) => index
+                        ).map((rating) => (
+                            <option
+                                key={rating}
+                                value={rating}
+                            >
+                                {ratingLabels[rating]}
+                            </option>
+                        ))}
+                    </select>
+
+                </div>
+            )}
+
+
+            {/* ==================================================
+                Reject -> Comment
+            ================================================== */}
+
+            {isRejected && (
+                <div className="evaluation-review-form-group">
+
+                    <label>
+                        {roleLabel} Comment
+                        <span className="required-star">
+                            *
+                        </span>
+                    </label>
+
+                    <textarea
+                        value={
+                            currentReview?.comment || ""
+                        }
+                        onChange={(e) =>
+                            onCommentChange(
+                                questionId,
+                                e.target.value
+                            )
+                        }
+                        placeholder="Reason for rejection..."
+                        disabled={saving}
+                        rows="3"
+                    />
+
+                </div>
+            )}
+
+
+            {/* ==================================================
+                Ignore -> Nothing
+            ================================================== */}
+
+            {isIgnored && (
+                <div className="evaluation-review-ignored-message">
+                    This question is ignored.
+                </div>
+            )}
 
         </div>
     );
