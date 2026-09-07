@@ -140,20 +140,20 @@ const ManagementLayout = () => {
             label: "Create Evaluation",
             path: "/management/employee/evaluations/create",
             end: true,
-            roles: ["Employee"],
+            roles: ["Employee", "HR", "Manager"],
         },
 
         {
             label: "My Evaluations",
             path: "/management/employee/evaluations",
             end: true,
-            roles: ["Employee"],
+            roles: ["Employee", "HR", "Manager"],
         },
         {
             label: "My Profile",
             path: "/management/employee/profile",
             end: true,
-            roles: ["Employee"],
+            roles: ["Employee", "HR", "Manager"],
         },
 
 

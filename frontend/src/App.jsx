@@ -332,6 +332,10 @@ function App() {
                         path="probation-periods/:id/edit"
                         element={<EditProbationPeriod />}
                     />
+                    <Route
+                        path="/management/employee/evaluations/:id/review"
+                        element={<ReviewEvaluation />}
+                    />
 
                 </Route>
 

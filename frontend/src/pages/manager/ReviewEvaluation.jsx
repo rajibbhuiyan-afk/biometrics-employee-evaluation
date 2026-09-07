@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import api from "../../api/axios";
 import PageHeader from "../../components/PageHeader";
+import { useAuth } from "../../context/AuthContext";
 
 import EmployeeInformation from "./review/EmployeeInformation";
 import EmployeeComment from "./review/EmployeeComment";
@@ -19,6 +20,12 @@ import {
 const ReviewEvaluation = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+
+    // ==========================================================
+    // Auth User
+    // ==========================================================
+
+    const { user } = useAuth();
 
     // ==========================================================
     // State
@@ -40,12 +47,30 @@ const ReviewEvaluation = () => {
     // ==========================================================
     // Reviewer Role
     // ==========================================================
+    //
+    // IMPORTANT:
+    // Reviewer role comes from logged-in user's actual role.
+    //
+    // Employee    -> Employee
+    // Manager     -> Manager
+    // HR          -> HR
+    // Management  -> Management
+    //
+    // URL is used only as fallback.
+    // ==========================================================
 
-    const reviewerRole = detectReviewerRole();
+    const loggedInRole =
+        user?.role?.name ||
+        user?.role ||
+        "";
 
-    const roleLabel = getRoleLabel(
-        reviewerRole
-    );
+    const reviewerRole =
+        String(loggedInRole).trim() !== ""
+            ? String(loggedInRole).trim()
+            : detectReviewerRole();
+
+    const roleLabel =
+        getRoleLabel(reviewerRole);
 
     // ==========================================================
     // Draft Storage Key
@@ -65,8 +90,7 @@ const ReviewEvaluation = () => {
     ) => {
         try {
             const draft = {
-                reviews:
-                    nextReviews || {},
+                reviews: nextReviews || {},
 
                 overallRating:
                     nextOverallRating ?? "",
@@ -85,7 +109,6 @@ const ReviewEvaluation = () => {
 
             setAutoSaved(true);
 
-            // Hide notification after 1.5 seconds
             setTimeout(() => {
                 setAutoSaved(false);
             }, 1500);
@@ -104,7 +127,7 @@ const ReviewEvaluation = () => {
 
     useEffect(() => {
         fetchEvaluation();
-    }, [id]);
+    }, [id, reviewerRole]);
 
     const fetchEvaluation = async () => {
         try {
@@ -127,41 +150,37 @@ const ReviewEvaluation = () => {
 
             const existingReviews = {};
 
-            if (
-                Array.isArray(
-                    data?.reviews
-                )
-            ) {
-                data.reviews.forEach(
-                    (review) => {
-                        if (
-                            review.question_id !==
-                                null &&
-                            review.question_id !==
-                                undefined &&
+            if (Array.isArray(data?.reviews)) {
+
+                data.reviews.forEach((review) => {
+
+                    if (
+                        review.question_id !== null &&
+                        review.question_id !== undefined &&
+                        String(
+                            review.reviewer_role || ""
+                        ).trim().toLowerCase() ===
                             String(
-                                review.reviewer_role
-                            ).toLowerCase() ===
-                                reviewerRole.toLowerCase()
-                        ) {
-                            existingReviews[
-                                review.question_id
-                            ] = {
-                                review_result:
-                                    review.review_result ||
-                                    "",
+                                reviewerRole || ""
+                            ).trim().toLowerCase()
+                    ) {
+                        existingReviews[
+                            review.question_id
+                        ] = {
+                            review_result:
+                                review.review_result ||
+                                "",
 
-                                rating:
-                                    review.rating ??
-                                    "",
+                            rating:
+                                review.rating ??
+                                "",
 
-                                comment:
-                                    review.comment ||
-                                    "",
-                            };
-                        }
+                            comment:
+                                review.comment ||
+                                "",
+                        };
                     }
-                );
+                });
             }
 
             // ==================================================
@@ -175,18 +194,22 @@ const ReviewEvaluation = () => {
             let savedDraft = null;
 
             try {
+
                 const storedDraft =
                     localStorage.getItem(
                         draftStorageKey
                     );
 
                 if (storedDraft) {
+
                     savedDraft =
                         JSON.parse(
                             storedDraft
                         );
                 }
+
             } catch (storageError) {
+
                 console.warn(
                     "Unable to parse review draft:",
                     storageError
@@ -198,6 +221,7 @@ const ReviewEvaluation = () => {
                 typeof savedDraft.reviews ===
                     "object"
             ) {
+
                 finalReviews = {
                     ...existingReviews,
                     ...savedDraft.reviews,
@@ -235,28 +259,47 @@ const ReviewEvaluation = () => {
                 stageOverallRating === null ||
                 stageOverallRating === undefined
             ) {
+
+                const normalizedRole =
+                    String(
+                        reviewerRole || ""
+                    ).trim().toLowerCase();
+
                 if (
-                    reviewerRole ===
-                    "Manager"
+                    normalizedRole ===
+                    "employee"
                 ) {
+
+                    stageOverallRating =
+                        data?.employee_overall_rating ??
+                        "";
+                }
+
+                if (
+                    normalizedRole ===
+                    "manager"
+                ) {
+
                     stageOverallRating =
                         data?.manager_overall_rating ??
                         "";
                 }
 
                 if (
-                    reviewerRole ===
-                    "HR"
+                    normalizedRole ===
+                    "hr"
                 ) {
+
                     stageOverallRating =
                         data?.hr_overall_rating ??
                         "";
                 }
 
                 if (
-                    reviewerRole ===
-                    "Management"
+                    normalizedRole ===
+                    "management"
                 ) {
+
                     stageOverallRating =
                         data?.management_overall_rating ??
                         "";
@@ -265,7 +308,6 @@ const ReviewEvaluation = () => {
 
             // ==================================================
             // Restore Overall Draft
-            // Local Draft Has Priority
             // ==================================================
 
             if (
@@ -275,6 +317,7 @@ const ReviewEvaluation = () => {
                 savedDraft.overallRating !==
                     null
             ) {
+
                 stageOverallRating =
                     savedDraft.overallRating;
             }
@@ -286,6 +329,7 @@ const ReviewEvaluation = () => {
                 savedDraft.overallComment !==
                     null
             ) {
+
                 stageOverallComment =
                     savedDraft.overallComment;
             }
@@ -299,6 +343,7 @@ const ReviewEvaluation = () => {
             );
 
         } catch (err) {
+
             console.error(
                 "Failed to load evaluation:",
                 err
@@ -308,7 +353,9 @@ const ReviewEvaluation = () => {
                 err.response?.data?.message ||
                     "Failed to load evaluation."
             );
+
         } finally {
+
             setLoading(false);
         }
     };
@@ -318,61 +365,195 @@ const ReviewEvaluation = () => {
     // ==========================================================
 
     const questions =
-        Array.isArray(
-            evaluation?.answers
-        )
+        Array.isArray(evaluation?.answers)
             ? evaluation.answers
             : [];
+
+    // ==========================================================
+    // Reporting To Role
+    // ==========================================================
+
+    const reportingToRole =
+        evaluation
+            ?.employee
+            ?.manager
+            ?.role
+            ?.name || null;
+
+    // ==========================================================
+    // Employee Role
+    // ==========================================================
+
+    const employeeRole =
+        evaluation
+            ?.employee
+            ?.role
+            ?.name || null;
+
+    // ==========================================================
+    // HR Self Evaluation
+    // ==========================================================
+
+    const isHrSelfEvaluation =
+        String(
+            employeeRole || ""
+        ).trim().toLowerCase() ===
+        "hr";
+
+    // ==========================================================
+    // Direct Management Evaluation
+    // ==========================================================
+
+    const reportsDirectlyToManagement =
+        String(
+            reportingToRole || ""
+        ).trim().toLowerCase() ===
+        "management";
 
     // ==========================================================
     // Can Current Role Review
     // ==========================================================
 
     const canCurrentRoleReview = () => {
+
         if (!evaluation) {
             return false;
         }
 
-        // ------------------------------------------------------
-        // Manager
-        // ------------------------------------------------------
+        const status =
+            String(
+                evaluation.status || ""
+            ).trim().toLowerCase();
+
+        const currentReviewerRole =
+            String(
+                reviewerRole || ""
+            ).trim().toLowerCase();
+
+        const currentReportingToRole =
+            String(
+                reportingToRole || ""
+            ).trim().toLowerCase();
+
+        // ======================================================
+        // EMPLOYEE REVIEWER
+        // ======================================================
+        //
+        // Employee B reviews Employee A.
+        //
+        // Employee reviewer can review a submitted evaluation.
+        // Backend will verify actual reviewer ownership.
+        // ======================================================
 
         if (
-            reviewerRole ===
-            "Manager"
+            currentReviewerRole ===
+            "employee"
         ) {
+
             return (
-                evaluation.status ===
+                status ===
                 "submitted"
             );
         }
 
-        // ------------------------------------------------------
-        // HR
-        // ------------------------------------------------------
+        // ======================================================
+        // MANAGER REVIEWER
+        // ======================================================
 
         if (
-            reviewerRole ===
-            "HR"
+            currentReviewerRole ===
+            "manager"
         ) {
+
             return (
-                evaluation.status ===
-                "manager_approved"
+                status ===
+                    "submitted" &&
+                (
+                    currentReportingToRole ===
+                        "manager" ||
+                    currentReportingToRole ===
+                        ""
+                )
             );
         }
 
-        // ------------------------------------------------------
-        // Management
-        // ------------------------------------------------------
+        // ======================================================
+        // HR REVIEWER
+        // ======================================================
 
         if (
-            reviewerRole ===
-            "Management"
+            currentReviewerRole ===
+            "hr"
         ) {
+
+            // HR cannot review own evaluation
+            if (
+                isHrSelfEvaluation
+            ) {
+                return false;
+            }
+
             return (
-                evaluation.status ===
-                "hr_approved"
+                (
+                    status ===
+                        "submitted" &&
+                    currentReportingToRole ===
+                        "hr"
+                ) ||
+                status ===
+                    "employee_approved" ||
+                status ===
+                    "manager_approved"
             );
+        }
+
+        // ======================================================
+        // MANAGEMENT REVIEWER
+        // ======================================================
+
+        if (
+            currentReviewerRole ===
+            "management"
+        ) {
+
+            // --------------------------------------------------
+            // Normal workflow
+            // HR approved -> Management
+            // --------------------------------------------------
+
+            if (
+                status ===
+                "hr_approved"
+            ) {
+                return true;
+            }
+
+            // --------------------------------------------------
+            // HR self evaluation
+            // HR -> Management directly
+            // --------------------------------------------------
+
+            if (
+                status === "submitted" &&
+                isHrSelfEvaluation
+            ) {
+
+                return true;
+            }
+
+            // --------------------------------------------------
+            // Directly reports to Management
+            // --------------------------------------------------
+
+            if (
+                status === "submitted" &&
+                reportsDirectlyToManagement
+            ) {
+
+                return true;
+            }
+
+            return false;
         }
 
         return false;
@@ -386,39 +567,77 @@ const ReviewEvaluation = () => {
     // ==========================================================
 
     const isCurrentStageApproved = () => {
+
         if (!evaluation) {
             return false;
         }
 
-        // Manager
+        const currentReviewerRole =
+            String(
+                reviewerRole || ""
+            ).trim().toLowerCase();
+
+        const status =
+            String(
+                evaluation.status || ""
+            ).trim().toLowerCase();
+
+        // ======================================================
+        // Employee
+        // ======================================================
+
         if (
-            reviewerRole ===
-            "Manager"
+            currentReviewerRole ===
+            "employee"
         ) {
+
             return (
-                evaluation.status ===
+                status ===
+                "employee_approved"
+            );
+        }
+
+        // ======================================================
+        // Manager
+        // ======================================================
+
+        if (
+            currentReviewerRole ===
+            "manager"
+        ) {
+
+            return (
+                status ===
                 "manager_approved"
             );
         }
 
+        // ======================================================
         // HR
+        // ======================================================
+
         if (
-            reviewerRole ===
-            "HR"
+            currentReviewerRole ===
+            "hr"
         ) {
+
             return (
-                evaluation.status ===
+                status ===
                 "hr_approved"
             );
         }
 
+        // ======================================================
         // Management
+        // ======================================================
+
         if (
-            reviewerRole ===
-            "Management"
+            currentReviewerRole ===
+            "management"
         ) {
+
             return (
-                evaluation.status ===
+                status ===
                 "completed"
             );
         }
@@ -438,11 +657,13 @@ const ReviewEvaluation = () => {
         field,
         value
     ) => {
+
         if (!canReview) {
             return;
         }
 
         setReviews((prev) => {
+
             const nextReviews = {
                 ...prev,
 
@@ -455,10 +676,6 @@ const ReviewEvaluation = () => {
                         value,
                 },
             };
-
-            // ==================================================
-            // IMMEDIATE AUTO SAVE
-            // ==================================================
 
             saveDraftToLocalStorage(
                 nextReviews,
@@ -478,11 +695,13 @@ const ReviewEvaluation = () => {
         questionId,
         result
     ) => {
+
         if (!canReview) {
             return;
         }
 
         setReviews((prev) => {
+
             const previous =
                 prev[
                     questionId
@@ -492,33 +711,32 @@ const ReviewEvaluation = () => {
 
             // ==================================================
             // ACCEPT
-            // Keep Rating
             // ==================================================
 
             if (
                 result ===
                 "okay"
             ) {
+
                 nextReview = {
                     ...previous,
 
                     review_result:
                         "okay",
 
-                    // Clear reject comment
                     comment: "",
                 };
             }
 
             // ==================================================
             // REJECT
-            // Clear Rating
             // ==================================================
 
             else if (
                 result ===
                 "not_okay"
             ) {
+
                 nextReview = {
                     ...previous,
 
@@ -531,13 +749,13 @@ const ReviewEvaluation = () => {
 
             // ==================================================
             // IGNORE
-            // Clear Rating + Comment
             // ==================================================
 
             else if (
                 result ===
                 "ignore"
             ) {
+
                 nextReview = {
                     ...previous,
 
@@ -550,11 +768,8 @@ const ReviewEvaluation = () => {
                 };
             }
 
-            // ==================================================
-            // Other
-            // ==================================================
-
             else {
+
                 nextReview = {
                     ...previous,
 
@@ -569,10 +784,6 @@ const ReviewEvaluation = () => {
                 [questionId]:
                     nextReview,
             };
-
-            // ==================================================
-            // IMMEDIATE AUTO SAVE
-            // ==================================================
 
             saveDraftToLocalStorage(
                 nextReviews,
@@ -591,6 +802,7 @@ const ReviewEvaluation = () => {
     const handleOverallRatingChange = (
         value
     ) => {
+
         if (!canReview) {
             return;
         }
@@ -598,10 +810,6 @@ const ReviewEvaluation = () => {
         setOverallRating(
             value
         );
-
-        // ======================================================
-        // IMMEDIATE AUTO SAVE
-        // ======================================================
 
         saveDraftToLocalStorage(
             reviews,
@@ -617,6 +825,7 @@ const ReviewEvaluation = () => {
     const handleOverallCommentChange = (
         value
     ) => {
+
         if (!canReview) {
             return;
         }
@@ -624,10 +833,6 @@ const ReviewEvaluation = () => {
         setOverallComment(
             value
         );
-
-        // ======================================================
-        // IMMEDIATE AUTO SAVE
-        // ======================================================
 
         saveDraftToLocalStorage(
             reviews,
@@ -639,16 +844,9 @@ const ReviewEvaluation = () => {
     // ==========================================================
     // Backup Auto Save
     // ==========================================================
-    //
-    // This is kept as a backup.
-    //
-    // Question rating/comment/result already saves immediately.
-    // Overall rating/comment also saves immediately.
-    //
-    // This effect ensures the latest React state is also persisted.
-    //
 
     useEffect(() => {
+
         if (
             loading ||
             !evaluation ||
@@ -659,7 +857,9 @@ const ReviewEvaluation = () => {
 
         const timer =
             setTimeout(() => {
+
                 try {
+
                     const draft = {
                         reviews,
 
@@ -677,14 +877,17 @@ const ReviewEvaluation = () => {
                             draft
                         )
                     );
+
                 } catch (
                     storageError
                 ) {
+
                     console.error(
                         "Failed to auto-save review draft:",
                         storageError
                     );
                 }
+
             }, 500);
 
         return () => {
@@ -692,6 +895,7 @@ const ReviewEvaluation = () => {
                 timer
             );
         };
+
     }, [
         reviews,
         overallRating,
@@ -709,6 +913,7 @@ const ReviewEvaluation = () => {
     const isQuestionReviewed = (
         review
     ) => {
+
         return Boolean(
             review?.review_result
         );
@@ -720,6 +925,7 @@ const ReviewEvaluation = () => {
 
     const allQuestionsReviewed =
         () => {
+
             if (
                 questions.length ===
                 0
@@ -729,6 +935,7 @@ const ReviewEvaluation = () => {
 
             return questions.every(
                 (answer) => {
+
                     const review =
                         reviews[
                             answer.question_id
@@ -747,6 +954,7 @@ const ReviewEvaluation = () => {
 
     const validateReviews =
         () => {
+
             const errors = [];
 
             questions.forEach(
@@ -754,6 +962,7 @@ const ReviewEvaluation = () => {
                     answer,
                     index
                 ) => {
+
                     const questionId =
                         answer.question_id;
 
@@ -770,6 +979,7 @@ const ReviewEvaluation = () => {
                     // ------------------------------------------------
 
                     if (!result) {
+
                         errors.push(
                             `Question ${index + 1}: Please select Accept, Reject, or Ignore.`
                         );
@@ -790,13 +1000,13 @@ const ReviewEvaluation = () => {
 
                     // ------------------------------------------------
                     // Accept
-                    // Rating Required
                     // ------------------------------------------------
 
                     if (
                         result ===
                         "okay"
                     ) {
+
                         if (
                             review.rating ===
                                 "" ||
@@ -805,6 +1015,7 @@ const ReviewEvaluation = () => {
                             review.rating ===
                                 undefined
                         ) {
+
                             errors.push(
                                 `Question ${index + 1}: Please provide a review rating.`
                             );
@@ -815,17 +1026,18 @@ const ReviewEvaluation = () => {
 
                     // ------------------------------------------------
                     // Reject
-                    // Comment Required
                     // ------------------------------------------------
 
                     if (
                         result ===
                         "not_okay"
                     ) {
+
                         if (
                             !review.comment ||
                             !review.comment.trim()
                         ) {
+
                             errors.push(
                                 `Question ${index + 1}: Please provide a rejection comment.`
                             );
@@ -848,6 +1060,7 @@ const ReviewEvaluation = () => {
                 overallRating ===
                     undefined
             ) {
+
                 errors.push(
                     "Please provide the overall rating."
                 );
@@ -864,11 +1077,17 @@ const ReviewEvaluation = () => {
         async (
             action
         ) => {
+
             setError("");
 
-            // ======================================================
-            // Only Approved / Rejected
-            // ======================================================
+            if (!canReview) {
+
+                setError(
+                    "You are not allowed to review this evaluation at this stage."
+                );
+
+                return;
+            }
 
             if (
                 ![
@@ -878,16 +1097,13 @@ const ReviewEvaluation = () => {
                     action
                 )
             ) {
+
                 setError(
                     "Invalid review action."
                 );
 
                 return;
             }
-
-            // ======================================================
-            // Validate Question Reviews
-            // ======================================================
 
             const validationErrors =
                 validateReviews();
@@ -896,6 +1112,7 @@ const ReviewEvaluation = () => {
                 validationErrors.length >
                 0
             ) {
+
                 setError(
                     validationErrors.join(
                         "\n"
@@ -905,13 +1122,10 @@ const ReviewEvaluation = () => {
                 return;
             }
 
-            // ======================================================
-            // Validate All Questions
-            // ======================================================
-
             if (
                 !allQuestionsReviewed()
             ) {
+
                 setError(
                     `Please Accept, Reject or Ignore all questions before submitting the ${roleLabel} review.`
                 );
@@ -920,6 +1134,7 @@ const ReviewEvaluation = () => {
             }
 
             try {
+
                 setSaving(
                     true
                 );
@@ -933,6 +1148,7 @@ const ReviewEvaluation = () => {
                         (
                             answer
                         ) => {
+
                             const questionId =
                                 answer.question_id;
 
@@ -946,6 +1162,7 @@ const ReviewEvaluation = () => {
                                 "ignore";
 
                             return {
+
                                 question_id:
                                     Number(
                                         questionId
@@ -983,6 +1200,7 @@ const ReviewEvaluation = () => {
                 // ==================================================
 
                 const payload = {
+
                     evaluation_id:
                         Number(id),
 
@@ -1013,7 +1231,7 @@ const ReviewEvaluation = () => {
                 );
 
                 // ==================================================
-                // Submit To Backend
+                // Submit Backend
                 // ==================================================
 
                 await api.post(
@@ -1022,16 +1240,19 @@ const ReviewEvaluation = () => {
                 );
 
                 // ==================================================
-                // Clear Local Draft
+                // Clear Draft
                 // ==================================================
 
                 try {
+
                     localStorage.removeItem(
                         draftStorageKey
                     );
+
                 } catch (
                     storageError
                 ) {
+
                     console.warn(
                         "Failed to clear review draft:",
                         storageError
@@ -1042,10 +1263,28 @@ const ReviewEvaluation = () => {
                 // Redirect
                 // ==================================================
 
+                const normalizedRole =
+                    String(
+                        reviewerRole || ""
+                    ).trim().toLowerCase();
+
                 if (
-                    reviewerRole ===
-                    "Manager"
+                    normalizedRole ===
+                    "employee"
                 ) {
+
+                    navigate(
+                        "/management/employee/reviews"
+                    );
+
+                    return;
+                }
+
+                if (
+                    normalizedRole ===
+                    "manager"
+                ) {
+
                     navigate(
                         "/management/manager/reviews"
                     );
@@ -1054,9 +1293,10 @@ const ReviewEvaluation = () => {
                 }
 
                 if (
-                    reviewerRole ===
-                    "HR"
+                    normalizedRole ===
+                    "hr"
                 ) {
+
                     navigate(
                         "/management/hr/reviews"
                     );
@@ -1065,9 +1305,10 @@ const ReviewEvaluation = () => {
                 }
 
                 if (
-                    reviewerRole ===
-                    "Management"
+                    normalizedRole ===
+                    "management"
                 ) {
+
                     navigate(
                         "/management"
                     );
@@ -1076,6 +1317,7 @@ const ReviewEvaluation = () => {
                 }
 
             } catch (err) {
+
                 console.error(
                     "Failed to submit review:",
                     err
@@ -1087,6 +1329,7 @@ const ReviewEvaluation = () => {
                 );
 
             } finally {
+
                 setSaving(
                     false
                 );
@@ -1098,6 +1341,7 @@ const ReviewEvaluation = () => {
     // ==========================================================
 
     if (loading) {
+
         return (
             <div className="management-page">
 
@@ -1125,6 +1369,7 @@ const ReviewEvaluation = () => {
         error &&
         !evaluation
     ) {
+
         return (
             <div className="management-page">
 
@@ -1159,6 +1404,7 @@ const ReviewEvaluation = () => {
     // ==========================================================
 
     if (!evaluation) {
+
         return (
             <div className="management-page">
 
@@ -1192,6 +1438,12 @@ const ReviewEvaluation = () => {
     // Previous Overall Reviews
     // ==========================================================
 
+    const employeeOverall =
+        getOverallReviewByRole(
+            evaluation.reviews,
+            "Employee"
+        );
+
     const managerOverall =
         getOverallReviewByRole(
             evaluation.reviews,
@@ -1216,6 +1468,53 @@ const ReviewEvaluation = () => {
 
     const questionsReviewed =
         allQuestionsReviewed();
+
+    // ==========================================================
+    // Debug
+    // ==========================================================
+
+    console.log(
+        "Review Evaluation:",
+        {
+            evaluationId: id,
+
+            loggedInUser:
+                user,
+
+            loggedInRole:
+                loggedInRole,
+
+            reviewerRole:
+                reviewerRole,
+
+            status:
+                evaluation.status,
+
+            employeeRole:
+                employeeRole,
+
+            reportingToRole:
+                reportingToRole,
+
+            isHrSelfEvaluation:
+                isHrSelfEvaluation,
+
+            reportsDirectlyToManagement:
+                reportsDirectlyToManagement,
+
+            canReview:
+                canReview,
+
+            employee:
+                evaluation?.employee,
+
+            manager:
+                evaluation?.employee?.manager,
+
+            managerRole:
+                evaluation?.employee?.manager?.role?.name,
+        }
+    );
 
     // ==========================================================
     // Render
@@ -1255,6 +1554,40 @@ const ReviewEvaluation = () => {
                     {error}
                 </div>
             )}
+
+            {/* ==================================================
+                Employee Reviewer Notice
+            ================================================== */}
+
+            {String(
+                reviewerRole || ""
+            ).trim().toLowerCase() ===
+                "employee" &&
+                evaluation.status ===
+                    "submitted" &&
+                canReview && (
+                    <div className="evaluation-review-info">
+                        This employee evaluation is submitted
+                        and ready for your review.
+                    </div>
+                )}
+
+            {/* ==================================================
+                HR Self Evaluation Notice
+            ================================================== */}
+
+            {String(
+                reviewerRole || ""
+            ).trim().toLowerCase() ===
+                "management" &&
+                isHrSelfEvaluation &&
+                evaluation.status ===
+                    "submitted" && (
+                    <div className="evaluation-review-info">
+                        HR self-evaluation submitted directly
+                        to Management for review.
+                    </div>
+                )}
 
             {/* ==================================================
                 Employee Information
@@ -1383,6 +1716,9 @@ const ReviewEvaluation = () => {
                 }
                 overallComment={
                     overallComment
+                }
+                employeeOverall={
+                    employeeOverall
                 }
                 managerOverall={
                     managerOverall

@@ -17,6 +17,9 @@ return new class extends Migration
             |--------------------------------------------------------------------------
             | Employee
             |--------------------------------------------------------------------------
+            |
+            | The employee who owns this evaluation.
+            |
             */
 
             $table->foreignId('employee_id')
@@ -42,36 +45,86 @@ return new class extends Migration
             | Evaluation Status
             |--------------------------------------------------------------------------
             |
-            | Workflow:
+            | Dynamic Workflow:
             |
-            | draft
-            |   ↓
+            | Employee submits
+            |        ↓
             | submitted
-            |   ↓
-            | manager_approved / manager_returned / manager_rejected
-            |   ↓
-            | hr_approved / hr_returned / hr_rejected
-            |   ↓
-            | management_approved / management_returned / management_rejected
-            |   ↓
-            | completed
+            |        ↓
+            | Employee / Manager / HR / Management
+            | (based on employee.manager_id)
             |
+            | If first reviewer is Employee:
+            |        submitted
+            |           ↓
+            |     employee_approved
+            |           ↓
+            |          HR
+            |           ↓
+            |      hr_approved
+            |           ↓
+            |      Management
+            |           ↓
+            |       completed
+            |
+            | If first reviewer is Manager:
+            |        submitted
+            |           ↓
+            |     manager_approved
+            |           ↓
+            |          HR
+            |           ↓
+            |      hr_approved
+            |           ↓
+            |      Management
+            |           ↓
+            |       completed
+            |
+            | If first reviewer is HR:
+            |        submitted
+            |           ↓
+            |       hr_approved
+            |           ↓
+            |      Management
+            |           ↓
+            |       completed
+            |
+            | If first reviewer is Management:
+            |        submitted
+            |           ↓
+            |       completed
+            |
+            |--------------------------------------------------------------------------
+            | Rejection Workflow
+            |--------------------------------------------------------------------------
+            |
+            | employee_rejected
+            | manager_rejected
+            | hr_rejected
+            | management_rejected
+            |        ↓
+            | Employee edits evaluation
+            |        ↓
+            | Employee resubmits
+            |        ↓
+            | submitted
+            |
+            |--------------------------------------------------------------------------
             */
 
             $table->enum('status', [
                 'draft',
                 'submitted',
 
+                'employee_approved',
+                'employee_rejected',
+
                 'manager_approved',
-                'manager_returned',
                 'manager_rejected',
 
                 'hr_approved',
-                'hr_returned',
                 'hr_rejected',
 
-                'management_approved',
-                'management_returned',
                 'management_rejected',
 
                 'completed',
@@ -80,10 +133,10 @@ return new class extends Migration
 
             /*
             |--------------------------------------------------------------------------
-            | Overall Rating
+            | Employee Overall Rating
             |--------------------------------------------------------------------------
             |
-            | Employee's overall rating.
+            | Rating given by the employee for their own evaluation.
             | Scale: 0 - 10
             |
             */
@@ -97,8 +150,31 @@ return new class extends Migration
 
             /*
             |--------------------------------------------------------------------------
+            | Direct Employee Reviewer Overall Rating
+            |--------------------------------------------------------------------------
+            |
+            | Used when the employee's Reporting To user has role:
+            |
+            | Employee
+            |
+            */
+
+            $table->decimal(
+                'employee_overall_rating',
+                4,
+                2
+            )->nullable();
+
+
+            /*
+            |--------------------------------------------------------------------------
             | Manager Overall Rating
             |--------------------------------------------------------------------------
+            |
+            | Used when the employee's Reporting To user has role:
+            |
+            | Manager
+            |
             */
 
             $table->decimal(
@@ -156,8 +232,27 @@ return new class extends Migration
 
             /*
             |--------------------------------------------------------------------------
+            | Direct Employee Reviewer Timestamps
+            |--------------------------------------------------------------------------
+            |
+            | Used when Reporting To user has role Employee.
+            |
+            */
+
+            $table->timestamp('employee_reviewed_at')
+                ->nullable();
+
+            $table->timestamp('employee_approved_at')
+                ->nullable();
+
+
+            /*
+            |--------------------------------------------------------------------------
             | Manager Review Timestamps
             |--------------------------------------------------------------------------
+            |
+            | Used when Reporting To user has role Manager.
+            |
             */
 
             $table->timestamp('manager_reviewed_at')
@@ -197,6 +292,9 @@ return new class extends Migration
             |--------------------------------------------------------------------------
             | Final Approval
             |--------------------------------------------------------------------------
+            |
+            | This is set when Management approves the evaluation.
+            |
             */
 
             $table->timestamp('approved_at')
@@ -221,12 +319,13 @@ return new class extends Migration
             $table->unique(
                 [
                     'employee_id',
-                    'evaluation_period_id'
+                    'evaluation_period_id',
                 ],
                 'unique_employee_evaluation_period'
             );
         });
     }
+
 
     public function down(): void
     {

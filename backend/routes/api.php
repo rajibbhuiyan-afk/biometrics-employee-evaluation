@@ -301,7 +301,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // EMPLOYEE EVALUATIONS
     // ======================================================================
 
-    Route::middleware('role:Employee')->group(function () {
+    Route::middleware('role:Employee,Manager,HR')->group(function () {
 
         // --------------------------------------------------------------
         // Create Evaluation

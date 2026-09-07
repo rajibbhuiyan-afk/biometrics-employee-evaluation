@@ -20,8 +20,22 @@ const QuestionReviewCard = ({
     const questionId = answer?.question_id;
 
     // ==========================================================
+    // Normalize Reviewer Role
+    // ==========================================================
+
+    const normalizedReviewerRole =
+        String(reviewerRole || "").trim().toLowerCase();
+
+    // ==========================================================
     // Previous Reviews
     // ==========================================================
+
+    const employeeReview =
+        getReviewByQuestion(
+            evaluationReviews,
+            questionId,
+            "Employee"
+        );
 
     const managerReview =
         getReviewByQuestion(
@@ -49,8 +63,10 @@ const QuestionReviewCard = ({
     // ==========================================================
 
     const isRequired =
-        question?.is_required ||
-        question?.required;
+        Boolean(
+            question?.is_required ??
+            question?.required
+        );
 
     // ==========================================================
     // Current Review
@@ -75,8 +91,7 @@ const QuestionReviewCard = ({
         result === "ignore";
 
     // ==========================================================
-    // Rating Options
-    // Reviewer Rating: Always 0 - 10
+    // Rating Labels
     // ==========================================================
 
     const ratingLabels = {
@@ -93,9 +108,13 @@ const QuestionReviewCard = ({
         10: "Outstanding",
     };
 
+    // ==========================================================
+    // Rating Options
+    // ==========================================================
+
     const ratingOptions = Array.from(
         { length: 11 },
-        (_, index) => index
+        (_, value) => value
     );
 
     // ==========================================================
@@ -105,9 +124,7 @@ const QuestionReviewCard = ({
     const hasEmployeeAnswer =
         answer?.answer !== null &&
         answer?.answer !== undefined &&
-        String(
-            answer.answer
-        ).trim() !== "";
+        String(answer.answer).trim() !== "";
 
     // ==========================================================
     // Result Handler
@@ -170,7 +187,7 @@ const QuestionReviewCard = ({
     };
 
     // ==========================================================
-    // Previous Review
+    // Previous Review Renderer
     // ==========================================================
 
     const renderPreviousReview = (
@@ -225,6 +242,7 @@ const QuestionReviewCard = ({
 
             </div>
 
+
             {/* ==================================================
                 Employee Answer + Performance Rating
             ================================================== */}
@@ -251,6 +269,7 @@ const QuestionReviewCard = ({
 
                 </div>
 
+
                 {/* ==================================================
                     Employee Performance Rating
                 ================================================== */}
@@ -264,8 +283,7 @@ const QuestionReviewCard = ({
                     <div className="evaluation-review-employee-rating">
 
                         {answer?.rating !== null &&
-                        answer?.rating !==
-                            undefined &&
+                        answer?.rating !== undefined &&
                         answer?.rating !== ""
                             ? `${answer.rating} / 10`
                             : "-"}
@@ -276,19 +294,101 @@ const QuestionReviewCard = ({
 
             </div>
 
+
             {/* ==================================================
                 Review Panels
             ================================================== */}
 
             <div className="evaluation-review-panels">
 
+
                 {/* ==================================================
-                    MANAGER
+                    EMPLOYEE REVIEW
                 ================================================== */}
 
-                {(reviewerRole === "Manager" ||
-                    reviewerRole ===
-                        "Management") && (
+                {(
+                    normalizedReviewerRole === "employee" ||
+                    normalizedReviewerRole === "management"
+                ) && (
+
+                    <div className="evaluation-review-panel">
+
+                        <div className="evaluation-review-panel-title">
+                            Employee
+                        </div>
+
+
+                        {/* ------------------------------------------
+                            Management sees previous Employee review
+                        ------------------------------------------ */}
+
+                        {normalizedReviewerRole ===
+                            "management" &&
+                            renderPreviousReview(
+                                "Employee",
+                                employeeReview
+                            )}
+
+
+                        {/* ------------------------------------------
+                            Employee Current Review
+                        ------------------------------------------ */}
+
+                        {normalizedReviewerRole ===
+                            "employee" &&
+                            canReview && (
+
+                            <ReviewControls
+                                result={result}
+                                rating={rating}
+                                comment={comment}
+                                isAccepted={isAccepted}
+                                isRejected={isRejected}
+                                isIgnored={isIgnored}
+                                canReview={canReview}
+                                saving={saving}
+                                ratingOptions={ratingOptions}
+                                ratingLabels={ratingLabels}
+                                onResultChange={
+                                    handleResultChange
+                                }
+                                onRatingChange={
+                                    handleRatingChange
+                                }
+                                onCommentChange={
+                                    handleCommentChange
+                                }
+                            />
+                        )}
+
+
+                        {/* ------------------------------------------
+                            Employee Readonly Review
+                        ------------------------------------------ */}
+
+                        {normalizedReviewerRole ===
+                            "employee" &&
+                            !canReview &&
+                            employeeReview && (
+
+                            <PreviousQuestionReview
+                                title="Employee"
+                                review={employeeReview}
+                            />
+                        )}
+
+                    </div>
+                )}
+
+
+                {/* ==================================================
+                    MANAGER REVIEW
+                ================================================== */}
+
+                {(
+                    normalizedReviewerRole === "manager" ||
+                    normalizedReviewerRole === "management"
+                ) && (
 
                     <div className="evaluation-review-panel">
 
@@ -296,52 +396,38 @@ const QuestionReviewCard = ({
                             Manager
                         </div>
 
-                        {/* Management Previous Manager Review */}
 
-                        {reviewerRole ===
-                            "Management" &&
+                        {/* ------------------------------------------
+                            Management sees previous Manager review
+                        ------------------------------------------ */}
+
+                        {normalizedReviewerRole ===
+                            "management" &&
                             renderPreviousReview(
                                 "Manager",
                                 managerReview
                             )}
 
-                        {/* Manager Current Review */}
 
-                        {reviewerRole ===
-                            "Manager" &&
+                        {/* ------------------------------------------
+                            Manager Current Review
+                        ------------------------------------------ */}
+
+                        {normalizedReviewerRole ===
+                            "manager" &&
                             canReview && (
 
                             <ReviewControls
-                                result={
-                                    result
-                                }
-                                rating={
-                                    rating
-                                }
-                                comment={
-                                    comment
-                                }
-                                isAccepted={
-                                    isAccepted
-                                }
-                                isRejected={
-                                    isRejected
-                                }
-                                isIgnored={
-                                    isIgnored
-                                }
-                                canReview={
-                                    canReview
-                                }
-                                saving={
-                                    saving
-                                }
-                                ratingOptions={
-                                    ratingOptions
-                                }
-                                ratingLabels={
-                                    ratingLabels
-                                }
+                                result={result}
+                                rating={rating}
+                                comment={comment}
+                                isAccepted={isAccepted}
+                                isRejected={isRejected}
+                                isIgnored={isIgnored}
+                                canReview={canReview}
+                                saving={saving}
+                                ratingOptions={ratingOptions}
+                                ratingLabels={ratingLabels}
                                 onResultChange={
                                     handleResultChange
                                 }
@@ -354,31 +440,34 @@ const QuestionReviewCard = ({
                             />
                         )}
 
-                        {/* Manager Readonly Review */}
 
-                        {reviewerRole ===
-                            "Manager" &&
+                        {/* ------------------------------------------
+                            Manager Readonly Review
+                        ------------------------------------------ */}
+
+                        {normalizedReviewerRole ===
+                            "manager" &&
                             !canReview &&
                             managerReview && (
 
                             <PreviousQuestionReview
                                 title="Manager"
-                                review={
-                                    managerReview
-                                }
+                                review={managerReview}
                             />
                         )}
 
                     </div>
                 )}
 
+
                 {/* ==================================================
-                    HR
+                    HR REVIEW
                 ================================================== */}
 
-                {(reviewerRole === "HR" ||
-                    reviewerRole ===
-                        "Management") && (
+                {(
+                    normalizedReviewerRole === "hr" ||
+                    normalizedReviewerRole === "management"
+                ) && (
 
                     <div className="evaluation-review-panel">
 
@@ -386,52 +475,38 @@ const QuestionReviewCard = ({
                             HR
                         </div>
 
-                        {/* Management Previous HR Review */}
 
-                        {reviewerRole ===
-                            "Management" &&
+                        {/* ------------------------------------------
+                            Management sees previous HR review
+                        ------------------------------------------ */}
+
+                        {normalizedReviewerRole ===
+                            "management" &&
                             renderPreviousReview(
                                 "HR",
                                 hrReview
                             )}
 
-                        {/* HR Current Review */}
 
-                        {reviewerRole ===
-                            "HR" &&
+                        {/* ------------------------------------------
+                            HR Current Review
+                        ------------------------------------------ */}
+
+                        {normalizedReviewerRole ===
+                            "hr" &&
                             canReview && (
 
                             <ReviewControls
-                                result={
-                                    result
-                                }
-                                rating={
-                                    rating
-                                }
-                                comment={
-                                    comment
-                                }
-                                isAccepted={
-                                    isAccepted
-                                }
-                                isRejected={
-                                    isRejected
-                                }
-                                isIgnored={
-                                    isIgnored
-                                }
-                                canReview={
-                                    canReview
-                                }
-                                saving={
-                                    saving
-                                }
-                                ratingOptions={
-                                    ratingOptions
-                                }
-                                ratingLabels={
-                                    ratingLabels
-                                }
+                                result={result}
+                                rating={rating}
+                                comment={comment}
+                                isAccepted={isAccepted}
+                                isRejected={isRejected}
+                                isIgnored={isIgnored}
+                                canReview={canReview}
+                                saving={saving}
+                                ratingOptions={ratingOptions}
+                                ratingLabels={ratingLabels}
                                 onResultChange={
                                     handleResultChange
                                 }
@@ -444,30 +519,32 @@ const QuestionReviewCard = ({
                             />
                         )}
 
-                        {/* HR Readonly Review */}
 
-                        {reviewerRole ===
-                            "HR" &&
+                        {/* ------------------------------------------
+                            HR Readonly Review
+                        ------------------------------------------ */}
+
+                        {normalizedReviewerRole ===
+                            "hr" &&
                             !canReview &&
                             hrReview && (
 
                             <PreviousQuestionReview
                                 title="HR"
-                                review={
-                                    hrReview
-                                }
+                                review={hrReview}
                             />
                         )}
 
                     </div>
                 )}
 
+
                 {/* ==================================================
-                    MANAGEMENT
+                    MANAGEMENT REVIEW
                 ================================================== */}
 
-                {reviewerRole ===
-                    "Management" && (
+                {normalizedReviewerRole ===
+                    "management" && (
 
                     <div className="evaluation-review-panel">
 
@@ -475,54 +552,38 @@ const QuestionReviewCard = ({
                             Management
                         </div>
 
-                        {/* Previous Management Review */}
 
-                        {managementReview &&
-                            !canReview && (
+                        {/* ------------------------------------------
+                            Existing Management Review
+                        ------------------------------------------ */}
+
+                        {!canReview &&
+                            managementReview && (
 
                             <PreviousQuestionReview
                                 title="Management"
-                                review={
-                                    managementReview
-                                }
+                                review={managementReview}
                             />
                         )}
 
-                        {/* Current Management Review */}
+
+                        {/* ------------------------------------------
+                            Management Current Review
+                        ------------------------------------------ */}
 
                         {canReview && (
 
                             <ReviewControls
-                                result={
-                                    result
-                                }
-                                rating={
-                                    rating
-                                }
-                                comment={
-                                    comment
-                                }
-                                isAccepted={
-                                    isAccepted
-                                }
-                                isRejected={
-                                    isRejected
-                                }
-                                isIgnored={
-                                    isIgnored
-                                }
-                                canReview={
-                                    canReview
-                                }
-                                saving={
-                                    saving
-                                }
-                                ratingOptions={
-                                    ratingOptions
-                                }
-                                ratingLabels={
-                                    ratingLabels
-                                }
+                                result={result}
+                                rating={rating}
+                                comment={comment}
+                                isAccepted={isAccepted}
+                                isRejected={isRejected}
+                                isIgnored={isIgnored}
+                                canReview={canReview}
+                                saving={saving}
+                                ratingOptions={ratingOptions}
+                                ratingLabels={ratingLabels}
                                 onResultChange={
                                     handleResultChange
                                 }
@@ -564,6 +625,15 @@ const ReviewControls = ({
     onRatingChange,
     onCommentChange,
 }) => {
+
+    // ==========================================================
+    // Safety
+    // ==========================================================
+
+    if (!canReview) {
+        return null;
+    }
+
     return (
         <div className="question-review-controls">
 
@@ -577,9 +647,12 @@ const ReviewControls = ({
                     Review Result
                 </div>
 
+
                 <div className="question-review-result-buttons">
 
-                    {/* ACCEPT */}
+                    {/* ==================================================
+                        ACCEPT
+                    ================================================== */}
 
                     <button
                         type="button"
@@ -603,7 +676,10 @@ const ReviewControls = ({
                         ✓ Accept
                     </button>
 
-                    {/* REJECT */}
+
+                    {/* ==================================================
+                        REJECT
+                    ================================================== */}
 
                     <button
                         type="button"
@@ -627,7 +703,10 @@ const ReviewControls = ({
                         ✕ Reject
                     </button>
 
-                    {/* IGNORE */}
+
+                    {/* ==================================================
+                        IGNORE
+                    ================================================== */}
 
                     <button
                         type="button"
@@ -655,25 +734,26 @@ const ReviewControls = ({
 
             </div>
 
+
             {/* ==================================================
-                ACCEPT
-                Only Rating
+                ACCEPT -> RATING
             ================================================== */}
 
             {isAccepted && (
+
                 <div className="question-review-rating-input">
 
                     <label>
                         Review Rating
+
                         <span className="required-star">
                             *
                         </span>
                     </label>
 
+
                     <select
-                        value={
-                            rating
-                        }
+                        value={rating}
                         onChange={
                             onRatingChange
                         }
@@ -689,13 +769,10 @@ const ReviewControls = ({
 
                         {ratingOptions.map(
                             (value) => (
+
                                 <option
-                                    key={
-                                        value
-                                    }
-                                    value={
-                                        value
-                                    }
+                                    key={value}
+                                    value={value}
                                 >
                                     {value} -{" "}
                                     {
@@ -712,25 +789,26 @@ const ReviewControls = ({
                 </div>
             )}
 
+
             {/* ==================================================
-                REJECT
-                Only Comment
+                REJECT -> COMMENT
             ================================================== */}
 
             {isRejected && (
+
                 <div className="question-review-comment-section">
 
                     <label>
                         Rejection Comment
+
                         <span className="required-star">
                             *
                         </span>
                     </label>
 
+
                     <textarea
-                        value={
-                            comment
-                        }
+                        value={comment}
                         onChange={
                             onCommentChange
                         }
@@ -745,22 +823,25 @@ const ReviewControls = ({
                 </div>
             )}
 
+
             {/* ==================================================
                 IGNORE
-                Only Message
             ================================================== */}
 
             {isIgnored && (
+
                 <div className="question-review-ignore-message">
                     This question has been ignored.
                 </div>
             )}
+
 
             {/* ==================================================
                 Saving
             ================================================== */}
 
             {saving && (
+
                 <div className="question-review-saving">
                     Saving...
                 </div>

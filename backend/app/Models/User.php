@@ -9,12 +9,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-        protected $fillable = [
+    protected $fillable = [
         'employee_id',
         'name',
         'email',
@@ -74,10 +73,26 @@ class User extends Authenticatable
 
     /*
     |--------------------------------------------------------------------------
-    | Manager
+    | Reporting To / Manager
     |--------------------------------------------------------------------------
     |
-    | This user belongs to one manager.
+    | manager_id stores the user this employee reports to.
+    |
+    | The Reporting To user can have any role:
+    |
+    | Employee
+    | Manager
+    | HR
+    | Management
+    |
+    | Example:
+    |
+    | Employee A
+    |     manager_id = Employee B
+    |
+    | In that case Employee B is the first reviewer of
+    | Employee A's evaluation.
+    |
     */
 
     public function manager(): BelongsTo
@@ -87,6 +102,35 @@ class User extends Authenticatable
             'manager_id'
         );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reporting To
+    |--------------------------------------------------------------------------
+    |
+    | Same relationship as manager().
+    |
+    | This name is used by the dynamic evaluation workflow because
+    | manager_id does not necessarily point to a user with Manager role.
+    |
+    */
+
+    public function reportingTo(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'manager_id'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Employees / Direct Reports
+    |--------------------------------------------------------------------------
+    |
+    | Returns users whose manager_id points to this user.
+    |
+    */
 
     public function employees(): HasMany
     {
@@ -101,7 +145,8 @@ class User extends Authenticatable
     | Managed Employees
     |--------------------------------------------------------------------------
     |
-    | A manager has many employees.
+    | Kept for backward compatibility with existing application code.
+    |
     */
 
     public function managedEmployees(): HasMany
@@ -116,6 +161,9 @@ class User extends Authenticatable
     |--------------------------------------------------------------------------
     | Evaluations
     |--------------------------------------------------------------------------
+    |
+    | Evaluations created by this user.
+    |
     */
 
     public function evaluations(): HasMany
@@ -130,6 +178,9 @@ class User extends Authenticatable
     |--------------------------------------------------------------------------
     | Evaluation Reviews
     |--------------------------------------------------------------------------
+    |
+    | Reviews created by this user.
+    |
     */
 
     public function reviews(): HasMany
@@ -145,6 +196,7 @@ class User extends Authenticatable
     | Probation Periods
     |--------------------------------------------------------------------------
     */
+
     public function probationPeriods(): HasMany
     {
         return $this->hasMany(
@@ -152,6 +204,13 @@ class User extends Authenticatable
             'employee_id'
         );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Employee Profile
+    |--------------------------------------------------------------------------
+    */
+
     public function employeeProfile()
     {
         return $this->hasOne(
@@ -159,6 +218,12 @@ class User extends Authenticatable
             'user_id'
         );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Educations
+    |--------------------------------------------------------------------------
+    */
 
     public function educations()
     {
