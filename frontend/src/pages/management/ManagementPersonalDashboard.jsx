@@ -593,7 +593,7 @@ const ManagementPersonalDashboard = () => {
                                                         evaluation
                                                             ?.employee
                                                             ?.position
-                                                            ?.name ||
+                                                            ?.title ||
                                                         "N/A"
                                                     }
 

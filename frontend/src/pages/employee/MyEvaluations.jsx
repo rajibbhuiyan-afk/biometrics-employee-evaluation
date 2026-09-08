@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 
 const MyEvaluations = () => {
-
     const navigate = useNavigate();
 
     // ==========================================================
@@ -15,23 +14,18 @@ const MyEvaluations = () => {
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-
+    const [deletingId, setDeletingId] = useState(null);
 
     // ==========================================================
     // Fetch My Evaluations
     // ==========================================================
 
     useEffect(() => {
-
         fetchMyEvaluations();
-
     }, []);
 
-
     const fetchMyEvaluations = async () => {
-
         try {
-
             setLoading(true);
             setError("");
 
@@ -49,7 +43,6 @@ const MyEvaluations = () => {
             );
 
         } catch (error) {
-
             console.error(
                 "Failed to load evaluations:",
                 error
@@ -61,12 +54,318 @@ const MyEvaluations = () => {
             );
 
         } finally {
-
             setLoading(false);
-
         }
     };
 
+    // ==========================================================
+    // Create Evaluation
+    // ==========================================================
+
+    const handleCreateEvaluation = () => {
+        navigate(
+            "/management/employee/evaluations/create"
+        );
+    };
+
+    // ==========================================================
+    // View / Continue Evaluation
+    // ==========================================================
+
+    const handleViewEvaluation = (id) => {
+        navigate(
+            `/management/employee/evaluations/${id}`
+        );
+    };
+
+    // ==========================================================
+    // Delete Draft Evaluation
+    // ==========================================================
+
+    const handleDeleteEvaluation = async (
+        evaluation
+    ) => {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Safety Check
+        |--------------------------------------------------------------------------
+        |
+        | Delete is ONLY allowed for draft evaluations.
+        |
+        */
+
+        if (
+            !evaluation ||
+            evaluation.status !== "draft"
+        ) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            "Are you sure you want to delete this draft evaluation?\n\nThis action cannot be undone."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setDeletingId(evaluation.id);
+            setError("");
+
+            await api.delete(
+                `/evaluations/${evaluation.id}`
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Remove deleted evaluation from local list
+            |--------------------------------------------------------------------------
+            */
+
+            setEvaluations((prev) =>
+                prev.filter(
+                    (item) =>
+                        item.id !== evaluation.id
+                )
+            );
+
+            alert(
+                "Draft evaluation deleted successfully."
+            );
+
+        } catch (error) {
+            console.error(
+                "Failed to delete evaluation:",
+                error
+            );
+
+            setError(
+                error.response?.data?.message ||
+                "Failed to delete evaluation."
+            );
+
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    // ==========================================================
+    // Status Badge
+    // ==========================================================
+
+    const renderStatus = (status) => {
+
+        switch (status) {
+
+            // ==================================================
+            // DRAFT
+            // ==================================================
+
+            case "draft":
+
+                return (
+                    <span className="status-badge status-draft">
+                        Draft
+                    </span>
+                );
+
+            // ==================================================
+            // SUBMITTED
+            // ==================================================
+
+            case "submitted":
+
+                return (
+                    <span className="status-badge status-submitted">
+                        Submitted
+                    </span>
+                );
+
+            // ==================================================
+            // MANAGER RETURNED
+            // ==================================================
+
+            case "manager_returned":
+
+                return (
+                    <span className="status-badge status-returned">
+                        Returned by Manager
+                    </span>
+                );
+
+            // ==================================================
+            // MANAGER REJECTED
+            // ==================================================
+
+            case "manager_rejected":
+
+                return (
+                    <span className="status-badge status-rejected">
+                        Rejected by Manager
+                    </span>
+                );
+
+            // ==================================================
+            // MANAGER APPROVED
+            // ==================================================
+
+            case "manager_approved":
+
+                return (
+                    <span className="status-badge status-approved">
+                        Manager Approved
+                    </span>
+                );
+
+            // ==================================================
+            // ADMIN RETURNED
+            // ==================================================
+
+            case "admin_returned":
+
+                return (
+                    <span className="status-badge status-returned">
+                        Returned by Admin
+                    </span>
+                );
+
+            // ==================================================
+            // ADMIN REJECTED
+            // ==================================================
+
+            case "admin_rejected":
+
+                return (
+                    <span className="status-badge status-rejected">
+                        Rejected by Admin
+                    </span>
+                );
+
+            // ==================================================
+            // ADMIN APPROVED
+            // ==================================================
+
+            case "admin_approved":
+
+                return (
+                    <span className="status-badge status-approved">
+                        Final Approved
+                    </span>
+                );
+
+            // ==================================================
+            // DEFAULT
+            // ==================================================
+
+            default:
+
+                return (
+                    <span className="status-badge status-inactive">
+                        {status || "-"}
+                    </span>
+                );
+        }
+    };
+
+    // ==========================================================
+    // Action Button
+    // ==========================================================
+
+    const renderAction = (evaluation) => {
+
+        /*
+        |--------------------------------------------------------------------------
+        | DRAFT
+        |--------------------------------------------------------------------------
+        |
+        | Employee can:
+        | - Continue
+        | - Delete
+        |
+        */
+
+        if (evaluation.status === "draft") {
+
+            const isDeleting =
+                deletingId === evaluation.id;
+
+            return (
+                <div className="table-actions">
+
+                    <button
+                        type="button"
+                        className="
+                            action-button
+                            evaluation-action-button
+                            action-continue
+                        "
+                        onClick={() =>
+                            handleViewEvaluation(
+                                evaluation.id
+                            )
+                        }
+                        disabled={isDeleting}
+                    >
+                        Continue
+                    </button>
+
+                    <button
+                        type="button"
+                        className="
+                            action-button
+                            evaluation-action-button
+                            action-delete
+                        "
+                        onClick={() =>
+                            handleDeleteEvaluation(
+                                evaluation
+                            )
+                        }
+                        disabled={isDeleting}
+                    >
+                        {isDeleting
+                            ? "Deleting..."
+                            : "Delete"}
+                    </button>
+
+                </div>
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | ALL NON-DRAFT STATUSES
+        |--------------------------------------------------------------------------
+        |
+        | Employee can ONLY view.
+        | Delete is never available.
+        |
+        */
+
+        return (
+            <div className="table-actions">
+
+                <button
+                    type="button"
+                    className="
+                        action-button
+                        evaluation-action-button
+                        action-view
+                    "
+                    onClick={() =>
+                        handleViewEvaluation(
+                            evaluation.id
+                        )
+                    }
+                >
+                    View
+                </button>
+
+            </div>
+        );
+    };
 
     // ==========================================================
     // Loading
@@ -98,450 +397,6 @@ const MyEvaluations = () => {
         );
     }
 
-
-    // ==========================================================
-    // Create Evaluation
-    // ==========================================================
-
-    const handleCreateEvaluation = () => {
-
-        navigate(
-            "/management/employee/evaluations/create"
-        );
-    };
-
-
-    // ==========================================================
-    // View / Continue Evaluation
-    // ==========================================================
-
-    const handleViewEvaluation = (id) => {
-
-        navigate(
-            `/management/employee/evaluations/${id}`
-        );
-    };
-
-
-    // ==========================================================
-    // Status Badge
-    // ==========================================================
-
-    const renderStatus = (status) => {
-
-        switch (status) {
-
-            // ==================================================
-            // DRAFT
-            // ==================================================
-
-            case "draft":
-
-                return (
-                    <span className="status-badge status-draft">
-                        Draft
-                    </span>
-                );
-
-
-            // ==================================================
-            // SUBMITTED
-            // ==================================================
-
-            case "submitted":
-
-                return (
-                    <span className="status-badge status-submitted">
-                        Submitted
-                    </span>
-                );
-
-
-            // ==================================================
-            // MANAGER RETURNED
-            // ==================================================
-
-            case "manager_returned":
-
-                return (
-                    <span className="status-badge status-returned">
-                        Returned by Manager
-                    </span>
-                );
-
-
-            // ==================================================
-            // MANAGER REJECTED
-            // ==================================================
-
-            case "manager_rejected":
-
-                return (
-                    <span className="status-badge status-rejected">
-                        Rejected by Manager
-                    </span>
-                );
-
-
-            // ==================================================
-            // MANAGER APPROVED
-            // ==================================================
-
-            case "manager_approved":
-
-                return (
-                    <span className="status-badge status-approved">
-                        Manager Approved
-                    </span>
-                );
-
-
-            // ==================================================
-            // ADMIN RETURNED
-            // ==================================================
-
-            case "admin_returned":
-
-                return (
-                    <span className="status-badge status-returned">
-                        Returned by Admin
-                    </span>
-                );
-
-
-            // ==================================================
-            // ADMIN REJECTED
-            // ==================================================
-
-            case "admin_rejected":
-
-                return (
-                    <span className="status-badge status-rejected">
-                        Rejected by Admin
-                    </span>
-                );
-
-
-            // ==================================================
-            // ADMIN APPROVED
-            // ==================================================
-
-            case "admin_approved":
-
-                return (
-                    <span className="status-badge status-approved">
-                        Final Approved
-                    </span>
-                );
-
-
-            // ==================================================
-            // DEFAULT
-            // ==================================================
-
-            default:
-
-                return (
-                    <span className="status-badge status-inactive">
-                        {status || "-"}
-                    </span>
-                );
-        }
-    };
-
-
-    // ==========================================================
-    // Action Button
-    // ==========================================================
-
-    const renderAction = (evaluation) => {
-
-        switch (evaluation.status) {
-
-            // ==================================================
-            // DRAFT
-            //
-            // Employee can continue editing.
-            // ==================================================
-
-            case "draft":
-
-                return (
-                    <div className="table-actions">
-
-                        <button
-                            type="button"
-                            className="
-                                action-button
-                                evaluation-action-button
-                                action-continue
-                            "
-                            onClick={() =>
-                                handleViewEvaluation(
-                                    evaluation.id
-                                )
-                            }
-                        >
-                            Continue
-                        </button>
-
-                    </div>
-                );
-
-
-            // ==================================================
-            // SUBMITTED
-            //
-            // Employee can ONLY view.
-            // ==================================================
-
-            case "submitted":
-
-                return (
-                    <div className="table-actions">
-
-                        <button
-                            type="button"
-                            className="
-                                action-button
-                                evaluation-action-button
-                                action-view
-                            "
-                            onClick={() =>
-                                handleViewEvaluation(
-                                    evaluation.id
-                                )
-                            }
-                        >
-                            View
-                        </button>
-
-                    </div>
-                );
-
-
-            // ==================================================
-            // MANAGER RETURNED
-            //
-            // Read-only.
-            // No Edit & Resubmit.
-            // ==================================================
-
-            case "manager_returned":
-
-                return (
-                    <div className="table-actions">
-
-                        <button
-                            type="button"
-                            className="
-                                action-button
-                                evaluation-action-button
-                                action-view
-                            "
-                            onClick={() =>
-                                handleViewEvaluation(
-                                    evaluation.id
-                                )
-                            }
-                        >
-                            View
-                        </button>
-
-                    </div>
-                );
-
-
-            // ==================================================
-            // MANAGER REJECTED
-            //
-            // Read-only.
-            // No Edit & Resubmit.
-            // ==================================================
-
-            case "manager_rejected":
-
-                return (
-                    <div className="table-actions">
-
-                        <button
-                            type="button"
-                            className="
-                                action-button
-                                evaluation-action-button
-                                action-view
-                            "
-                            onClick={() =>
-                                handleViewEvaluation(
-                                    evaluation.id
-                                )
-                            }
-                        >
-                            View
-                        </button>
-
-                    </div>
-                );
-
-
-            // ==================================================
-            // MANAGER APPROVED
-            //
-            // Read-only.
-            // ==================================================
-
-            case "manager_approved":
-
-                return (
-                    <div className="table-actions">
-
-                        <button
-                            type="button"
-                            className="
-                                action-button
-                                evaluation-action-button
-                                action-view
-                            "
-                            onClick={() =>
-                                handleViewEvaluation(
-                                    evaluation.id
-                                )
-                            }
-                        >
-                            View
-                        </button>
-
-                    </div>
-                );
-
-
-            // ==================================================
-            // ADMIN RETURNED
-            //
-            // Read-only.
-            // No Edit & Resubmit.
-            // ==================================================
-
-            case "admin_returned":
-
-                return (
-                    <div className="table-actions">
-
-                        <button
-                            type="button"
-                            className="
-                                action-button
-                                evaluation-action-button
-                                action-view
-                            "
-                            onClick={() =>
-                                handleViewEvaluation(
-                                    evaluation.id
-                                )
-                            }
-                        >
-                            View
-                        </button>
-
-                    </div>
-                );
-
-
-            // ==================================================
-            // ADMIN REJECTED
-            //
-            // Read-only.
-            // No Edit & Resubmit.
-            // ==================================================
-
-            case "admin_rejected":
-
-                return (
-                    <div className="table-actions">
-
-                        <button
-                            type="button"
-                            className="
-                                action-button
-                                evaluation-action-button
-                                action-view
-                            "
-                            onClick={() =>
-                                handleViewEvaluation(
-                                    evaluation.id
-                                )
-                            }
-                        >
-                            View
-                        </button>
-
-                    </div>
-                );
-
-
-            // ==================================================
-            // ADMIN APPROVED
-            //
-            // Final completed evaluation.
-            // Read-only.
-            // ==================================================
-
-            case "admin_approved":
-
-                return (
-                    <div className="table-actions">
-
-                        <button
-                            type="button"
-                            className="
-                                action-button
-                                evaluation-action-button
-                                action-view
-                            "
-                            onClick={() =>
-                                handleViewEvaluation(
-                                    evaluation.id
-                                )
-                            }
-                        >
-                            View
-                        </button>
-
-                    </div>
-                );
-
-
-            // ==================================================
-            // DEFAULT
-            // ==================================================
-
-            default:
-
-                return (
-                    <div className="table-actions">
-
-                        <button
-                            type="button"
-                            className="
-                                action-button
-                                evaluation-action-button
-                                action-view
-                            "
-                            onClick={() =>
-                                handleViewEvaluation(
-                                    evaluation.id
-                                )
-                            }
-                        >
-                            View
-                        </button>
-
-                    </div>
-                );
-        }
-    };
-
-
     // ==========================================================
     // Page
     // ==========================================================
@@ -569,17 +424,17 @@ const MyEvaluations = () => {
 
                 </div>
 
-
                 <button
                     type="button"
                     className="page-header-button"
-                    onClick={handleCreateEvaluation}
+                    onClick={
+                        handleCreateEvaluation
+                    }
                 >
                     Create New Evaluation
                 </button>
 
             </div>
-
 
             {/* ==================================================
                 Error
@@ -592,7 +447,6 @@ const MyEvaluations = () => {
                 </div>
 
             )}
-
 
             {/* ==================================================
                 Evaluation Table
@@ -649,7 +503,6 @@ const MyEvaluations = () => {
 
                             </thead>
 
-
                             <tbody>
 
                                 {evaluations.map(
@@ -666,11 +519,13 @@ const MyEvaluations = () => {
                                             <td>
 
                                                 <strong>
-                                                    #{evaluation.id}
+                                                    #
+                                                    {
+                                                        evaluation.id
+                                                    }
                                                 </strong>
 
                                             </td>
-
 
                                             {/* Evaluation Period */}
 
@@ -692,7 +547,6 @@ const MyEvaluations = () => {
 
                                             </td>
 
-
                                             {/* Status */}
 
                                             <td>
@@ -702,7 +556,6 @@ const MyEvaluations = () => {
                                                 )}
 
                                             </td>
-
 
                                             {/* Comment */}
 
@@ -719,7 +572,6 @@ const MyEvaluations = () => {
                                                 </div>
 
                                             </td>
-
 
                                             {/* Action */}
 

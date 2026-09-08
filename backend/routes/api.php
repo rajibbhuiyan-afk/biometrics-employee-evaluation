@@ -323,6 +323,11 @@ Route::middleware('auth:sanctum')->group(function () {
             [EvaluationController::class, 'update']
         );
 
+        Route::delete(
+            '/evaluations/{evaluation}',
+            [EvaluationController::class, 'destroy']
+        );
+
 
         // --------------------------------------------------------------
         // Submit / Resubmit Evaluation

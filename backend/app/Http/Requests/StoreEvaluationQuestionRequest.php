@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreEvaluationQuestionRequest extends FormRequest
 {
@@ -14,21 +15,80 @@ class StoreEvaluationQuestionRequest extends FormRequest
     public function rules(): array
     {
         return [
+
+            /*
+            |--------------------------------------------------------------------------
+            | Category
+            |--------------------------------------------------------------------------
+            */
+
             'category_id' => [
                 'required',
                 'integer',
                 'exists:evaluation_categories,id',
             ],
 
+            /*
+            |--------------------------------------------------------------------------
+            | Department
+            |--------------------------------------------------------------------------
+            |
+            | NULL হলে question সবার জন্য common হবে।
+            |
+            */
+
+            'department_id' => [
+                'nullable',
+                'integer',
+                'exists:departments,id',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Position
+            |--------------------------------------------------------------------------
+            |
+            | NULL হলে question সব position-এর জন্য applicable হবে।
+            |
+            */
+
+            'position_id' => [
+                'nullable',
+                'integer',
+                'exists:positions,id',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Question
+            |--------------------------------------------------------------------------
+            */
+
             'question' => [
                 'required',
                 'string',
             ],
 
+            /*
+            |--------------------------------------------------------------------------
+            | Question Type
+            |--------------------------------------------------------------------------
+            */
+
             'question_type' => [
                 'required',
-                'in:rating,text,yes_no',
+                Rule::in([
+                    'rating',
+                    'text',
+                    'yes_no',
+                ]),
             ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Maximum Rating
+            |--------------------------------------------------------------------------
+            */
 
             'max_rating' => [
                 'nullable',
@@ -37,12 +97,24 @@ class StoreEvaluationQuestionRequest extends FormRequest
                 'max:100',
             ],
 
+            /*
+            |--------------------------------------------------------------------------
+            | Maximum Answer Words
+            |--------------------------------------------------------------------------
+            */
+
             'max_answer_words' => [
                 'nullable',
                 'integer',
                 'min:1',
                 'max:10000',
             ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Weight
+            |--------------------------------------------------------------------------
+            */
 
             'weight' => [
                 'nullable',
@@ -51,10 +123,22 @@ class StoreEvaluationQuestionRequest extends FormRequest
                 'max:999.99',
             ],
 
+            /*
+            |--------------------------------------------------------------------------
+            | Required
+            |--------------------------------------------------------------------------
+            */
+
             'is_required' => [
                 'nullable',
                 'boolean',
             ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Sort Order
+            |--------------------------------------------------------------------------
+            */
 
             'sort_order' => [
                 'nullable',
@@ -62,9 +146,39 @@ class StoreEvaluationQuestionRequest extends FormRequest
                 'min:0',
             ],
 
+            /*
+            |--------------------------------------------------------------------------
+            | Status
+            |--------------------------------------------------------------------------
+            */
+
             'status' => [
                 'nullable',
                 'boolean',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Reviewer Roles
+            |--------------------------------------------------------------------------
+            |
+            | Example:
+            | Employee + Manager
+            | Employee + HR
+            | Employee + Management
+            |
+            | একাধিক role select করা যাবে।
+            |
+            */
+
+            'reviewer_role_ids' => [
+                'nullable',
+                'array',
+            ],
+
+            'reviewer_role_ids.*' => [
+                'integer',
+                'exists:roles,id',
             ],
         ];
     }

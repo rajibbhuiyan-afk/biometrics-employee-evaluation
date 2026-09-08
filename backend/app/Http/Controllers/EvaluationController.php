@@ -69,15 +69,21 @@ class EvaluationController extends Controller
 
             $query->where(function ($q) use ($user) {
 
-                $q->where('employee_id', $user->id)
+                $q->where(
+                    'employee_id',
+                    $user->id
+                )
 
-                    ->orWhereHas('employee', function ($employeeQuery) use ($user) {
+                ->orWhereHas(
+                    'employee',
+                    function ($employeeQuery) use ($user) {
 
                         $employeeQuery->where(
                             'manager_id',
                             $user->id
                         );
-                    });
+                    }
+                );
             });
 
         }
@@ -104,8 +110,10 @@ class EvaluationController extends Controller
      * Employee / Manager / HR can create
      * their own self evaluation.
      */
-    public function store(StoreEvaluationRequest $request): JsonResponse
-    {
+    public function store(
+        StoreEvaluationRequest $request
+    ): JsonResponse {
+
         $user = auth()->user();
 
         $role = $user->role?->name;
@@ -170,7 +178,8 @@ class EvaluationController extends Controller
 
             $evaluation = DB::transaction(function () use (
                 $request,
-                $employeeId
+                $employeeId,
+                $user
             ) {
 
                 $evaluation = Evaluation::create([
@@ -190,17 +199,133 @@ class EvaluationController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | Add Active Questions
+                | Add Applicable Active Questions
                 |--------------------------------------------------------------------------
+                |
+                | Rules:
+                |
+                | 1. status = true
+                |       Question must be active.
+                |
+                | 2. department_id = NULL
+                |       Applies to every department.
+                |
+                | 3. position_id = NULL
+                |       Applies to every position.
+                |
+                | 4. If department is selected,
+                |       employee department must match.
+                |
+                | 5. If position is selected,
+                |       employee position must match.
+                |
+                | Therefore:
+                |
+                | NULL department = All Departments
+                | NULL position   = All Positions
+                |
                 */
 
                 $activeQuestions = EvaluationQuestion::where(
                     'status',
                     true
                 )
+                    ->where(function ($query) use ($user) {
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Common Questions
+                        |--------------------------------------------------------------------------
+                        |
+                        | Department = All
+                        | Position   = All
+                        |
+                        */
+
+                        $query->where(function ($commonQuery) {
+
+                            $commonQuery
+                                ->whereNull('department_id')
+                                ->whereNull('position_id');
+
+                        })
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Department / Position Specific Questions
+                        |--------------------------------------------------------------------------
+                        */
+
+                        ->orWhere(function ($specificQuery) use ($user) {
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Department
+                            |--------------------------------------------------------------------------
+                            |
+                            | NULL = All Departments
+                            | Otherwise employee department must match.
+                            |
+                            */
+
+                            $specificQuery->where(function ($departmentQuery) use ($user) {
+
+                                $departmentQuery
+                                    ->whereNull('department_id')
+                                    ->orWhere(
+                                        'department_id',
+                                        $user->department_id
+                                    );
+
+                            });
+
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Position
+                            |--------------------------------------------------------------------------
+                            |
+                            | NULL = All Positions
+                            | Otherwise employee position must match.
+                            |
+                            */
+
+                            $specificQuery->where(function ($positionQuery) use ($user) {
+
+                                $positionQuery
+                                    ->whereNull('position_id')
+                                    ->orWhere(
+                                        'position_id',
+                                        $user->position_id
+                                    );
+
+                            });
+
+                        });
+
+                    })
                     ->orderBy('sort_order')
+                    ->orderBy('id')
                     ->get();
 
+
+                /*
+                |--------------------------------------------------------------------------
+                | Create Evaluation Answer Snapshot
+                |--------------------------------------------------------------------------
+                |
+                | Important:
+                |
+                | Questions are copied into evaluation_answers when
+                | the evaluation is created.
+                |
+                | Therefore, if HR later changes a question's
+                | department, position, or active status,
+                | the already-created evaluation will keep its
+                | original questions.
+                |
+                */
 
                 foreach ($activeQuestions as $question) {
 
@@ -227,6 +352,12 @@ class EvaluationController extends Controller
             });
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Response
+            |--------------------------------------------------------------------------
+            */
+
             return response()->json([
                 'success' => true,
 
@@ -243,6 +374,9 @@ class EvaluationController extends Controller
                             'employee.manager.role',
                             'evaluationPeriod',
                             'answers.question.category',
+                            'answers.question.department',
+                            'answers.question.position',
+                            'answers.question.reviewers',
                         ]),
             ], 201);
 
@@ -345,10 +479,16 @@ class EvaluationController extends Controller
             'employee.role',
             'employee.manager.role',
             'evaluationPeriod',
+
             'answers.question.category',
+            'answers.question.department',
+            'answers.question.position',
+            'answers.question.reviewers',
+
             'reviews.reviewer',
             'reviews.reviewer.role',
             'reviews.question.category',
+            'reviews.question.reviewers',
         ]);
 
 
@@ -580,6 +720,7 @@ class EvaluationController extends Controller
                             ];
                         })
                         ->values(),
+
             ], 422);
         }
 
@@ -588,15 +729,6 @@ class EvaluationController extends Controller
         |--------------------------------------------------------------------------
         | Submit
         |--------------------------------------------------------------------------
-        |
-        | Important:
-        |
-        | HR's own evaluation will be routed to Management.
-        |
-        | Employee / Manager:
-        | Their Reports To user will become
-        | the first reviewer.
-        |
         */
 
         $evaluation->update([
@@ -624,6 +756,7 @@ class EvaluationController extends Controller
                         'employee.manager.role',
                         'evaluationPeriod',
                         'answers.question.category',
+                        'answers.question.reviewers',
                     ]),
         ]);
     }
@@ -715,10 +848,19 @@ class EvaluationController extends Controller
 
     /**
      * Delete draft evaluation.
+     *
+     * Only owner can delete.
+     * Only draft evaluations can be deleted.
      */
     public function destroy(
         Evaluation $evaluation
     ): JsonResponse {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Only Owner Can Delete
+        |--------------------------------------------------------------------------
+        */
 
         if (
             (int) $evaluation->employee_id !==
@@ -733,6 +875,12 @@ class EvaluationController extends Controller
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Only Draft Can Be Deleted
+        |--------------------------------------------------------------------------
+        */
+
         if (
             $evaluation->status !== 'draft'
         ) {
@@ -745,7 +893,28 @@ class EvaluationController extends Controller
         }
 
 
-        $evaluation->delete();
+        /*
+        |--------------------------------------------------------------------------
+        | Delete Evaluation
+        |--------------------------------------------------------------------------
+        */
+
+        DB::transaction(function () use ($evaluation) {
+
+            /*
+            | Delete answers first.
+            */
+            EvaluationAnswer::where(
+                'evaluation_id',
+                $evaluation->id
+            )->delete();
+
+
+            /*
+            | Delete evaluation.
+            */
+            $evaluation->delete();
+        });
 
 
         return response()->json([
@@ -771,6 +940,12 @@ class EvaluationController extends Controller
         $role = $user->role?->name;
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Permission
+        |--------------------------------------------------------------------------
+        */
+
         if (
             !in_array(
                 $role,
@@ -786,18 +961,36 @@ class EvaluationController extends Controller
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Load Evaluation
+        |--------------------------------------------------------------------------
+        */
+
         $evaluation->load([
             'employee.department',
             'employee.position',
             'employee.role',
             'employee.manager.role',
             'evaluationPeriod',
+
             'answers.question.category',
+            'answers.question.department',
+            'answers.question.position',
+            'answers.question.reviewers',
+
             'reviews.reviewer',
             'reviews.reviewer.role',
             'reviews.question.category',
+            'reviews.question.reviewers',
         ]);
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Question Reviews
+        |--------------------------------------------------------------------------
+        */
 
         $questionReviews =
             $evaluation->reviews
@@ -809,6 +1002,12 @@ class EvaluationController extends Controller
                 })
                 ->values();
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Stage Reviews
+        |--------------------------------------------------------------------------
+        */
 
         $stageReviews =
             $evaluation->reviews

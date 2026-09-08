@@ -3158,6 +3158,53 @@
 
 
 
+/* ==========================================================
+   Evaluation Question - Help Text
+========================================================== */
+
+.management-form-help-text {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #6b7280;
+}
+
+
+/* ==========================================================
+   Evaluation Question - Reviewer Roles
+========================================================== */
+
+.reviewer-role-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.reviewer-role-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    cursor: pointer;
+    width: fit-content;
+    font-size: 14px;
+}
+
+.reviewer-role-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.reviewer-role-item span {
+    cursor: pointer;
+}
+
+
+
+
 
 
 

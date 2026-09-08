@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreEvaluationReviewRequest;
 use App\Models\Evaluation;
+use App\Models\EvaluationQuestion;
 use App\Models\EvaluationReview;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class EvaluationReviewController extends Controller
@@ -26,6 +28,9 @@ class EvaluationReviewController extends Controller
             'evaluation.employee.role',
             'evaluation.employee.manager.role',
             'question.category',
+            'question.department',
+            'question.position',
+            'question.reviewers',
             'reviewer',
             'reviewer.role',
         ])->latest();
@@ -36,10 +41,14 @@ class EvaluationReviewController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if (in_array($role, ['HR', 'Management', 'Admin'], true)) {
-
-            // Allowed to view review history.
-
+        if (
+            in_array(
+                $role,
+                ['HR', 'Management', 'Admin'],
+                true
+            )
+        ) {
+            // Allowed to view all review history.
         }
 
         /*
@@ -48,11 +57,18 @@ class EvaluationReviewController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        elseif (in_array($role, ['Employee', 'Manager'], true)) {
+        elseif (
+            in_array(
+                $role,
+                ['Employee', 'Manager'],
+                true
+            )
+        ) {
 
             $query->whereHas(
                 'evaluation.employee',
                 function ($employeeQuery) use ($user) {
+
                     $employeeQuery->where(
                         'manager_id',
                         $user->id
@@ -90,15 +106,22 @@ class EvaluationReviewController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Reviewer Roles
+        | Allowed Reviewer Roles
         |--------------------------------------------------------------------------
         */
 
-        if (!in_array(
-            $role,
-            ['Employee', 'Manager', 'HR', 'Management'],
-            true
-        )) {
+        if (
+            !in_array(
+                $role,
+                [
+                    'Employee',
+                    'Manager',
+                    'HR',
+                    'Management',
+                ],
+                true
+            )
+        ) {
 
             return response()->json([
                 'success' => false,
@@ -120,6 +143,9 @@ class EvaluationReviewController extends Controller
             'employee.manager',
             'employee.manager.role',
             'answers.question.category',
+            'answers.question.department',
+            'answers.question.position',
+            'answers.question.reviewers',
         ])->find(
             $request->evaluation_id
         );
@@ -142,7 +168,9 @@ class EvaluationReviewController extends Controller
         */
 
         $expectedReviewer =
-            $this->getExpectedReviewer($evaluation);
+            $this->getExpectedReviewer(
+                $evaluation
+            );
 
 
         if (!$expectedReviewer) {
@@ -176,7 +204,35 @@ class EvaluationReviewController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Evaluation Must Have Answers
+        | Expected Reviewer Role
+        |--------------------------------------------------------------------------
+        */
+
+        $stage =
+            $this->getReviewerStage(
+                $expectedReviewer
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Safety Check
+        |--------------------------------------------------------------------------
+        */
+
+        if ($stage !== $role) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Your reviewer role does not match the current evaluation stage.',
+            ], 403);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Evaluation Answers
         |--------------------------------------------------------------------------
         */
 
@@ -190,6 +246,35 @@ class EvaluationReviewController extends Controller
                 'success' => false,
                 'message' =>
                     'No questions found for this evaluation.',
+            ], 422);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Questions Assigned To Current Reviewer Role
+        |--------------------------------------------------------------------------
+        */
+
+        $assignedQuestionIds =
+            $this->getAssignedQuestionIds(
+                $evaluationAnswers,
+                $role
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | No Assigned Questions
+        |--------------------------------------------------------------------------
+        */
+
+        if ($assignedQuestionIds->isEmpty()) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'No questions are assigned to your reviewer role for this evaluation.',
             ], 422);
         }
 
@@ -214,9 +299,23 @@ class EvaluationReviewController extends Controller
             return response()->json([
                 'success' => false,
                 'message' =>
-                    'Please provide review data for all questions.',
+                    'Please provide review data for your assigned questions.',
             ], 422);
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Submitted Question IDs
+        |--------------------------------------------------------------------------
+        */
+
+        $submittedQuestionIds =
+            $submittedReviews
+                ->pluck('question_id')
+                ->map(
+                    fn ($id) => (int) $id
+                );
 
 
         /*
@@ -225,15 +324,8 @@ class EvaluationReviewController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $questionIds = $submittedReviews
-            ->pluck('question_id')
-            ->map(
-                fn ($id) => (int) $id
-            );
-
-
         if (
-            $questionIds
+            $submittedQuestionIds
                 ->duplicates()
                 ->count() > 0
         ) {
@@ -248,46 +340,24 @@ class EvaluationReviewController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Evaluation Question IDs
-        |--------------------------------------------------------------------------
-        */
-
-        $evaluationQuestionIds =
-            $evaluationAnswers
-                ->pluck('question_id')
-                ->map(
-                    fn ($id) => (int) $id
-                )
-                ->sort()
-                ->values();
-
-
-        $submittedQuestionIds =
-            $questionIds
-                ->sort()
-                ->values();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Missing Questions
+        | Missing Assigned Questions
         |--------------------------------------------------------------------------
         */
 
         $missingQuestionIds =
-            $evaluationQuestionIds
+            $assignedQuestionIds
                 ->diff(
                     $submittedQuestionIds
                 )
                 ->values();
 
 
-        if ($missingQuestionIds->count() > 0) {
+        if ($missingQuestionIds->isNotEmpty()) {
 
             return response()->json([
                 'success' => false,
                 'message' =>
-                    'Please review all questions before submitting the evaluation review.',
+                    'Please review all questions assigned to your reviewer role.',
                 'missing_question_ids' =>
                     $missingQuestionIds,
             ], 422);
@@ -298,9 +368,49 @@ class EvaluationReviewController extends Controller
         |--------------------------------------------------------------------------
         | Invalid Questions
         |--------------------------------------------------------------------------
+        |
+        | A question can be:
+        |
+        | - Not part of this evaluation
+        | - Assigned to another reviewer role
+        |
         */
 
         $invalidQuestionIds =
+            $submittedQuestionIds
+                ->diff(
+                    $assignedQuestionIds
+                )
+                ->values();
+
+
+        if ($invalidQuestionIds->isNotEmpty()) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'One or more questions are not assigned to your reviewer role.',
+                'invalid_question_ids' =>
+                    $invalidQuestionIds,
+            ], 422);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Make Sure Question IDs Belong To This Evaluation
+        |--------------------------------------------------------------------------
+        */
+
+        $evaluationQuestionIds =
+            $evaluationAnswers
+                ->pluck('question_id')
+                ->map(
+                    fn ($id) => (int) $id
+                );
+
+
+        $notBelongingToEvaluation =
             $submittedQuestionIds
                 ->diff(
                     $evaluationQuestionIds
@@ -308,14 +418,37 @@ class EvaluationReviewController extends Controller
                 ->values();
 
 
-        if ($invalidQuestionIds->count() > 0) {
+        if ($notBelongingToEvaluation->isNotEmpty()) {
 
             return response()->json([
                 'success' => false,
                 'message' =>
                     'One or more questions do not belong to this evaluation.',
                 'invalid_question_ids' =>
-                    $invalidQuestionIds,
+                    $notBelongingToEvaluation,
+            ], 422);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Review Data Against Question
+        |--------------------------------------------------------------------------
+        */
+
+        $validationError =
+            $this->validateSubmittedReviews(
+                $submittedReviews,
+                $evaluationAnswers
+            );
+
+
+        if ($validationError) {
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    $validationError,
             ], 422);
         }
 
@@ -333,7 +466,8 @@ class EvaluationReviewController extends Controller
                 $request,
                 $user,
                 $role,
-                $expectedReviewer
+                $expectedReviewer,
+                $stage
             ) {
 
                 $reviewedAt =
@@ -342,9 +476,9 @@ class EvaluationReviewController extends Controller
 
 
                 /*
-                |--------------------------------------------------------------------------
+                |--------------------------------------------------------------
                 | Question Reviews
-                |--------------------------------------------------------------------------
+                |--------------------------------------------------------------
                 */
 
                 foreach (
@@ -369,11 +503,10 @@ class EvaluationReviewController extends Controller
                             $reviewData['review_result'],
 
                         'rating' =>
-                            $reviewData['rating'],
+                            $reviewData['rating'] ?? null,
 
                         'comment' =>
-                            $reviewData['comment'] ??
-                            null,
+                            $reviewData['comment'] ?? null,
 
                         'action' =>
                             null,
@@ -385,16 +518,10 @@ class EvaluationReviewController extends Controller
 
 
                 /*
-                |--------------------------------------------------------------------------
-                | Reviewer Stage
-                |--------------------------------------------------------------------------
+                |--------------------------------------------------------------
+                | Evaluation Status
+                |--------------------------------------------------------------
                 */
-
-                $stage =
-                    $this->getReviewerStage(
-                        $expectedReviewer
-                    );
-
 
                 $updateData = [];
 
@@ -431,10 +558,7 @@ class EvaluationReviewController extends Controller
                         ] =
                             $reviewedAt;
 
-                    } elseif (
-                        $request->action ===
-                        'rejected'
-                    ) {
+                    } else {
 
                         $updateData['status'] =
                             'employee_rejected';
@@ -474,10 +598,7 @@ class EvaluationReviewController extends Controller
                         ] =
                             $reviewedAt;
 
-                    } elseif (
-                        $request->action ===
-                        'rejected'
-                    ) {
+                    } else {
 
                         $updateData['status'] =
                             'manager_rejected';
@@ -517,10 +638,7 @@ class EvaluationReviewController extends Controller
                         ] =
                             $reviewedAt;
 
-                    } elseif (
-                        $request->action ===
-                        'rejected'
-                    ) {
+                    } else {
 
                         $updateData['status'] =
                             'hr_rejected';
@@ -565,10 +683,7 @@ class EvaluationReviewController extends Controller
                         ] =
                             $reviewedAt;
 
-                    } elseif (
-                        $request->action ===
-                        'rejected'
-                    ) {
+                    } else {
 
                         $updateData['status'] =
                             'management_rejected';
@@ -589,7 +704,7 @@ class EvaluationReviewController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | Stage Review History
+                | Stage-Level Review History
                 |--------------------------------------------------------------------------
                 */
 
@@ -625,8 +740,15 @@ class EvaluationReviewController extends Controller
         );
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Response
+        |--------------------------------------------------------------------------
+        */
+
         return response()->json([
             'success' => true,
+
             'message' =>
                 'Evaluation review created successfully.',
 
@@ -639,10 +761,207 @@ class EvaluationReviewController extends Controller
                         'evaluation.employee.role',
                         'evaluation.employee.manager.role',
                         'question.category',
+                        'question.department',
+                        'question.position',
+                        'question.reviewers',
                         'reviewer',
                         'reviewer.role',
                     ]),
         ], 201);
+    }
+
+
+    /**
+     * Get question IDs assigned to a reviewer role.
+     */
+    private function getAssignedQuestionIds(
+        Collection $evaluationAnswers,
+        string $reviewerRole
+    ): Collection {
+
+        return $evaluationAnswers
+            ->filter(function ($answer) use ($reviewerRole) {
+
+                $question =
+                    $answer->question;
+
+                if (!$question) {
+                    return false;
+                }
+
+                return $question
+                    ->reviewers
+                    ->contains(
+                        function ($reviewer) use ($reviewerRole) {
+
+                            return $reviewer->name ===
+                                $reviewerRole;
+                        }
+                    );
+            })
+            ->pluck('question_id')
+            ->map(
+                fn ($id) => (int) $id
+            )
+            ->unique()
+            ->sort()
+            ->values();
+    }
+
+
+    /**
+     * Validate submitted review data.
+     */
+    private function validateSubmittedReviews(
+        Collection $submittedReviews,
+        Collection $evaluationAnswers
+    ): ?string {
+
+        $answersByQuestion =
+            $evaluationAnswers
+                ->keyBy(
+                    fn ($answer) =>
+                        (int) $answer->question_id
+                );
+
+
+        foreach (
+            $submittedReviews
+            as $reviewData
+        ) {
+
+            $questionId =
+                (int) $reviewData['question_id'];
+
+
+            $answer =
+                $answersByQuestion->get(
+                    $questionId
+                );
+
+
+            if (!$answer) {
+
+                return
+                    'One or more submitted questions do not belong to this evaluation.';
+            }
+
+
+            $result =
+                $reviewData['review_result'] ??
+                null;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Accept / Okay
+            |--------------------------------------------------------------------------
+            |
+            | Rating required.
+            |
+            */
+
+            if (
+                $result === 'okay'
+            ) {
+
+                if (
+                    !isset(
+                        $reviewData['rating']
+                    ) ||
+                    $reviewData['rating'] === ''
+                ) {
+
+                    return
+                        "Rating is required for question {$questionId}.";
+                }
+
+                if (
+                    !is_numeric(
+                        $reviewData['rating']
+                    )
+                ) {
+
+                    return
+                        "Rating must be numeric for question {$questionId}.";
+                }
+
+                $rating =
+                    (float) $reviewData['rating'];
+
+
+                /*
+                |--------------------------------------------------------------
+                | Use Question Max Rating
+                |--------------------------------------------------------------
+                */
+
+                $maxRating =
+                    $answer
+                        ->question
+                        ?->max_rating;
+
+
+                if (
+                    $maxRating !== null &&
+                    $rating > (float) $maxRating
+                ) {
+
+                    return
+                        "Rating for question {$questionId} cannot exceed {$maxRating}.";
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Reject / Not Okay
+            |--------------------------------------------------------------------------
+            |
+            | Comment required.
+            |
+            */
+
+            elseif (
+                $result === 'not_okay'
+            ) {
+
+                $comment =
+                    trim(
+                        (string) (
+                            $reviewData['comment']
+                            ?? ''
+                        )
+                    );
+
+
+                if ($comment === '') {
+
+                    return
+                        "Comment is required for rejected question {$questionId}.";
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Ignore
+            |--------------------------------------------------------------------------
+            |
+            | No rating/comment required.
+            |
+            */
+
+            elseif (
+                $result === 'ignore'
+            ) {
+
+                // No additional validation.
+            }
+        }
+
+
+        return null;
     }
 
 
@@ -655,13 +974,13 @@ class EvaluationReviewController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | HR SELF EVALUATION
+        | HR Self Evaluation
         |--------------------------------------------------------------------------
         |
-        | HR does NOT go to their manager.
+        | HR does not go to their manager.
         |
         | HR
-        |   ↓
+        | ↓
         | Management
         |
         */
@@ -674,6 +993,7 @@ class EvaluationReviewController extends Controller
             return User::whereHas(
                 'role',
                 function ($query) {
+
                     $query->where(
                         'name',
                         'Management'
@@ -692,11 +1012,13 @@ class EvaluationReviewController extends Controller
         |--------------------------------------------------------------------------
         | Submitted Normal Employee / Manager
         |--------------------------------------------------------------------------
+        |
+        | Employee's direct manager reviews first.
+        |
         */
 
         if (
-            $evaluation->status ===
-            'submitted'
+            $evaluation->status === 'submitted'
         ) {
 
             return $evaluation
@@ -728,6 +1050,7 @@ class EvaluationReviewController extends Controller
             return User::whereHas(
                 'role',
                 function ($query) {
+
                     $query->where(
                         'name',
                         'HR'
@@ -752,13 +1075,13 @@ class EvaluationReviewController extends Controller
         */
 
         if (
-            $evaluation->status ===
-            'hr_approved'
+            $evaluation->status === 'hr_approved'
         ) {
 
             return User::whereHas(
                 'role',
                 function ($query) {
+
                     $query->where(
                         'name',
                         'Management'
@@ -807,6 +1130,9 @@ class EvaluationReviewController extends Controller
             'evaluation.employee.role',
             'evaluation.employee.manager.role',
             'question.category',
+            'question.department',
+            'question.position',
+            'question.reviewers',
             'reviewer',
             'reviewer.role',
         ]);
@@ -826,35 +1152,70 @@ class EvaluationReviewController extends Controller
         }
 
 
-        $isDirectReviewer =
+        /*
+        |--------------------------------------------------------------------------
+        | Direct Manager
+        |--------------------------------------------------------------------------
+        */
+
+        $isDirectManager =
             $evaluation->employee &&
             (int) $evaluation->employee->manager_id ===
             (int) $user->id;
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Review Owner
+        |--------------------------------------------------------------------------
+        */
+
+        $isReviewOwner =
+            (int) $evaluationReview->reviewer_id ===
+            (int) $user->id;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | HR / Management / Admin
+        |--------------------------------------------------------------------------
+        */
+
         if (
             in_array(
                 $role,
-                ['HR', 'Management', 'Admin'],
+                [
+                    'HR',
+                    'Management',
+                    'Admin',
+                ],
                 true
             )
         ) {
 
             // Allowed.
 
-        } elseif (
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Employee / Manager
+        |--------------------------------------------------------------------------
+        */
+
+        elseif (
             in_array(
                 $role,
-                ['Employee', 'Manager'],
+                [
+                    'Employee',
+                    'Manager',
+                ],
                 true
             ) &&
-            $isDirectReviewer
+            $isDirectManager
         ) {
 
-            if (
-                (int) $evaluationReview->reviewer_id !==
-                (int) $user->id
-            ) {
+            if (!$isReviewOwner) {
 
                 return response()->json([
                     'success' => false,
@@ -863,7 +1224,9 @@ class EvaluationReviewController extends Controller
                 ], 403);
             }
 
-        } else {
+        }
+
+        else {
 
             return response()->json([
                 'success' => false,
@@ -910,3 +1273,4 @@ class EvaluationReviewController extends Controller
         ], 422);
     }
 }
+

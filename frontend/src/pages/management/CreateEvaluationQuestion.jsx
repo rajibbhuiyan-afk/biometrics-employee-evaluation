@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 
@@ -6,9 +6,14 @@ const CreateEvaluationQuestion = () => {
     const navigate = useNavigate();
 
     const [categories, setCategories] = useState([]);
+    const [departments, setDepartments] = useState([]);
+    const [positions, setPositions] = useState([]);
+    const [roles, setRoles] = useState([]);
 
     const [form, setForm] = useState({
         category_id: "",
+        department_id: "",
+        position_id: "",
         question: "",
         question_type: "rating",
         max_rating: 5,
@@ -17,45 +22,101 @@ const CreateEvaluationQuestion = () => {
         is_required: true,
         sort_order: 0,
         status: true,
+        reviewer_role_ids: [],
     });
 
     const [loading, setLoading] = useState(false);
-    const [categoryLoading, setCategoryLoading] = useState(true);
+    const [pageLoading, setPageLoading] = useState(true);
+
     const [error, setError] = useState("");
     const [validationErrors, setValidationErrors] = useState({});
 
     /*
     |--------------------------------------------------------------------------
-    | Load Categories
+    | Load Initial Data
     |--------------------------------------------------------------------------
     */
 
     useEffect(() => {
-        fetchCategories();
+        fetchInitialData();
     }, []);
 
-    const fetchCategories = async () => {
+    const fetchInitialData = async () => {
         try {
-            setCategoryLoading(true);
+            setPageLoading(true);
+            setError("");
 
-            const response = await api.get(
-                "/evaluation-categories"
+            const [
+                categoriesResponse,
+                departmentsResponse,
+                positionsResponse,
+                rolesResponse,
+            ] = await Promise.all([
+                api.get("/evaluation-categories"),
+                api.get("/departments"),
+                api.get("/positions"),
+                api.get("/roles"),
+            ]);
+
+            setCategories(
+                categoriesResponse.data?.data || []
             );
 
-            setCategories(response.data.data || []);
+            setDepartments(
+                departmentsResponse.data?.data || []
+            );
+
+            setPositions(
+                positionsResponse.data?.data || []
+            );
+
+            setRoles(
+                rolesResponse.data?.data || []
+            );
 
         } catch (error) {
             console.error(error);
 
             setError(
                 error.response?.data?.message ||
-                "Failed to load evaluation categories."
+                "Failed to load evaluation question data."
             );
 
         } finally {
-            setCategoryLoading(false);
+            setPageLoading(false);
         }
     };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Filter Positions
+    |--------------------------------------------------------------------------
+    |
+    | Empty department = All Departments
+    |
+    */
+
+    const filteredPositions = useMemo(() => {
+
+        // All Departments
+        if (
+            form.department_id === "" ||
+            form.department_id === null ||
+            form.department_id === undefined
+        ) {
+            return positions;
+        }
+
+        return positions.filter(
+            (position) =>
+                Number(position.department_id) ===
+                Number(form.department_id)
+        );
+
+    }, [
+        positions,
+        form.department_id,
+    ]);
 
     /*
     |--------------------------------------------------------------------------
@@ -69,6 +130,39 @@ const CreateEvaluationQuestion = () => {
         setForm((previous) => ({
             ...previous,
             [name]: value,
+        }));
+
+        // Clear individual validation error
+        if (validationErrors[name]) {
+            setValidationErrors((previous) => ({
+                ...previous,
+                [name]: undefined,
+            }));
+        }
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Department Change
+    |--------------------------------------------------------------------------
+    */
+
+    const handleDepartmentChange = (e) => {
+        const value = e.target.value;
+
+        setForm((previous) => ({
+            ...previous,
+
+            department_id: value,
+
+            // Department change হলে position reset
+            position_id: "",
+        }));
+
+        setValidationErrors((previous) => ({
+            ...previous,
+            department_id: undefined,
+            position_id: undefined,
         }));
     };
 
@@ -89,6 +183,45 @@ const CreateEvaluationQuestion = () => {
 
     /*
     |--------------------------------------------------------------------------
+    | Reviewer Role Change
+    |--------------------------------------------------------------------------
+    */
+
+    const handleReviewerRoleChange = (e) => {
+        const roleId = Number(e.target.value);
+        const checked = e.target.checked;
+
+        setForm((previous) => {
+
+            let reviewerRoleIds = [
+                ...(previous.reviewer_role_ids || []),
+            ];
+
+            if (checked) {
+
+                if (
+                    !reviewerRoleIds.includes(roleId)
+                ) {
+                    reviewerRoleIds.push(roleId);
+                }
+
+            } else {
+
+                reviewerRoleIds =
+                    reviewerRoleIds.filter(
+                        (id) => id !== roleId
+                    );
+            }
+
+            return {
+                ...previous,
+                reviewer_role_ids: reviewerRoleIds,
+            };
+        });
+    };
+
+    /*
+    |--------------------------------------------------------------------------
     | Question Type Change
     |--------------------------------------------------------------------------
     */
@@ -98,8 +231,13 @@ const CreateEvaluationQuestion = () => {
 
         setForm((previous) => ({
             ...previous,
+
             question_type: value,
-            max_rating: value === "rating" ? 5 : null,
+
+            max_rating:
+                value === "rating"
+                    ? 5
+                    : null,
         }));
     };
 
@@ -117,11 +255,43 @@ const CreateEvaluationQuestion = () => {
         setValidationErrors({});
 
         const payload = {
-            category_id: Number(form.category_id),
 
-            question: form.question,
+            category_id:
+                Number(form.category_id),
 
-            question_type: form.question_type,
+            /*
+            |--------------------------------------------------------------------------
+            | Department
+            |--------------------------------------------------------------------------
+            |
+            | Empty = null = common/all departments
+            |
+            */
+
+            department_id:
+                form.department_id === ""
+                    ? null
+                    : Number(form.department_id),
+
+            /*
+            |--------------------------------------------------------------------------
+            | Position
+            |--------------------------------------------------------------------------
+            |
+            | Empty = null = all positions under selected department
+            |
+            */
+
+            position_id:
+                form.position_id === ""
+                    ? null
+                    : Number(form.position_id),
+
+            question:
+                form.question,
+
+            question_type:
+                form.question_type,
 
             max_rating:
                 form.question_type === "rating"
@@ -133,16 +303,24 @@ const CreateEvaluationQuestion = () => {
                     ? Number(form.max_answer_words)
                     : 30,
 
-            weight: Number(form.weight),
+            weight:
+                Number(form.weight),
 
-            is_required: Boolean(form.is_required),
+            is_required:
+                Boolean(form.is_required),
 
-            sort_order: Number(form.sort_order),
+            sort_order:
+                Number(form.sort_order),
 
-            status: Boolean(form.status),
+            status:
+                Boolean(form.status),
+
+            reviewer_role_ids:
+                form.reviewer_role_ids || [],
         };
 
         try {
+
             await api.post(
                 "/evaluation-questions",
                 payload
@@ -157,13 +335,19 @@ const CreateEvaluationQuestion = () => {
             );
 
         } catch (error) {
+
             console.error(error);
 
-            if (error.response?.status === 422) {
+            if (
+                error.response?.status === 422
+            ) {
+
                 setValidationErrors(
                     error.response.data.errors || {}
                 );
+
             } else {
+
                 setError(
                     error.response?.data?.message ||
                     "Failed to create evaluation question."
@@ -174,6 +358,34 @@ const CreateEvaluationQuestion = () => {
             setLoading(false);
         }
     };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Loading
+    |--------------------------------------------------------------------------
+    */
+
+    if (pageLoading) {
+        return (
+            <div className="management-form-page">
+
+                <h1 className="management-form-title">
+                    Create Evaluation Question
+                </h1>
+
+                <div className="management-form">
+                    Loading...
+                </div>
+
+            </div>
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Render
+    |--------------------------------------------------------------------------
+    */
 
     return (
         <div className="management-form-page">
@@ -193,12 +405,17 @@ const CreateEvaluationQuestion = () => {
                 onSubmit={handleSubmit}
             >
 
-                {/* Category */}
+                {/* ==========================================================
+                    Category
+                ========================================================== */}
 
                 <div className="management-form-field">
 
                     <label htmlFor="category_id">
                         Category
+                        <span className="required-star">
+                            *
+                        </span>
                     </label>
 
                     <select
@@ -207,22 +424,23 @@ const CreateEvaluationQuestion = () => {
                         value={form.category_id}
                         onChange={handleChange}
                         required
-                        disabled={categoryLoading}
                     >
+
                         <option value="">
-                            {categoryLoading
-                                ? "Loading categories..."
-                                : "Select Category"}
+                            Select Category
                         </option>
 
-                        {categories.map((category) => (
-                            <option
-                                key={category.id}
-                                value={category.id}
-                            >
-                                {category.name}
-                            </option>
-                        ))}
+                        {categories.map(
+                            (category) => (
+                                <option
+                                    key={category.id}
+                                    value={category.id}
+                                >
+                                    {category.name}
+                                </option>
+                            )
+                        )}
+
                     </select>
 
                     <ValidationError
@@ -232,12 +450,130 @@ const CreateEvaluationQuestion = () => {
 
                 </div>
 
-                {/* Question */}
+
+                {/* ==========================================================
+                    Department
+                ========================================================== */}
+
+                <div className="management-form-field">
+
+                    <label htmlFor="department_id">
+                        Department
+                    </label>
+
+                    <select
+                        id="department_id"
+                        name="department_id"
+                        value={form.department_id}
+                        onChange={handleDepartmentChange}
+                    >
+
+                        <option value="">
+                            All Departments
+                        </option>
+
+                        {departments.map(
+                            (department) => (
+                                <option
+                                    key={department.id}
+                                    value={department.id}
+                                >
+                                    {department.name ||
+                                        department.title}
+                                </option>
+                            )
+                        )}
+
+                    </select>
+
+                    <small>
+                        Select a department or keep
+                        "All Departments" for a common question.
+                    </small>
+
+                    <ValidationError
+                        errors={validationErrors}
+                        field="department_id"
+                    />
+
+                </div>
+
+
+                {/* ==========================================================
+                    Position
+                ========================================================== */}
+
+                <div className="management-form-field">
+
+                    <label htmlFor="position_id">
+                        Position
+                    </label>
+
+                    <select
+                        id="position_id"
+                        name="position_id"
+                        value={form.position_id}
+                        onChange={handleChange}
+                    >
+
+                        <option value="">
+                            All Positions
+                        </option>
+
+                        {filteredPositions.length > 0 ? (
+
+                            filteredPositions.map(
+                                (position) => (
+                                    <option
+                                        key={position.id}
+                                        value={position.id}
+                                    >
+                                        {position.title}
+                                        {position.code
+                                            ? ` (${position.code})`
+                                            : ""}
+                                    </option>
+                                )
+                            )
+
+                        ) : (
+
+                            <option
+                                value=""
+                                disabled
+                            >
+                                No positions available
+                            </option>
+
+                        )}
+
+                    </select>
+
+                    <small>
+                        {form.department_id === ""
+                            ? "All positions are available."
+                            : "Only positions under the selected department are shown."}
+                    </small>
+
+                    <ValidationError
+                        errors={validationErrors}
+                        field="position_id"
+                    />
+
+                </div>
+
+
+                {/* ==========================================================
+                    Question
+                ========================================================== */}
 
                 <div className="management-form-field">
 
                     <label htmlFor="question">
                         Question
+                        <span className="required-star">
+                            *
+                        </span>
                     </label>
 
                     <textarea
@@ -257,7 +593,10 @@ const CreateEvaluationQuestion = () => {
 
                 </div>
 
-                {/* Question Type */}
+
+                {/* ==========================================================
+                    Question Type
+                ========================================================== */}
 
                 <div className="management-form-field">
 
@@ -271,9 +610,19 @@ const CreateEvaluationQuestion = () => {
                         value={form.question_type}
                         onChange={handleQuestionTypeChange}
                     >
+
                         <option value="rating">
                             Rating
                         </option>
+
+                        <option value="text">
+                            Text
+                        </option>
+
+                        <option value="yes_no">
+                            Yes / No
+                        </option>
+
                     </select>
 
                     <ValidationError
@@ -283,9 +632,13 @@ const CreateEvaluationQuestion = () => {
 
                 </div>
 
-                {/* Max Rating */}
+
+                {/* ==========================================================
+                    Max Rating
+                ========================================================== */}
 
                 {form.question_type === "rating" && (
+
                     <div className="management-form-field">
 
                         <label htmlFor="max_rating">
@@ -296,7 +649,7 @@ const CreateEvaluationQuestion = () => {
                             id="max_rating"
                             type="number"
                             name="max_rating"
-                            value={form.max_rating}
+                            value={form.max_rating ?? ""}
                             onChange={handleChange}
                             min="1"
                             max="100"
@@ -310,7 +663,10 @@ const CreateEvaluationQuestion = () => {
                     </div>
                 )}
 
-                {/* Maximum Answer Words */}
+
+                {/* ==========================================================
+                    Maximum Answer Words
+                ========================================================== */}
 
                 <div className="management-form-field">
 
@@ -330,7 +686,8 @@ const CreateEvaluationQuestion = () => {
                     />
 
                     <small>
-                        Maximum number of words allowed for this answer.
+                        Maximum number of words allowed
+                        for this answer.
                     </small>
 
                     <ValidationError
@@ -340,7 +697,10 @@ const CreateEvaluationQuestion = () => {
 
                 </div>
 
-                {/* Weight */}
+
+                {/* ==========================================================
+                    Weight
+                ========================================================== */}
 
                 <div className="management-form-field">
 
@@ -366,7 +726,10 @@ const CreateEvaluationQuestion = () => {
 
                 </div>
 
-                {/* Sort Order */}
+
+                {/* ==========================================================
+                    Sort Order
+                ========================================================== */}
 
                 <div className="management-form-field">
 
@@ -390,7 +753,70 @@ const CreateEvaluationQuestion = () => {
 
                 </div>
 
-                {/* Required */}
+
+                {/* ==========================================================
+                    Reviewer Roles
+                ========================================================== */}
+
+                <div className="management-form-field">
+
+                    <label>
+                        Who Can Review This Question?
+                    </label>
+
+                    <div className="management-form-checkbox-group">
+
+                        {roles.map(
+                            (role) => (
+
+                                <div
+                                    className="management-form-checkbox"
+                                    key={role.id}
+                                >
+
+                                    <input
+                                        id={`reviewer-role-${role.id}`}
+                                        type="checkbox"
+                                        value={role.id}
+                                        checked={
+                                            form.reviewer_role_ids.includes(
+                                                Number(role.id)
+                                            )
+                                        }
+                                        onChange={
+                                            handleReviewerRoleChange
+                                        }
+                                    />
+
+                                    <label
+                                        htmlFor={`reviewer-role-${role.id}`}
+                                    >
+                                        {role.name}
+                                    </label>
+
+                                </div>
+
+                            )
+                        )}
+
+                    </div>
+
+                    <small>
+                        Select one or more roles that can
+                        review this question.
+                    </small>
+
+                    <ValidationError
+                        errors={validationErrors}
+                        field="reviewer_role_ids"
+                    />
+
+                </div>
+
+
+                {/* ==========================================================
+                    Required
+                ========================================================== */}
 
                 <div className="management-form-checkbox">
 
@@ -408,7 +834,10 @@ const CreateEvaluationQuestion = () => {
 
                 </div>
 
-                {/* Status */}
+
+                {/* ==========================================================
+                    Status
+                ========================================================== */}
 
                 <div className="management-form-checkbox">
 
@@ -426,7 +855,10 @@ const CreateEvaluationQuestion = () => {
 
                 </div>
 
-                {/* Buttons */}
+
+                {/* ==========================================================
+                    Buttons
+                ========================================================== */}
 
                 <div className="management-form-actions">
 
@@ -456,9 +888,11 @@ const CreateEvaluationQuestion = () => {
                 </div>
 
             </form>
+
         </div>
     );
 };
+
 
 /*
 |--------------------------------------------------------------------------
@@ -466,7 +900,11 @@ const CreateEvaluationQuestion = () => {
 |--------------------------------------------------------------------------
 */
 
-const ValidationError = ({ errors, field }) => {
+const ValidationError = ({
+    errors,
+    field,
+}) => {
+
     if (!errors[field]) {
         return null;
     }
@@ -477,5 +915,6 @@ const ValidationError = ({ errors, field }) => {
         </div>
     );
 };
+
 
 export default CreateEvaluationQuestion;
