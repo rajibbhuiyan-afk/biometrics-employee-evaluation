@@ -45,78 +45,85 @@ const OverallReviewForm = ({
 
             <div className="management-form">
 
-                {/* ==================================================
-                    Overall Rating
-                ================================================== */}
+                <div className="overall-review-grid">
 
-                <div className="management-form-field">
-
-                    <label htmlFor="overall-rating">
-
+                    {/* ==================================================
                         Overall Rating
+                    ================================================== */}
 
-                        <span className="required-star">
-                            *
-                        </span>
+                    <div className="management-form-field">
 
-                    </label>
+                        <label htmlFor="overall-rating">
 
-                    <select
-                        id="overall-rating"
-                        value={overallRating}
-                        onChange={(e) =>
-                            onRatingChange(
-                                e.target.value
-                            )
-                        }
-                        disabled={saving}
-                    >
+                            Overall Rating
 
-                        <option value="">
-                            Select Overall Rating
-                        </option>
+                            <span className="required-star">
+                                *
+                            </span>
 
-                        {Array.from(
-                            { length: 11 },
-                            (_, rating) => (
-                                <option
-                                    key={rating}
-                                    value={rating}
-                                >
-                                    {rating} / 10
-                                </option>
-                            )
-                        )}
+                        </label>
 
-                    </select>
+                        <select
+                            id="overall-rating"
+                            value={overallRating}
+                            onChange={(e) =>
+                                onRatingChange(
+                                    e.target.value
+                                )
+                            }
+                            disabled={saving}
+                        >
 
-                </div>
+                            <option value="">
+                                Select Overall Rating
+                            </option>
 
-                {/* ==================================================
-                    Overall Comment
-                ================================================== */}
+                            {Array.from(
+                                { length: 11 },
+                                (_, rating) => (
+                                    <option
+                                        key={rating}
+                                        value={rating}
+                                    >
+                                        {rating} / 10
+                                    </option>
+                                )
+                            )}
 
-                <div className="management-form-field">
+                        </select>
 
-                    <label htmlFor="overall-comment">
+                    </div>
+
+
+                    {/* ==================================================
                         Overall Comment
-                    </label>
+                    ================================================== */}
 
-                    <textarea
-                        id="overall-comment"
-                        value={overallComment}
-                        onChange={(e) =>
-                            onCommentChange(
-                                e.target.value
-                            )
-                        }
-                        placeholder={
-                            `Enter overall ${roleLabel.toLowerCase()} comment...`
-                        }
-                        disabled={saving}
-                    />
+                    <div className="management-form-field">
+
+                        <label htmlFor="overall-comment">
+                            Overall Comment
+                        </label>
+
+                        <textarea
+                            id="overall-comment"
+                            value={overallComment}
+                            onChange={(e) =>
+                                onCommentChange(
+                                    e.target.value
+                                )
+                            }
+                            placeholder={
+                                `Enter overall ${roleLabel.toLowerCase()} comment...`
+                            }
+                            disabled={saving}
+                        />
+
+                    </div>
 
                 </div>
+
+
 
                 {/* ==================================================
                     Review Actions
@@ -124,10 +131,7 @@ const OverallReviewForm = ({
 
                 <div className="management-form-actions">
 
-                    {/* ------------------------------------------------
-                        Approve
-                    ------------------------------------------------ */}
-
+                    {/* Approve */}
                     <button
                         type="button"
                         className="management-btn-primary"
@@ -141,25 +145,7 @@ const OverallReviewForm = ({
                             : "Approve"}
                     </button>
 
-                    {/* ------------------------------------------------
-                        Return
-                    ------------------------------------------------ */}
-
-                    {/* <button
-                        type="button"
-                        className="management-btn-secondary"
-                        onClick={() =>
-                            onAction("returned")
-                        }
-                        disabled={actionsDisabled}
-                    >
-                        Return
-                    </button> */}
-
-                    {/* ------------------------------------------------
-                        Reject
-                    ------------------------------------------------ */}
-
+                    {/* Reject */}
                     <button
                         type="button"
                         className="action-button action-delete"
@@ -171,27 +157,23 @@ const OverallReviewForm = ({
                         Reject Evaluation
                     </button>
 
+                    {/* Review Progress Message */}
+                    {!allQuestionsReviewed && !saving && (
+                        <div className="management-error">
+                            Please Accept, Reject or Ignore all
+                            questions before submitting the review.
+                        </div>
+                    )}
+
+                    {allQuestionsReviewed && !saving && (
+                        <div className="evaluation-review-ready-message">
+                            ✓ All questions have been reviewed.
+                            You can now Approve or Reject
+                            the evaluation.
+                        </div>
+                    )}
+
                 </div>
-
-                {/* ==================================================
-                    Review Progress Message
-                ================================================== */}
-
-                {!allQuestionsReviewed && !saving && (
-                    <div className="management-error">
-                        Please Accept, Reject or Ignore all
-                        questions before submitting the review.
-                    </div>
-                )}
-
-                {allQuestionsReviewed && !saving && (
-                    <div className="evaluation-review-ready-message">
-                        ✓ All questions have been reviewed.
-                        You can now Approve or Reject
-                        the evaluation.
-                    </div>
-                )}
-
             </div>
 
         </div>

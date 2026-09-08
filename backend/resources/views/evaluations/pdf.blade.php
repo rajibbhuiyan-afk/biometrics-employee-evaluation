@@ -410,11 +410,11 @@
                     </td>
 
                     <td class="employee-label">
-                        Phone
+                        Mobile
                     </td>
 
-                    <td>
-                        {{ $evaluation->employee->phone ?? '-' }}
+                    <td>                    
+                        {{ $evaluation->employee->employeeProfile->mobile_number ?? '-' }}
                     </td>
 
                 </tr>

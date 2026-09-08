@@ -315,6 +315,9 @@ const QuestionReviewCard = ({
 
                         <div className="evaluation-review-panel-title">
                             Employee
+                             <div className="evaluation-review-label">
+                                Review Result
+                            </div> 
                         </div>
 
 
@@ -394,6 +397,9 @@ const QuestionReviewCard = ({
 
                         <div className="evaluation-review-panel-title">
                             Manager
+                             <div className="evaluation-review-label">
+                                Review Result
+                            </div> 
                         </div>
 
 
@@ -473,7 +479,12 @@ const QuestionReviewCard = ({
 
                         <div className="evaluation-review-panel-title">
                             HR
+                            <div className="evaluation-review-label">
+                                Review Result
+                            </div> 
                         </div>
+
+                        
 
 
                         {/* ------------------------------------------
@@ -550,6 +561,9 @@ const QuestionReviewCard = ({
 
                         <div className="evaluation-review-panel-title">
                             Management
+                             <div className="evaluation-review-label">
+                                Review Result
+                            </div> 
                         </div>
 
 
@@ -643,9 +657,9 @@ const ReviewControls = ({
 
             <div className="question-review-result-section">
 
-                <div className="evaluation-review-label">
+                {/* <div className="evaluation-review-label">
                     Review Result
-                </div>
+                </div> */}
 
 
                 <div className="question-review-result-buttons">

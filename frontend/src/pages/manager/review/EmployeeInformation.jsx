@@ -1,5 +1,7 @@
 import api from "../../../api/axios";
 
+import EmployeeComment from "./EmployeeComment";
+
 const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
 
     const employee = evaluation?.employee;
@@ -161,11 +163,7 @@ const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
                         Status
                     </span>
 
-                    <span
-                        className={getStatusClass(
-                            evaluation?.status
-                        )}
-                    >
+                    <span className="management-form-info-value" >
                         {formatStatus(
                             evaluation?.status
                         )}
@@ -192,6 +190,16 @@ const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
                             : "-"}
                     </span>
                 </div>
+
+                    {/* ==================================================
+                Employee Comment
+            ================================================== */}
+
+            <EmployeeComment
+                comment={
+                    evaluation.employee_comment
+                }
+            />
 
                 {/* Download */}
               {["HR", "Management", "Admin"].includes(reviewerRole) && (

@@ -6,7 +6,7 @@ import PageHeader from "../../components/PageHeader";
 import { useAuth } from "../../context/AuthContext";
 
 import EmployeeInformation from "./review/EmployeeInformation";
-import EmployeeComment from "./review/EmployeeComment";
+
 import EvaluationQuestions from "./review/EvaluationQuestions";
 import OverallReviewForm from "./review/OverallReviewForm";
 import ReviewSummary from "./review/ReviewSummary";
@@ -1602,15 +1602,7 @@ const ReviewEvaluation = () => {
                 }
             />
 
-            {/* ==================================================
-                Employee Comment
-            ================================================== */}
-
-            <EmployeeComment
-                comment={
-                    evaluation.employee_comment
-                }
-            />
+        
 
             {/* ==================================================
                 Evaluation Questions

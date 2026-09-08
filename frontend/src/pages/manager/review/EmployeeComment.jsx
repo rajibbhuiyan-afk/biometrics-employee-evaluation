@@ -5,20 +5,16 @@ const EmployeeComment = ({
         return null;
     }
 
-    return (
-        <div className="management-form-section">
+    return (  
+        <div className="management-form-info">
+            <span className="management-form-info-label">
+                Employee Comment
+            </span>
 
-            <div className="management-form-section-header">
-                <h2>
-                    Employee Comment
-                </h2>
-            </div>
-
-            <div className="evaluation-review-comment">
-                {comment}
-            </div>
-
-        </div>
+            <span className="management-form-info-value">
+            {comment}
+            </span>
+        </div>        
     );
 };
 
