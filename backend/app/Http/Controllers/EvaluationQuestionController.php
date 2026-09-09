@@ -31,8 +31,9 @@ class EvaluationQuestionController extends Controller
             'position',
             'reviewers',
         ])
-            ->orderBy('sort_order')
-            ->orderBy('id');
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->orderByDesc('updated_at');
 
         /*
         |--------------------------------------------------------------------------

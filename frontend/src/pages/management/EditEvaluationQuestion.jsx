@@ -18,7 +18,7 @@ const EditEvaluationQuestion = () => {
         position_id: "",
         question: "",
         question_type: "rating",
-        max_rating: 5,
+        max_rating: 10,
         max_answer_words: 30,
         weight: 1,
         is_required: true,

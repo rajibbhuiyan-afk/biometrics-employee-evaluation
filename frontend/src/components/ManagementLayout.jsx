@@ -161,13 +161,13 @@ const ManagementLayout = () => {
         // Manager
         // ==========================================================
 
-        {
-            label: "Evaluation Reviews",
-            path: "/management/manager/reviews",
-            roles: [
-                "Manager",                
-            ],
-        },
+        // {
+        //     label: "Evaluation Reviews",
+        //     path: "/management/manager/reviews",
+        //     roles: [
+        //         "Manager",                
+        //     ],
+        // },
 
           {
             label: "Change Password",

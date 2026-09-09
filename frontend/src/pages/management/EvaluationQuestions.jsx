@@ -42,7 +42,11 @@ const EvaluationQuestions = () => {
             );
 
             setQuestions(
-                response.data.data || []
+                (response.data.data || []).sort(
+                    (a, b) =>
+                        new Date(b.created_at) -
+                        new Date(a.created_at)
+                )
             );
 
         } catch (error) {
@@ -110,6 +114,35 @@ const EvaluationQuestions = () => {
 
     /*
     |--------------------------------------------------------------------------
+    | Format Date Time
+    |--------------------------------------------------------------------------
+    */
+
+    const formatDateTime = (date) => {
+
+        if (!date) {
+            return "N/A";
+        }
+
+        const parsedDate = new Date(date);
+
+        if (Number.isNaN(parsedDate.getTime())) {
+            return "N/A";
+        }
+
+        return parsedDate.toLocaleString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+        });
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Loading
     |--------------------------------------------------------------------------
     */
@@ -138,7 +171,9 @@ const EvaluationQuestions = () => {
 
         <div className="management-page">
 
-            {/* Page Header */}
+            {/* ==================================================
+                Page Header
+            ================================================== */}
 
             <PageHeader
                 title="Evaluation Question Management"
@@ -152,7 +187,9 @@ const EvaluationQuestions = () => {
             />
 
 
-            {/* Error */}
+            {/* ==================================================
+                Error
+            ================================================== */}
 
             {error && (
 
@@ -163,7 +200,9 @@ const EvaluationQuestions = () => {
             )}
 
 
-            {/* Empty State */}
+            {/* ==================================================
+                Empty State
+            ================================================== */}
 
             {questions.length === 0 ? (
 
@@ -187,85 +226,294 @@ const EvaluationQuestions = () => {
             ) : (
 
                 <DataTable
+
                     columns={[
+
+                        /*
+                        ==========================================
+                        ID
+                        ==========================================
+                        */
+
                         {
                             key: "id",
                             label: "ID",
                         },
+
+
+                        /*
+                        ==========================================
+                        Category
+                        ==========================================
+                        */
+
                         {
                             key: "category",
                             label: "Category",
                         },
+
+
+                        /*
+                        ==========================================
+                        Question
+                        ==========================================
+                        */
+
                         {
                             key: "question",
                             label: "Question",
+                            className:
+                                "evaluation-question-column",
                         },
+
+
+                        /*
+                        ==========================================
+                        Department
+                        ==========================================
+                        */
+
                         {
-                            key: "question_type",
-                            label: "Type",
+                            key: "department",
+                            label: "Dep",
                         },
+
+
+                        /*
+                        ==========================================
+                        Position
+                        ==========================================
+                        */
+
+                        {
+                            key: "position",
+                            label: "Position",
+                        },
+
+
+                        /*
+                        ==========================================
+                        Max Rating
+                        ==========================================
+                        */
+
                         {
                             key: "max_rating",
                             label: "Max Rating",
+                            className:
+                                "evaluation-max-rating-column",
                         },
+
+
+                        /*
+                        ==========================================
+                        Max Answer Words
+                        ==========================================
+                        */
+
                         {
-                            key: "weight",
-                            label: "Weight",
+                            key: "max_answer_words",
+                            label: "Max Words",
+                            className:
+                                "evaluation-max-words-column",
                         },
+
+
+                        /*
+                        ==========================================
+                        Required
+                        ==========================================
+                        */
+
                         {
                             key: "is_required",
                             label: "Required",
                         },
-                        {
-                            key: "sort_order",
-                            label: "Sort Order",
-                        },
+
+
+                        /*
+                        ==========================================
+                        Create Time
+                        ==========================================
+                        */
+
+                        // {
+                        //     key: "created_at",
+                        //     label: "Created",
+                        // },
+
+
+                        /*
+                        ==========================================
+                        Update Time
+                        ==========================================
+                        */
+
+                        // {
+                        //     key: "updated_at",
+                        //     label: "Updated",
+                        // },
+
+
+                        /*
+                        ==========================================
+                        Status
+                        ==========================================
+                        */
+
                         {
                             key: "status",
                             label: "Status",
                         },
+
+
+                        /*
+                        ==========================================
+                        Actions
+                        ==========================================
+                        */
+
                         {
                             key: "actions",
                             label: "Actions",
                         },
+
                     ]}
+
 
                     data={questions.map(
                         (question) => ({
 
+                            /*
+                            ==========================================
+                            ID
+                            ==========================================
+                            */
+
                             id:
                                 question.id,
+
+
+                            /*
+                            ==========================================
+                            Category
+                            ==========================================
+                            */
 
                             category:
                                 question.category?.name ||
                                 "N/A",
 
-                            question:
-                                question.question ||
-                                "N/A",
 
-                            question_type:
-                                formatQuestionType(
-                                    question.question_type
-                                ),
+                            /*
+                            ==========================================
+                            Question
+                            ==========================================
+                            */
+
+                            question: (
+
+                                <div
+                                    className="evaluation-question-text"
+                                    title={
+                                        question.question ||
+                                        ""
+                                    }
+                                >
+                                    {
+                                        question.question ||
+                                        "N/A"
+                                    }
+                                </div>
+
+                            ),
+
+
+                            /*
+                            ==========================================
+                            Department
+                            ==========================================
+                            */
+
+                            department:
+                                question.department?.name ||
+                                "All Departments",
+
+
+                            /*
+                            ==========================================
+                            Position
+                            ==========================================
+                            */
+
+                            position:
+                                question.position?.title ||
+                                "All Positions",
+
+
+                            /*
+                            ==========================================
+                            Max Rating
+                            ==========================================
+                            */
 
                             max_rating:
-                                question.question_type === "rating"
-                                    ? question.max_rating
-                                    : "N/A",
-
-                            weight:
-                                question.weight ??
+                                question.max_rating ??
                                 "N/A",
+
+
+                            /*
+                            ==========================================
+                            Max Answer Words
+                            ==========================================
+                            */
+
+                            max_answer_words:
+                                question.max_answer_words ??
+                                "N/A",
+
+
+                            /*
+                            ==========================================
+                            Required
+                            ==========================================
+                            */
 
                             is_required:
                                 question.is_required
                                     ? "Yes"
                                     : "No",
 
-                            sort_order:
-                                question.sort_order ??
-                                0,
+
+                            /*
+                            ==========================================
+                            Create Time
+                            ==========================================
+                            */
+
+                            // created_at:
+                            //     formatDateTime(
+                            //         question.created_at
+                            //     ),
+
+
+                            /*
+                            ==========================================
+                            Update Time
+                            ==========================================
+                            */
+
+                            // updated_at:
+                            //     formatDateTime(
+                            //         question.updated_at
+                            //     ),
+
+
+                            /*
+                            ==========================================
+                            Status
+                            ==========================================
+                            */
 
                             status: (
 
@@ -276,74 +524,72 @@ const EvaluationQuestions = () => {
                                             : "status-badge status-inactive"
                                     }
                                 >
-                                    {question.status
-                                        ? "Active"
-                                        : "Inactive"}
+                                    {
+                                        question.status
+                                            ? "Active"
+                                            : "Inactive"
+                                    }
                                 </span>
 
                             ),
 
+
+                            /*
+                            ==========================================
+                            Actions
+                            ==========================================
+                            */
+
                             actions: (
+
                                 <div className="table-actions">
 
                                     <button
                                         type="button"
                                         className="action-button action-edit"
-                                        onClick={() =>
+                                        onClick={(event) => {
+
+                                            event.stopPropagation();
+
                                             navigate(
                                                 `/management/evaluation-questions/${question.id}/edit`
-                                            )
-                                        }
+                                            );
+
+                                        }}
                                     >
                                         Edit
                                     </button>
 
+
                                     <button
                                         type="button"
                                         className="action-button action-delete"
-                                        onClick={() =>
-                                            handleDelete(question.id)
-                                        }
+                                        onClick={(event) => {
+
+                                            event.stopPropagation();
+
+                                            handleDelete(
+                                                question.id
+                                            );
+
+                                        }}
                                     >
                                         Delete
                                     </button>
 
                                 </div>
+
                             ),
 
                         })
                     )}
+
                 />
 
             )}
 
         </div>
     );
-};
-
-
-/*
-|--------------------------------------------------------------------------
-| Format Question Type
-|--------------------------------------------------------------------------
-*/
-
-const formatQuestionType = (type) => {
-
-    switch (type) {
-
-        case "rating":
-            return "Rating";
-
-        case "text":
-            return "Text";
-
-        case "yes_no":
-            return "Yes / No";
-
-        default:
-            return type || "N/A";
-    }
 };
 
 

@@ -6,6 +6,7 @@ const DataTable = ({
     emptyMessage = "No records found.",
     onRowClick,
 }) => {
+
     /*
     ==================================================
     Pagination State
@@ -15,6 +16,7 @@ const DataTable = ({
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
     const [currentPage, setCurrentPage] = useState(1);
+
 
     /*
     ==================================================
@@ -27,33 +29,40 @@ const DataTable = ({
         Math.ceil(data.length / itemsPerPage)
     );
 
+
     /*
     ==================================================
     Reset / Correct Current Page
     ==================================================
-    
-    Data change হলে যদি current page আর available না থাকে,
-    তাহলে last available page-এ নিয়ে যাবে।
     */
 
     useEffect(() => {
+
         if (currentPage > totalPages) {
             setCurrentPage(totalPages);
         }
-    }, [currentPage, totalPages]);
+
+    }, [
+        currentPage,
+        totalPages,
+    ]);
+
 
     /*
     ==================================================
     Page Size Change
     ==================================================
-    
-    10 -> 20 -> 50 করলে আবার page 1 হবে।
     */
 
     const handleItemsPerPageChange = (event) => {
-        setItemsPerPage(Number(event.target.value));
+
+        setItemsPerPage(
+            Number(event.target.value)
+        );
+
         setCurrentPage(1);
     };
+
 
     /*
     ==================================================
@@ -62,96 +71,80 @@ const DataTable = ({
     */
 
     const paginatedData = useMemo(() => {
+
         const startIndex =
-            (currentPage - 1) * itemsPerPage;
+            (currentPage - 1) *
+            itemsPerPage;
 
         const endIndex =
-            startIndex + itemsPerPage;
+            startIndex +
+            itemsPerPage;
 
-        return data.slice(startIndex, endIndex);
+        return data.slice(
+            startIndex,
+            endIndex
+        );
+
     }, [
         data,
         currentPage,
         itemsPerPage,
     ]);
 
+
     /*
     ==================================================
     Page Numbers
     ==================================================
-    
-    Example:
-
-    Page 1:
-    Previous 1 2 3 Next
-
-    Page 2:
-    Previous 1 2 3 4 Next
-
-    Page 3:
-    Previous 1 2 3 4 5 Next
-
-    যতগুলো page আছে তার বেশি দেখাবে না।
     */
 
     const pageNumbers = useMemo(() => {
+
         const pages = [];
 
-        /*
-        Always start from page 1
-        */
-
         let startPage = 1;
-
-        /*
-        Current page অনুযায়ী maximum
-        4 pages পর্যন্ত সামনে দেখাবে।
-        */
 
         let endPage = Math.min(
             totalPages,
             currentPage + 2
         );
 
+
         /*
-        Current page যদি 1 হয়,
-        তাহলে 1, 2, 3
+        Current page 1
         */
 
         if (currentPage === 1) {
+
             endPage = Math.min(
                 totalPages,
                 3
             );
         }
 
+
         /*
-        Current page 2 হলে
-        1, 2, 3, 4
+        Current page 2
         */
 
         if (currentPage === 2) {
+
             endPage = Math.min(
                 totalPages,
                 4
             );
         }
 
+
         /*
-        যদি শেষের দিকে চলে যাই,
-        তাহলে শেষ page পর্যন্ত দেখাবে।
-
-        Example:
-        Total = 5
-        Current = 4
-
-        1 2 3 4 5
+        Near the last page
         */
 
         if (
             currentPage >= totalPages - 1 &&
             totalPages > 4
         ) {
+
             startPage = Math.max(
                 1,
                 totalPages - 4
@@ -160,19 +153,24 @@ const DataTable = ({
             endPage = totalPages;
         }
 
+
         for (
             let page = startPage;
             page <= endPage;
             page++
         ) {
+
             pages.push(page);
         }
 
+
         return pages;
+
     }, [
         currentPage,
         totalPages,
     ]);
+
 
     /*
     ==================================================
@@ -181,24 +179,63 @@ const DataTable = ({
     */
 
     const handlePrevious = () => {
+
         if (currentPage > 1) {
-            setCurrentPage((previousPage) =>
-                previousPage - 1
+
+            setCurrentPage(
+                (previousPage) =>
+                    previousPage - 1
             );
         }
     };
+
 
     const handleNext = () => {
+
         if (currentPage < totalPages) {
-            setCurrentPage((previousPage) =>
-                previousPage + 1
+
+            setCurrentPage(
+                (previousPage) =>
+                    previousPage + 1
             );
         }
     };
 
+
     const handlePageChange = (page) => {
+
         setCurrentPage(page);
     };
+
+
+    /*
+    ==================================================
+    Column Class Helper
+    ==================================================
+    
+    Supports:
+    
+    className: "evaluation-question-column"
+    
+    This allows individual columns to have
+    custom width / styling.
+    */
+
+    const getColumnClassName = (
+        column
+    ) => {
+
+        return [
+            column.key === "actions"
+                ? "data-table-actions-header"
+                : "",
+
+            column.className || "",
+        ]
+            .filter(Boolean)
+            .join(" ");
+    };
+
 
     /*
     ==================================================
@@ -207,9 +244,17 @@ const DataTable = ({
     */
 
     return (
+
         <div className="data-table-container">
 
             {data.length === 0 ? (
+
+                /*
+                ==========================================
+                Empty State
+                ==========================================
+                */
+
                 <div className="data-table-empty">
 
                     <div className="data-table-empty-title">
@@ -221,38 +266,54 @@ const DataTable = ({
                     </div>
 
                 </div>
+
             ) : (
+
                 <>
-                    {/* ==========================================
+
+                    {/* ======================================
                         Table
-                    ========================================== */}
+                    ====================================== */}
 
                     <div className="data-table-wrapper">
 
                         <table className="data-table">
 
+                            {/* ==================================
+                                Table Header
+                            ================================== */}
+
                             <thead>
 
                                 <tr>
 
-                                    {columns.map((column) => (
+                                    {columns.map(
+                                        (column) => (
 
-                                        <th
-                                            key={column.key}
-                                            className={
-                                                column.key === "actions"
-                                                    ? "data-table-actions-header"
-                                                    : ""
-                                            }
-                                        >
-                                            {column.label}
-                                        </th>
+                                            <th
+                                                key={
+                                                    column.key
+                                                }
+                                                className={
+                                                    getColumnClassName(
+                                                        column
+                                                    )
+                                                }
+                                            >
+                                                {column.label}
+                                            </th>
 
-                                    ))}
+                                        )
+                                    )}
 
                                 </tr>
 
                             </thead>
+
+
+                            {/* ==================================
+                                Table Body
+                            ================================== */}
 
                             <tbody>
 
@@ -269,6 +330,7 @@ const DataTable = ({
                                                 if (
                                                     onRowClick
                                                 ) {
+
                                                     onRowClick(
                                                         row
                                                     );
@@ -288,6 +350,10 @@ const DataTable = ({
                                                     <td
                                                         key={
                                                             column.key
+                                                        }
+                                                        className={
+                                                            column.className ||
+                                                            ""
                                                         }
                                                     >
 
@@ -316,15 +382,16 @@ const DataTable = ({
 
                     </div>
 
-                    {/* ==========================================
+
+                    {/* ======================================
                         Pagination
-                    ========================================== */}
+                    ====================================== */}
 
                     <div className="data-table-pagination">
 
-                        {/* ======================================
+                        {/* ==================================
                             Rows Per Page
-                        ====================================== */}
+                        ================================== */}
 
                         <div className="data-table-page-size">
 
@@ -333,7 +400,9 @@ const DataTable = ({
                             </span>
 
                             <select
-                                value={itemsPerPage}
+                                value={
+                                    itemsPerPage
+                                }
                                 onChange={
                                     handleItemsPerPageChange
                                 }
@@ -359,9 +428,10 @@ const DataTable = ({
 
                         </div>
 
-                        {/* ======================================
+
+                        {/* ==================================
                             Pagination Buttons
-                        ====================================== */}
+                        ================================== */}
 
                         <div className="data-table-pagination-buttons">
 
@@ -379,6 +449,7 @@ const DataTable = ({
                             >
                                 Previous
                             </button>
+
 
                             {/* Page Numbers */}
 
@@ -406,6 +477,7 @@ const DataTable = ({
                                 )
                             )}
 
+
                             {/* Next */}
 
                             <button
@@ -425,11 +497,14 @@ const DataTable = ({
                         </div>
 
                     </div>
+
                 </>
+
             )}
 
         </div>
     );
 };
+
 
 export default DataTable;

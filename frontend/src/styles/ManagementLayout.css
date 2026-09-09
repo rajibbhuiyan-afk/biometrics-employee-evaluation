@@ -3325,6 +3325,40 @@
     background: #f9fafb;
 }
 
+/* .evaluation-question-column {
+    width: 350px;
+    min-width: 350px;
+    max-width: 350px;
+} */
+
+.evaluation-question-text {
+    width: 100%;
+    max-width: 100%;
+
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    line-height: 1.5;
+
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* ==================================================
+   Data Table Wrapper
+   ================================================== */
+
+.data-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: visible;
+}
+
 
 
 
@@ -3376,6 +3410,22 @@
 
     .brand-logo img {
         max-width: 150px;
+    }
+    .data-table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: visible;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .data-table-wrapper::-webkit-scrollbar {
+        display: none;
+    }
+
+    .data-table {
+        width: max-content;
+        min-width: 100%;
     }
 }
 
@@ -3507,6 +3557,22 @@
     .data-table-pagination-buttons {
         justify-content: center;
         flex-wrap: wrap;
+    }
+    .data-table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: visible;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .data-table-wrapper::-webkit-scrollbar {
+        display: none;
+    }
+
+    .data-table {
+        width: max-content;
+        min-width: 100%;
     }
 }
 

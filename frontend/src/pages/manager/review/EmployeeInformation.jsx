@@ -2,7 +2,10 @@ import api from "../../../api/axios";
 
 import EmployeeComment from "./EmployeeComment";
 
-const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
+const EmployeeInformation = ({
+    evaluation,
+    reviewerRole,
+}) => {
 
     const employee = evaluation?.employee;
 
@@ -10,6 +13,11 @@ const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
         evaluation?.evaluation_period ||
         evaluation?.evaluationPeriod;
 
+    /*
+    ==================================================
+    Status
+    ==================================================
+    */
     const formatStatus = (status) => {
         if (!status) {
             return "-";
@@ -22,8 +30,12 @@ const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
                 (char) => char.toUpperCase()
             );
     };
-    
 
+    /*
+    ==================================================
+    Status Class
+    ==================================================
+    */
     const getStatusClass = (status) => {
         if (!status) {
             return "";
@@ -34,13 +46,64 @@ const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
             .toLowerCase()}`;
     };
 
+    /*
+    ==================================================
+    Submitted At
+    ==================================================
+    */
+
+    const submittedAt =
+        evaluation?.submitted_at ||
+        evaluation?.submittedAt ||
+        null;
+
+    const formatSubmittedAt = (date) => {
+        if (!date) {
+            return "-";
+        }
+
+        const parsedDate = new Date(date);
+
+        if (Number.isNaN(parsedDate.getTime())) {
+            return "-";
+        }
+
+        return parsedDate.toLocaleString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+        });
+    };
+
+    /*
+    ==================================================
+    Employee Comment
+    ==================================================
+    */
+
+    const employeeComment =
+        evaluation?.employee_comment ??
+        evaluation?.employeeComment ??
+        "";
+
+    /*
+    ==================================================
+    Download PDF
+    ==================================================
+    */
+
     const handleDownloadPdf = async () => {
+
         if (!evaluation?.id) {
             alert("Evaluation ID not found.");
             return;
         }
 
         try {
+
             const response = await api.get(
                 `/evaluations/${evaluation.id}/pdf`,
                 {
@@ -74,8 +137,8 @@ const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
 
             window.URL.revokeObjectURL(url);
 
-            
         } catch (error) {
+
             console.error(
                 "PDF download error:",
                 error
@@ -86,8 +149,6 @@ const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
             );
         }
     };
-
-    
 
     return (
         <div className="management-form-section">
@@ -100,8 +161,12 @@ const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
 
             <div className="management-form-grid">
 
-                {/* Employee */}
+                {/* ==================================================
+                    Employee
+                ================================================== */}
+
                 <div className="management-form-info">
+
                     <span className="management-form-info-label">
                         Employee
                     </span>
@@ -109,10 +174,16 @@ const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
                     <span className="management-form-info-value">
                         {employee?.name || "-"}
                     </span>
+
                 </div>
 
-                {/* Employee ID */}
+
+                {/* ==================================================
+                    Employee ID
+                ================================================== */}
+
                 <div className="management-form-info">
+
                     <span className="management-form-info-label">
                         Employee ID
                     </span>
@@ -120,10 +191,16 @@ const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
                     <span className="management-form-info-value">
                         {employee?.employee_id || "-"}
                     </span>
+
                 </div>
 
-                {/* Department */}
+
+                {/* ==================================================
+                    Department
+                ================================================== */}
+
                 <div className="management-form-info">
+
                     <span className="management-form-info-label">
                         Department
                     </span>
@@ -131,21 +208,33 @@ const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
                     <span className="management-form-info-value">
                         {employee?.department?.name || "-"}
                     </span>
+
                 </div>
 
-                {/* Position */}
+
+                {/* ==================================================
+                    Position
+                ================================================== */}
+
                 <div className="management-form-info">
+
                     <span className="management-form-info-label">
                         Position
                     </span>
 
                     <span className="management-form-info-value">
-                        {employee?.position?.title  || "-"}
+                        {employee?.position?.title || "-"}
                     </span>
+
                 </div>
 
-                {/* Evaluation Period */}
+
+                {/* ==================================================
+                    Evaluation Period
+                ================================================== */}
+
                 <div className="management-form-info">
+
                     <span className="management-form-info-label">
                         Evaluation Period
                     </span>
@@ -155,55 +244,73 @@ const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
                             period?.title ||
                             "-"}
                     </span>
+
                 </div>
 
-                {/* Status */}
+
+                {/* ==================================================
+                    Status
+                ================================================== */}
+
                 <div className="management-form-info">
+
                     <span className="management-form-info-label">
                         Status
                     </span>
 
-                    <span className="management-form-info-value" >
+                    <span
+                        className={`management-form-info-value ${getStatusClass(
+                            evaluation?.status
+                        )}`}
+                    >
                         {formatStatus(
                             evaluation?.status
                         )}
                     </span>
+
                 </div>
-                {/* Submitted At */}
+
+
+                {/* ==================================================
+                    Submitted At
+                ================================================== */}
+
                 <div className="management-form-info">
+
                     <span className="management-form-info-label">
                         Submitted At
                     </span>
 
                     <span className="management-form-info-value">
-                        {evaluation?.submitted_at
-                            ? new Date(
-                                evaluation.submitted_at
-                            ).toLocaleString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: true,
-                            })
-                            : "-"}
+                        {formatSubmittedAt(
+                            submittedAt
+                        )}
                     </span>
+
                 </div>
 
-                    {/* ==================================================
-                Employee Comment
-            ================================================== */}
 
-            <EmployeeComment
-                comment={
-                    evaluation.employee_comment
-                }
-            />
+                {/* ==================================================
+                    Employee Comment
+                ================================================== */}
 
-                {/* Download */}
-              {["HR", "Management", "Admin"].includes(reviewerRole) && (
+                <EmployeeComment
+                    comment={employeeComment}
+                />
+
+
+                {/* ==================================================
+                    Download PDF
+                ================================================== */}
+
+                {[
+                    "HR",
+                    "Management",
+                    "Admin",
+                ].includes(reviewerRole) && (
+
                     <div className="management-form-info">
+
                         <span className="management-form-info-label">
                             Download
                         </span>
@@ -215,10 +322,13 @@ const EmployeeInformation = ({ evaluation,reviewerRole, }) => {
                         >
                             Download PDF
                         </button>
+
                     </div>
+
                 )}
 
             </div>
+
         </div>
     );
 };
