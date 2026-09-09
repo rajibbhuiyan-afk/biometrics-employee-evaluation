@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import api from "../../api/axios";
+import DataTable from "../../components/DataTable";
 
 const HRDashboard = () => {
+
     const navigate = useNavigate();
+
 
     // ==========================================================
     // State
@@ -13,7 +16,9 @@ const HRDashboard = () => {
     const [evaluations, setEvaluations] = useState([]);
 
     const [loading, setLoading] = useState(true);
+
     const [error, setError] = useState("");
+
 
     // ==========================================================
     // Fetch Evaluations
@@ -23,18 +28,30 @@ const HRDashboard = () => {
         fetchEvaluations();
     }, []);
 
+
     const fetchEvaluations = async () => {
+
         try {
+
             setLoading(true);
+
             setError("");
 
-            const response = await api.get("/evaluations");
+            const response = await api.get(
+                "/evaluations"
+            );
 
-            console.log("HR Evaluations:", response.data);
+            console.log(
+                "HR Evaluations:",
+                response.data
+            );
 
-            setEvaluations(response.data.data || []);
+            setEvaluations(
+                response.data?.data || []
+            );
 
         } catch (error) {
+
             console.error(
                 "Failed to load evaluations:",
                 error
@@ -42,20 +59,31 @@ const HRDashboard = () => {
 
             setError(
                 error.response?.data?.message ||
-                    "Failed to load evaluations."
+                "Failed to load evaluations."
             );
+
         } finally {
+
             setLoading(false);
+
         }
     };
+
 
     // ==========================================================
     // View Employee Profile
     // ==========================================================
 
-    const handleEmployeeProfile = (employeeId) => {
+    const handleEmployeeProfile = (
+        employeeId
+    ) => {
+
         if (!employeeId) {
-            console.error("Employee ID not found.");
+
+            console.error(
+                "Employee ID not found."
+            );
+
             return;
         }
 
@@ -64,11 +92,15 @@ const HRDashboard = () => {
         );
     };
 
+
     // ==========================================================
     // Review Evaluation
     // ==========================================================
 
-    const handleReview = (evaluationId) => {
+    const handleReview = (
+        evaluationId
+    ) => {
+
         if (!evaluationId) {
             return;
         }
@@ -77,12 +109,16 @@ const HRDashboard = () => {
             `/management/hr/evaluations/${evaluationId}`
         );
     };
+
 
     // ==========================================================
     // View Evaluation
     // ==========================================================
 
-    const handleView = (evaluationId) => {
+    const handleView = (
+        evaluationId
+    ) => {
+
         if (!evaluationId) {
             return;
         }
@@ -92,15 +128,20 @@ const HRDashboard = () => {
         );
     };
 
+
     // ==========================================================
     // Handle Row Click
     // ==========================================================
 
-    const handleRowClick = (evaluation) => {
+    const handleRowClick = (
+        evaluation
+    ) => {
+
         const employeeId =
             evaluation?.employee?.id;
 
         if (!employeeId) {
+
             console.error(
                 "Employee ID not found in evaluation:",
                 evaluation
@@ -109,26 +150,37 @@ const HRDashboard = () => {
             return;
         }
 
-        handleEmployeeProfile(employeeId);
+        handleEmployeeProfile(
+            employeeId
+        );
     };
+
 
     // ==========================================================
     // Check Whether HR Can Review
     // ==========================================================
 
-    const canReview = (status) => {
+    const canReview = (
+        status
+    ) => {
+
         return [
             "manager_approved",
             "hr_returned",
         ].includes(status);
     };
 
+
     // ==========================================================
     // Status Label
     // ==========================================================
 
-    const getStatusLabel = (status) => {
+    const getStatusLabel = (
+        status
+    ) => {
+
         switch (status) {
+
             case "draft":
                 return "Draft";
 
@@ -153,6 +205,15 @@ const HRDashboard = () => {
             case "hr_rejected":
                 return "HR Rejected";
 
+            case "management_approved":
+                return "Management Approved";
+
+            case "management_returned":
+                return "Management Returned";
+
+            case "management_rejected":
+                return "Management Rejected";
+
             case "completed":
                 return "Completed";
 
@@ -161,13 +222,23 @@ const HRDashboard = () => {
         }
     };
 
+
     // ==========================================================
     // Status Badge
     // ==========================================================
 
-    const renderStatus = (status) => {
+    const renderStatus = (
+        status
+    ) => {
+
         switch (status) {
+
+            // ==================================================
+            // Draft
+            // ==================================================
+
             case "draft":
+
                 return (
                     <span
                         className="status-badge"
@@ -180,7 +251,13 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
+            // ==================================================
+            // Submitted
+            // ==================================================
+
             case "submitted":
+
                 return (
                     <span
                         className="status-badge"
@@ -193,7 +270,13 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
+            // ==================================================
+            // Manager Approved
+            // ==================================================
+
             case "manager_approved":
+
                 return (
                     <span
                         className="status-badge"
@@ -206,7 +289,13 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
+            // ==================================================
+            // Manager Returned
+            // ==================================================
+
             case "manager_returned":
+
                 return (
                     <span
                         className="status-badge"
@@ -219,7 +308,13 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
+            // ==================================================
+            // Manager Rejected
+            // ==================================================
+
             case "manager_rejected":
+
                 return (
                     <span
                         className="status-badge"
@@ -232,7 +327,13 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
+            // ==================================================
+            // HR Approved
+            // ==================================================
+
             case "hr_approved":
+
                 return (
                     <span
                         className="status-badge"
@@ -245,7 +346,13 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
+            // ==================================================
+            // HR Returned
+            // ==================================================
+
             case "hr_returned":
+
                 return (
                     <span
                         className="status-badge"
@@ -258,7 +365,13 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
+            // ==================================================
+            // HR Rejected
+            // ==================================================
+
             case "hr_rejected":
+
                 return (
                     <span
                         className="status-badge"
@@ -271,7 +384,70 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
+            // ==================================================
+            // Management Approved
+            // ==================================================
+
+            case "management_approved":
+
+                return (
+                    <span
+                        className="status-badge"
+                        style={{
+                            background: "#dcfce7",
+                            color: "#166534",
+                        }}
+                    >
+                        Management Approved
+                    </span>
+                );
+
+
+            // ==================================================
+            // Management Returned
+            // ==================================================
+
+            case "management_returned":
+
+                return (
+                    <span
+                        className="status-badge"
+                        style={{
+                            background: "#fef3c7",
+                            color: "#92400e",
+                        }}
+                    >
+                        Management Returned
+                    </span>
+                );
+
+
+            // ==================================================
+            // Management Rejected
+            // ==================================================
+
+            case "management_rejected":
+
+                return (
+                    <span
+                        className="status-badge"
+                        style={{
+                            background: "#fee2e2",
+                            color: "#991b1b",
+                        }}
+                    >
+                        Management Rejected
+                    </span>
+                );
+
+
+            // ==================================================
+            // Completed
+            // ==================================================
+
             case "completed":
+
                 return (
                     <span
                         className="status-badge"
@@ -284,7 +460,13 @@ const HRDashboard = () => {
                     </span>
                 );
 
+
+            // ==================================================
+            // Default
+            // ==================================================
+
             default:
+
                 return (
                     <span
                         className="status-badge"
@@ -293,20 +475,202 @@ const HRDashboard = () => {
                             color: "#374151",
                         }}
                     >
-                        {getStatusLabel(status)}
+                        {getStatusLabel(
+                            status
+                        )}
                     </span>
                 );
         }
     };
+
+
+    // ==========================================================
+    // DataTable Columns
+    // ==========================================================
+
+    const columns = [
+
+        // ======================================================
+        // Evaluation ID
+        // ======================================================
+
+        {
+            key: "id",
+            label: "Evaluation ID",
+
+            render: (evaluation) => (
+                <strong>
+                    #{evaluation.id}
+                </strong>
+            ),
+        },
+
+
+        // ======================================================
+        // Employee
+        // ======================================================
+
+        {
+            key: "employee",
+            label: "Employee",
+
+            render: (evaluation) =>
+                evaluation?.employee?.name ||
+                "Unknown",
+        },
+
+
+        // ======================================================
+        // Employee ID
+        // ======================================================
+
+        {
+            key: "employee_id",
+            label: "Employee ID",
+
+            render: (evaluation) =>
+                evaluation?.employee?.employee_id ||
+                "N/A",
+        },
+
+
+        // ======================================================
+        // Department
+        // ======================================================
+
+        {
+            key: "department",
+            label: "Department",
+
+            render: (evaluation) =>
+                evaluation
+                    ?.employee
+                    ?.department
+                    ?.name ||
+                "N/A",
+        },
+
+
+        // ======================================================
+        // Evaluation Period
+        // ======================================================
+
+        {
+            key: "evaluation_period",
+            label: "Evaluation Period",
+
+            render: (evaluation) =>
+                evaluation
+                    ?.evaluationPeriod
+                    ?.name ||
+
+                evaluation
+                    ?.evaluation_period
+                    ?.name ||
+
+                "N/A",
+        },
+
+
+        // ======================================================
+        // Status
+        // ======================================================
+
+        {
+            key: "status",
+            label: "Status",
+
+            render: (evaluation) =>
+                renderStatus(
+                    evaluation.status
+                ),
+        },
+
+
+        // ======================================================
+        // Action
+        // ======================================================
+
+        {
+            key: "actions",
+            label: "Action",
+
+            render: (evaluation) => {
+
+                const reviewAllowed =
+                    canReview(
+                        evaluation.status
+                    );
+
+                return (
+                    <div className="table-actions">
+
+                        {reviewAllowed ? (
+
+                            <button
+                                type="button"
+                                className="action-button action-edit"
+                                onClick={(event) => {
+
+                                    /*
+                                    Prevent DataTable
+                                    row click
+                                    */
+
+                                    event.stopPropagation();
+
+                                    handleReview(
+                                        evaluation.id
+                                    );
+
+                                }}
+                            >
+                                Review
+                            </button>
+
+                        ) : (
+
+                            <button
+                                type="button"
+                                className="action-button action-view"
+                                onClick={(event) => {
+
+                                    /*
+                                    Prevent DataTable
+                                    row click
+                                    */
+
+                                    event.stopPropagation();
+
+                                    handleView(
+                                        evaluation.id
+                                    );
+
+                                }}
+                            >
+                                View
+                            </button>
+
+                        )}
+
+                    </div>
+                );
+            },
+        },
+    ];
+
 
     // ==========================================================
     // Loading
     // ==========================================================
 
     if (loading) {
+
         return (
             <div className="management-page">
+
                 <div className="data-table-empty">
+
                     <div className="data-table-empty-title">
                         Loading Evaluations...
                     </div>
@@ -315,10 +679,13 @@ const HRDashboard = () => {
                         Please wait while employee
                         evaluations are being loaded.
                     </div>
+
                 </div>
+
             </div>
         );
     }
+
 
     // ==========================================================
     // Summary Counts
@@ -327,12 +694,14 @@ const HRDashboard = () => {
     const totalEvaluations =
         evaluations.length;
 
+
     const waitingForHR =
         evaluations.filter(
             (evaluation) =>
                 evaluation.status ===
                 "manager_approved"
         ).length;
+
 
     const hrApproved =
         evaluations.filter(
@@ -341,6 +710,7 @@ const HRDashboard = () => {
                 "hr_approved"
         ).length;
 
+
     const completed =
         evaluations.filter(
             (evaluation) =>
@@ -348,11 +718,13 @@ const HRDashboard = () => {
                 "completed"
         ).length;
 
+
     // ==========================================================
     // Page
     // ==========================================================
 
     return (
+
         <div className="management-page">
 
             {/* ==================================================
@@ -382,9 +754,11 @@ const HRDashboard = () => {
             ================================================== */}
 
             {error && (
+
                 <div className="management-form-error">
                     {error}
                 </div>
+
             )}
 
 
@@ -394,7 +768,9 @@ const HRDashboard = () => {
 
             <div className="dashboard-card-grid">
 
-                {/* Total */}
+                {/* ==================================================
+                    Total Evaluations
+                ================================================== */}
 
                 <div className="dashboard-card">
 
@@ -409,7 +785,9 @@ const HRDashboard = () => {
                 </div>
 
 
-                {/* Waiting For HR */}
+                {/* ==================================================
+                    Waiting For HR
+                ================================================== */}
 
                 <div className="dashboard-card">
 
@@ -424,7 +802,9 @@ const HRDashboard = () => {
                 </div>
 
 
-                {/* HR Approved */}
+                {/* ==================================================
+                    HR Approved
+                ================================================== */}
 
                 <div className="dashboard-card">
 
@@ -439,7 +819,9 @@ const HRDashboard = () => {
                 </div>
 
 
-                {/* Completed */}
+                {/* ==================================================
+                    Completed
+                ================================================== */}
 
                 <div className="dashboard-card">
 
@@ -468,274 +850,21 @@ const HRDashboard = () => {
 
 
                 {/* ==================================================
-                    Table Container
+                    DataTable
                 ================================================== */}
 
-                <div className="data-table-container">
-
-                    {evaluations.length === 0 ? (
-
-                        <div className="data-table-empty">
-
-                            <div className="data-table-empty-title">
-                                No Evaluations Found
-                            </div>
-
-                            <div className="data-table-empty-message">
-                                There are currently no employee
-                                evaluations available.
-                            </div>
-
-                        </div>
-
-                    ) : (
-
-                        <div className="data-table-wrapper">
-
-                            <table className="data-table">
-
-                                {/* ==================================================
-                                    Table Header
-                                ================================================== */}
-
-                                <thead>
-
-                                    <tr>
-
-                                        <th>
-                                            Evaluation ID
-                                        </th>
-
-                                        <th>
-                                            Employee
-                                        </th>
-
-                                        <th>
-                                            Employee ID
-                                        </th>
-
-                                        <th>
-                                            Department
-                                        </th>
-
-                                        <th>
-                                            Evaluation Period
-                                        </th>
-
-                                        <th>
-                                            Status
-                                        </th>
-
-                                        <th className="data-table-actions-header">
-                                            Action
-                                        </th>
-
-                                    </tr>
-
-                                </thead>
-
-
-                                {/* ==================================================
-                                    Table Body
-                                ================================================== */}
-
-                                <tbody>
-
-                                    {evaluations.map(
-                                        (evaluation) => {
-
-                                            const reviewAllowed =
-                                                canReview(
-                                                    evaluation.status
-                                                );
-
-                                            return (
-                                                <tr
-                                                    key={
-                                                        evaluation.id
-                                                    }
-                                                    onClick={() =>
-                                                        handleRowClick(
-                                                            evaluation
-                                                        )
-                                                    }
-                                                    style={{
-                                                        cursor:
-                                                            evaluation
-                                                                ?.employee
-                                                                ?.id
-                                                                ? "pointer"
-                                                                : "default",
-                                                    }}
-                                                >
-
-                                                    {/* ==================================================
-                                                        Evaluation ID
-                                                    ================================================== */}
-
-                                                    <td>
-
-                                                        <strong>
-                                                            #
-                                                            {
-                                                                evaluation.id
-                                                            }
-                                                        </strong>
-
-                                                    </td>
-
-
-                                                    {/* ==================================================
-                                                        Employee
-                                                    ================================================== */}
-
-                                                    <td>
-
-                                                        {
-                                                            evaluation
-                                                                ?.employee
-                                                                ?.name ||
-                                                            "Unknown"
-                                                        }
-
-                                                    </td>
-
-
-                                                    {/* ==================================================
-                                                        Employee ID
-                                                    ================================================== */}
-
-                                                    <td>
-
-                                                        {
-                                                            evaluation
-                                                                ?.employee
-                                                                ?.employee_id ||
-                                                            "N/A"
-                                                        }
-
-                                                    </td>
-
-
-                                                    {/* ==================================================
-                                                        Department
-                                                    ================================================== */}
-
-                                                    <td>
-
-                                                        {
-                                                            evaluation
-                                                                ?.employee
-                                                                ?.department
-                                                                ?.name ||
-                                                            "N/A"
-                                                        }
-
-                                                    </td>
-
-
-                                                    {/* ==================================================
-                                                        Evaluation Period
-                                                    ================================================== */}
-
-                                                    <td>
-
-                                                        {
-                                                            evaluation
-                                                                ?.evaluation_period
-                                                                ?.name ||
-                                                            "N/A"
-                                                        }
-
-                                                    </td>
-
-
-                                                    {/* ==================================================
-                                                        Status
-                                                    ================================================== */}
-
-                                                    <td>
-
-                                                        {renderStatus(
-                                                            evaluation.status
-                                                        )}
-
-                                                    </td>
-
-
-                                                    {/* ==================================================
-                                                        Action
-                                                    ================================================== */}
-
-                                                    <td className="data-table-actions">
-
-                                                        <div className="table-actions">
-
-                                                            {reviewAllowed ? (
-
-                                                                <button
-                                                                    type="button"
-                                                                    className="action-button action-edit"
-                                                                    onClick={(
-                                                                        e
-                                                                    ) => {
-
-                                                                        e.stopPropagation();
-
-                                                                        handleReview(
-                                                                            evaluation.id
-                                                                        );
-
-                                                                    }}
-                                                                >
-                                                                    Review
-                                                                </button>
-
-                                                            ) : (
-
-                                                                <button
-                                                                    type="button"
-                                                                    className="action-button"
-                                                                    onClick={(
-                                                                        e
-                                                                    ) => {
-
-                                                                        e.stopPropagation();
-
-                                                                        handleView(
-                                                                            evaluation.id
-                                                                        );
-
-                                                                    }}
-                                                                >
-                                                                    View
-                                                                </button>
-
-                                                            )}
-
-                                                        </div>
-
-                                                    </td>
-
-                                                </tr>
-                                            );
-                                        }
-                                    )}
-
-                                </tbody>
-
-                            </table>
-
-                        </div>
-
-                    )}
-
-                </div>
+                <DataTable
+                    columns={columns}
+                    data={evaluations}
+                    emptyMessage="There are currently no employee evaluations available."
+                    onRowClick={handleRowClick}
+                />
 
             </div>
 
         </div>
     );
 };
+
 
 export default HRDashboard;

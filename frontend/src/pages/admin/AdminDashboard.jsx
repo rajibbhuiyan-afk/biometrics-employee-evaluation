@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
+
 import api from "../../api/axios";
 
 const AdminDashboard = () => {
     const [dashboard, setDashboard] = useState(null);
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
+    // ==========================================================
+    // Fetch Dashboard
+    // ==========================================================
 
     useEffect(() => {
         fetchDashboard();
@@ -15,59 +21,121 @@ const AdminDashboard = () => {
             setLoading(true);
             setError("");
 
-            const response = await api.get("/admin/dashboard");
+            const response =
+                await api.get(
+                    "/admin/dashboard"
+                );
 
-            console.log("Admin Dashboard:", response.data);
+            console.log(
+                "Admin Dashboard:",
+                response.data
+            );
 
-            setDashboard(response.data.data || null);
+            setDashboard(
+                response.data?.data ||
+                    null
+            );
+
         } catch (error) {
-            console.error("Admin Dashboard Error:", error);
+            console.error(
+                "Admin Dashboard Error:",
+                error
+            );
 
             setError(
                 error.response?.data?.message ||
-                "Failed to load admin dashboard."
+                    "Failed to load admin dashboard."
             );
+
         } finally {
             setLoading(false);
         }
     };
 
+    // ==========================================================
+    // Loading
+    // ==========================================================
+
     if (loading) {
         return (
             <div className="management-page">
-                <div className="data-table-empty">
-                    <div className="data-table-empty-title">
-                        Loading Admin Dashboard...
+
+                <div className="page-header">
+
+                    <div className="page-header-info">
+
+                        <h1 className="page-header-title">
+                            Admin Dashboard
+                        </h1>
+
+                        <p className="page-header-description">
+                            Overview of users and
+                            evaluation activities.
+                        </p>
+
                     </div>
+
                 </div>
+
+
+                <div className="data-table-container">
+
+                    <div className="data-table-empty">
+
+                        <div className="data-table-empty-title">
+                            Loading Admin Dashboard...
+                        </div>
+
+                        <div className="data-table-empty-message">
+                            Please wait while dashboard
+                            data is being loaded.
+                        </div>
+
+                    </div>
+
+                </div>
+
             </div>
         );
     }
+
+    // ==========================================================
+    // Error
+    // ==========================================================
 
     if (error) {
         return (
             <div className="management-page">
 
                 <div className="page-header">
+
                     <div className="page-header-info">
+
                         <h1 className="page-header-title">
                             Admin Dashboard
                         </h1>
 
                         <p className="page-header-description">
-                            Overview of users and evaluation activities.
+                            Overview of users and
+                            evaluation activities.
                         </p>
+
                     </div>
+
                 </div>
+
 
                 <div className="management-error">
                     {error}
                 </div>
 
+
                 <button
                     type="button"
                     className="page-header-button"
-                    onClick={fetchDashboard}
+                    onClick={
+                        fetchDashboard
+                    }
                 >
                     Retry
                 </button>
@@ -76,12 +144,18 @@ const AdminDashboard = () => {
         );
     }
 
+    // ==========================================================
+    // No Dashboard Data
+    // ==========================================================
+
     if (!dashboard) {
         return (
             <div className="management-page">
 
                 <div className="page-header">
+
                     <div className="page-header-info">
+
                         <h1 className="page-header-title">
                             Admin Dashboard
                         </h1>
@@ -89,17 +163,35 @@ const AdminDashboard = () => {
                         <p className="page-header-description">
                             No dashboard data available.
                         </p>
+
                     </div>
+
+                    <button
+                        type="button"
+                        className="page-header-button"
+                        onClick={
+                            fetchDashboard
+                        }
+                    >
+                        Refresh Dashboard
+                    </button>
+
                 </div>
 
             </div>
         );
     }
 
+    // ==========================================================
+    // Dashboard
+    // ==========================================================
+
     return (
         <div className="management-page">
 
-            {/* Page Header */}
+            {/* ==================================================
+                Page Header
+            ================================================== */}
 
             <div className="page-header">
 
@@ -110,15 +202,20 @@ const AdminDashboard = () => {
                     </h1>
 
                     <p className="page-header-description">
-                        Overview of users and evaluation activities.
+                        Overview of users and
+                        evaluation activities.
                     </p>
 
                 </div>
 
+
                 <button
                     type="button"
                     className="page-header-button"
-                    onClick={fetchDashboard}
+                    onClick={
+                        fetchDashboard
+                    }
+                    disabled={loading}
                 >
                     Refresh Dashboard
                 </button>
@@ -126,7 +223,9 @@ const AdminDashboard = () => {
             </div>
 
 
-            {/* User Summary */}
+            {/* ==================================================
+                User Summary
+            ================================================== */}
 
             <section className="dashboard-section">
 
@@ -136,19 +235,33 @@ const AdminDashboard = () => {
 
                 <div className="dashboard-card-grid">
 
+                    {/* Employees */}
+
                     <DashboardCard
                         title="Employees"
-                        value={dashboard.employees}
+                        value={
+                            dashboard.employees
+                        }
                     />
+
+
+                    {/* Managers */}
 
                     <DashboardCard
                         title="Managers"
-                        value={dashboard.managers}
+                        value={
+                            dashboard.managers
+                        }
                     />
+
+
+                    {/* HR */}
 
                     <DashboardCard
                         title="HR"
-                        value={dashboard.hr}
+                        value={
+                            dashboard.hr
+                        }
                     />
 
                 </div>
@@ -156,7 +269,9 @@ const AdminDashboard = () => {
             </section>
 
 
-            {/* Evaluation Summary */}
+            {/* ==================================================
+                Evaluation Summary
+            ================================================== */}
 
             <section className="dashboard-section">
 
@@ -166,39 +281,73 @@ const AdminDashboard = () => {
 
                 <div className="dashboard-card-grid">
 
+                    {/* Total Evaluations */}
+
                     <DashboardCard
                         title="Total Evaluations"
-                        value={dashboard.total_evaluations}
+                        value={
+                            dashboard.total_evaluations
+                        }
                     />
+
+
+                    {/* Draft */}
 
                     <DashboardCard
                         title="Draft"
-                        value={dashboard.draft}
+                        value={
+                            dashboard.draft
+                        }
                     />
+
+
+                    {/* Submitted */}
 
                     <DashboardCard
                         title="Submitted"
-                        value={dashboard.submitted}
+                        value={
+                            dashboard.submitted
+                        }
                     />
+
+
+                    {/* Reviewed */}
 
                     <DashboardCard
                         title="Reviewed"
-                        value={dashboard.reviewed}
+                        value={
+                            dashboard.reviewed
+                        }
                     />
+
+
+                    {/* Approved */}
 
                     <DashboardCard
                         title="Approved"
-                        value={dashboard.approved}
+                        value={
+                            dashboard.approved
+                        }
                     />
+
+
+                    {/* Rejected */}
 
                     <DashboardCard
                         title="Rejected"
-                        value={dashboard.rejected}
+                        value={
+                            dashboard.rejected
+                        }
                     />
+
+
+                    {/* Returned */}
 
                     <DashboardCard
                         title="Returned"
-                        value={dashboard.returned}
+                        value={
+                            dashboard.returned
+                        }
                     />
 
                 </div>
@@ -216,7 +365,10 @@ const AdminDashboard = () => {
 |--------------------------------------------------------------------------
 */
 
-const DashboardCard = ({ title, value }) => {
+const DashboardCard = ({
+    title,
+    value,
+}) => {
     return (
         <div className="dashboard-card">
 

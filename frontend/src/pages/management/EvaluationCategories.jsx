@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import api from "../../api/axios";
+import DataTable from "../../components/DataTable";
 
 const EvaluationCategories = () => {
 
@@ -101,6 +103,89 @@ const EvaluationCategories = () => {
 
     /*
     |--------------------------------------------------------------------------
+    | Table Columns
+    |--------------------------------------------------------------------------
+    */
+
+    const columns = [
+        {
+            key: "id",
+            label: "ID",
+        },
+
+        {
+            key: "name",
+            label: "Name",
+        },
+
+        {
+            key: "description",
+            label: "Description",
+
+            render: (category) =>
+                category.description || "N/A",
+        },
+
+        {
+            key: "actions",
+            label: "Actions",
+
+            render: (category) => (
+                <div className="table-actions">
+
+                    {/* Edit */}
+
+                    <button
+                        type="button"
+                        className="action-button action-edit"
+                        onClick={(event) => {
+
+                            /*
+                            Prevent DataTable row click
+                            */
+
+                            event.stopPropagation();
+
+                            navigate(
+                                `/management/evaluation-categories/${category.id}/edit`
+                            );
+
+                        }}
+                    >
+                        Edit
+                    </button>
+
+
+                    {/* Delete */}
+
+                    <button
+                        type="button"
+                        className="action-button action-delete"
+                        onClick={(event) => {
+
+                            /*
+                            Prevent DataTable row click
+                            */
+
+                            event.stopPropagation();
+
+                            handleDelete(
+                                category.id
+                            );
+
+                        }}
+                    >
+                        Delete
+                    </button>
+
+                </div>
+            ),
+        },
+    ];
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Loading
     |--------------------------------------------------------------------------
     */
@@ -133,7 +218,9 @@ const EvaluationCategories = () => {
 
         <div className="management-page">
 
-            {/* Page Header */}
+            {/* ==================================================
+                Page Header
+            ================================================== */}
 
             <div className="page-header">
 
@@ -165,7 +252,9 @@ const EvaluationCategories = () => {
             </div>
 
 
-            {/* Error */}
+            {/* ==================================================
+                Error
+            ================================================== */}
 
             {error && (
                 <div className="management-error">
@@ -174,134 +263,15 @@ const EvaluationCategories = () => {
             )}
 
 
-            {/* Empty */}
+            {/* ==================================================
+                Data Table
+            ================================================== */}
 
-            {categories.length === 0 ? (
-
-                <div className="data-table-container">
-
-                    <div className="data-table-empty">
-
-                        <div className="data-table-empty-title">
-                            No evaluation categories found.
-                        </div>
-
-                        <div className="data-table-empty-message">
-                            Create a category to get started.
-                        </div>
-
-                    </div>
-
-                </div>
-
-            ) : (
-
-                /* Table */
-
-                <div className="data-table-container">
-
-                    <div className="data-table-wrapper">
-
-                        <table className="data-table">
-
-                            <thead>
-
-                                <tr>
-
-                                    <th>
-                                        ID
-                                    </th>
-
-                                    <th>
-                                        Name
-                                    </th>
-
-                                    <th>
-                                        Description
-                                    </th>
-
-                                    <th className="data-table-actions-header">
-                                        Actions
-                                    </th>
-
-                                </tr>
-
-                            </thead>
-
-
-                            <tbody>
-
-                                {categories.map(
-                                    (category) => (
-
-                                        <tr
-                                            key={category.id}
-                                        >
-
-                                            <td>
-                                                {category.id}
-                                            </td>
-
-                                            <td>
-                                                {category.name}
-                                            </td>
-
-                                            <td>
-                                                {category.description ||
-                                                    "N/A"}
-                                            </td>
-
-                                            <td className="data-table-actions">
-
-                                                <div className="table-actions">
-
-                                                    {/* Edit */}
-
-                                                    <button
-                                                        type="button"
-                                                        className="action-button action-edit"
-                                                        onClick={() =>
-                                                            navigate(
-                                                                `/management/evaluation-categories/${category.id}/edit`
-                                                            )
-                                                        }
-                                                    >
-                                                        Edit
-                                                    </button>
-
-
-                                                    {/* Delete */}
-
-                                                    <button
-                                                        type="button"
-                                                        className="action-button action-delete"
-                                                        onClick={() =>
-                                                            handleDelete(
-                                                                category.id
-                                                            )
-                                                        }
-                                                    >
-                                                        Delete
-                                                    </button>
-
-                                                </div>
-
-                                            </td>
-
-                                        </tr>
-
-                                    )
-                                )}
-
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                </div>
-
-            )}
+            <DataTable
+                columns={columns}
+                data={categories}
+                emptyMessage="Create a category to get started."
+            />
 
         </div>
     );

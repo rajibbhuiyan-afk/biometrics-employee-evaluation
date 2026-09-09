@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import api from "../../api/axios";
+import DataTable from "../../components/DataTable";
 
 const MyEvaluations = () => {
+
     const navigate = useNavigate();
 
     // ==========================================================
@@ -13,8 +15,11 @@ const MyEvaluations = () => {
     const [evaluations, setEvaluations] = useState([]);
 
     const [loading, setLoading] = useState(true);
+
     const [error, setError] = useState("");
+
     const [deletingId, setDeletingId] = useState(null);
+
 
     // ==========================================================
     // Fetch My Evaluations
@@ -24,13 +29,17 @@ const MyEvaluations = () => {
         fetchMyEvaluations();
     }, []);
 
+
     const fetchMyEvaluations = async () => {
+
         try {
+
             setLoading(true);
+
             setError("");
 
             const response = await api.get(
-                "/evaluations"
+                "/evaluations/my"
             );
 
             console.log(
@@ -39,44 +48,54 @@ const MyEvaluations = () => {
             );
 
             setEvaluations(
-                response.data.data || []
+                response.data?.data || []
             );
 
         } catch (error) {
+
             console.error(
-                "Failed to load evaluations:",
+                "Failed to load my evaluations:",
                 error
             );
 
             setError(
                 error.response?.data?.message ||
-                "Failed to load evaluations."
+                "Failed to load your evaluations."
             );
 
         } finally {
+
             setLoading(false);
+
         }
     };
+
 
     // ==========================================================
     // Create Evaluation
     // ==========================================================
 
     const handleCreateEvaluation = () => {
+
         navigate(
             "/management/employee/evaluations/create"
         );
+
     };
+
 
     // ==========================================================
     // View / Continue Evaluation
     // ==========================================================
 
     const handleViewEvaluation = (id) => {
+
         navigate(
             `/management/employee/evaluations/${id}`
         );
+
     };
+
 
     // ==========================================================
     // Delete Draft Evaluation
@@ -102,25 +121,46 @@ const MyEvaluations = () => {
             return;
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Confirmation
+        |--------------------------------------------------------------------------
+        */
+
         const confirmed = window.confirm(
             "Are you sure you want to delete this draft evaluation?\n\nThis action cannot be undone."
         );
+
 
         if (!confirmed) {
             return;
         }
 
+
         try {
-            setDeletingId(evaluation.id);
+
+            setDeletingId(
+                evaluation.id
+            );
+
             setError("");
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Delete API
+            |--------------------------------------------------------------------------
+            */
 
             await api.delete(
                 `/evaluations/${evaluation.id}`
             );
 
+
             /*
             |--------------------------------------------------------------------------
-            | Remove deleted evaluation from local list
+            | Remove From Local List
             |--------------------------------------------------------------------------
             */
 
@@ -131,11 +171,13 @@ const MyEvaluations = () => {
                 )
             );
 
+
             alert(
                 "Draft evaluation deleted successfully."
             );
 
         } catch (error) {
+
             console.error(
                 "Failed to delete evaluation:",
                 error
@@ -147,9 +189,12 @@ const MyEvaluations = () => {
             );
 
         } finally {
+
             setDeletingId(null);
+
         }
     };
+
 
     // ==========================================================
     // Status Badge
@@ -171,6 +216,7 @@ const MyEvaluations = () => {
                     </span>
                 );
 
+
             // ==================================================
             // SUBMITTED
             // ==================================================
@@ -182,6 +228,7 @@ const MyEvaluations = () => {
                         Submitted
                     </span>
                 );
+
 
             // ==================================================
             // MANAGER RETURNED
@@ -195,6 +242,7 @@ const MyEvaluations = () => {
                     </span>
                 );
 
+
             // ==================================================
             // MANAGER REJECTED
             // ==================================================
@@ -206,6 +254,7 @@ const MyEvaluations = () => {
                         Rejected by Manager
                     </span>
                 );
+
 
             // ==================================================
             // MANAGER APPROVED
@@ -219,8 +268,87 @@ const MyEvaluations = () => {
                     </span>
                 );
 
+
             // ==================================================
-            // ADMIN RETURNED
+            // HR RETURNED
+            // ==================================================
+
+            case "hr_returned":
+
+                return (
+                    <span className="status-badge status-returned">
+                        Returned by HR
+                    </span>
+                );
+
+
+            // ==================================================
+            // HR REJECTED
+            // ==================================================
+
+            case "hr_rejected":
+
+                return (
+                    <span className="status-badge status-rejected">
+                        Rejected by HR
+                    </span>
+                );
+
+
+            // ==================================================
+            // HR APPROVED
+            // ==================================================
+
+            case "hr_approved":
+
+                return (
+                    <span className="status-badge status-approved">
+                        HR Approved
+                    </span>
+                );
+
+
+            // ==================================================
+            // MANAGEMENT RETURNED
+            // ==================================================
+
+            case "management_returned":
+
+                return (
+                    <span className="status-badge status-returned">
+                        Returned by Management
+                    </span>
+                );
+
+
+            // ==================================================
+            // MANAGEMENT REJECTED
+            // ==================================================
+
+            case "management_rejected":
+
+                return (
+                    <span className="status-badge status-rejected">
+                        Rejected by Management
+                    </span>
+                );
+
+
+            // ==================================================
+            // MANAGEMENT APPROVED
+            // ==================================================
+
+            case "management_approved":
+
+                return (
+                    <span className="status-badge status-approved">
+                        Final Approved
+                    </span>
+                );
+
+
+            // ==================================================
+            // OLD ADMIN RETURNED
             // ==================================================
 
             case "admin_returned":
@@ -231,8 +359,9 @@ const MyEvaluations = () => {
                     </span>
                 );
 
+
             // ==================================================
-            // ADMIN REJECTED
+            // OLD ADMIN REJECTED
             // ==================================================
 
             case "admin_rejected":
@@ -243,8 +372,9 @@ const MyEvaluations = () => {
                     </span>
                 );
 
+
             // ==================================================
-            // ADMIN APPROVED
+            // OLD ADMIN APPROVED
             // ==================================================
 
             case "admin_approved":
@@ -254,6 +384,7 @@ const MyEvaluations = () => {
                         Final Approved
                     </span>
                 );
+
 
             // ==================================================
             // DEFAULT
@@ -266,8 +397,10 @@ const MyEvaluations = () => {
                         {status || "-"}
                     </span>
                 );
+
         }
     };
+
 
     // ==========================================================
     // Action Button
@@ -280,19 +413,25 @@ const MyEvaluations = () => {
         | DRAFT
         |--------------------------------------------------------------------------
         |
-        | Employee can:
-        | - Continue
-        | - Delete
+        | User can:
+        |
+        | Continue
+        | Delete
         |
         */
 
-        if (evaluation.status === "draft") {
+        if (
+            evaluation.status === "draft"
+        ) {
 
             const isDeleting =
                 deletingId === evaluation.id;
 
+
             return (
                 <div className="table-actions">
+
+                    {/* Continue */}
 
                     <button
                         type="button"
@@ -301,15 +440,22 @@ const MyEvaluations = () => {
                             evaluation-action-button
                             action-continue
                         "
-                        onClick={() =>
+                        onClick={(event) => {
+
+                            event.stopPropagation();
+
                             handleViewEvaluation(
                                 evaluation.id
-                            )
-                        }
+                            );
+
+                        }}
                         disabled={isDeleting}
                     >
                         Continue
                     </button>
+
+
+                    {/* Delete */}
 
                     <button
                         type="button"
@@ -318,29 +464,38 @@ const MyEvaluations = () => {
                             evaluation-action-button
                             action-delete
                         "
-                        onClick={() =>
+                        onClick={(event) => {
+
+                            event.stopPropagation();
+
                             handleDeleteEvaluation(
                                 evaluation
-                            )
-                        }
+                            );
+
+                        }}
                         disabled={isDeleting}
                     >
                         {isDeleting
                             ? "Deleting..."
-                            : "Delete"}
+                            : "Delete"
+                        }
                     </button>
 
                 </div>
             );
+
         }
+
 
         /*
         |--------------------------------------------------------------------------
         | ALL NON-DRAFT STATUSES
         |--------------------------------------------------------------------------
         |
-        | Employee can ONLY view.
-        | Delete is never available.
+        | User can ONLY view.
+        |
+        | No Edit.
+        | No Delete.
         |
         */
 
@@ -354,11 +509,15 @@ const MyEvaluations = () => {
                         evaluation-action-button
                         action-view
                     "
-                    onClick={() =>
+                    onClick={(event) => {
+
+                        event.stopPropagation();
+
                         handleViewEvaluation(
                             evaluation.id
-                        )
-                    }
+                        );
+
+                    }}
                 >
                     View
                 </button>
@@ -366,6 +525,102 @@ const MyEvaluations = () => {
             </div>
         );
     };
+
+
+    // ==========================================================
+    // DataTable Columns
+    // ==========================================================
+
+    const columns = [
+
+        // ======================================================
+        // ID
+        // ======================================================
+
+        {
+            key: "id",
+            label: "ID",
+
+            render: (evaluation) => (
+                <strong>
+                    #{evaluation.id}
+                </strong>
+            ),
+        },
+
+
+        // ======================================================
+        // Evaluation Period
+        // ======================================================
+
+        {
+            key: "evaluation_period",
+            label: "Evaluation Period",
+
+            render: (evaluation) =>
+                evaluation
+                    .evaluation_period
+                    ?.name ||
+
+                evaluation
+                    .evaluationPeriod
+                    ?.name ||
+
+                "-",
+        },
+
+
+        // ======================================================
+        // Status
+        // ======================================================
+
+        {
+            key: "status",
+            label: "Status",
+
+            render: (evaluation) =>
+                renderStatus(
+                    evaluation.status
+                ),
+        },
+
+
+        // ======================================================
+        // Comment
+        // ======================================================
+
+        {
+            key: "employee_comment",
+            label: "Comment",
+
+            render: (evaluation) => (
+
+                <div className="evaluation-comment">
+
+                    {evaluation.employee_comment ||
+                        "-"
+                    }
+
+                </div>
+            ),
+        },
+
+
+        // ======================================================
+        // Action
+        // ======================================================
+
+        {
+            key: "actions",
+            label: "Action",
+
+            render: (evaluation) =>
+                renderAction(
+                    evaluation
+                ),
+        },
+    ];
+
 
     // ==========================================================
     // Loading
@@ -397,6 +652,7 @@ const MyEvaluations = () => {
         );
     }
 
+
     // ==========================================================
     // Page
     // ==========================================================
@@ -424,6 +680,7 @@ const MyEvaluations = () => {
 
                 </div>
 
+
                 <button
                     type="button"
                     className="page-header-button"
@@ -435,6 +692,7 @@ const MyEvaluations = () => {
                 </button>
 
             </div>
+
 
             {/* ==================================================
                 Error
@@ -448,158 +706,20 @@ const MyEvaluations = () => {
 
             )}
 
+
             {/* ==================================================
-                Evaluation Table
+                Evaluation DataTable
             ================================================== */}
 
-            <div className="data-table-container">
-
-                {evaluations.length === 0 ? (
-
-                    <div className="data-table-empty">
-
-                        <div className="data-table-empty-title">
-                            No Evaluations Found
-                        </div>
-
-                        <div className="data-table-empty-message">
-                            You have not created any
-                            evaluations yet.
-                        </div>
-
-                    </div>
-
-                ) : (
-
-                    <div className="data-table-wrapper">
-
-                        <table className="data-table">
-
-                            <thead>
-
-                                <tr>
-
-                                    <th>
-                                        ID
-                                    </th>
-
-                                    <th>
-                                        Evaluation Period
-                                    </th>
-
-                                    <th>
-                                        Status
-                                    </th>
-
-                                    <th>
-                                        Comment
-                                    </th>
-
-                                    <th className="data-table-actions-header">
-                                        Action
-                                    </th>
-
-                                </tr>
-
-                            </thead>
-
-                            <tbody>
-
-                                {evaluations.map(
-                                    (evaluation) => (
-
-                                        <tr
-                                            key={
-                                                evaluation.id
-                                            }
-                                        >
-
-                                            {/* ID */}
-
-                                            <td>
-
-                                                <strong>
-                                                    #
-                                                    {
-                                                        evaluation.id
-                                                    }
-                                                </strong>
-
-                                            </td>
-
-                                            {/* Evaluation Period */}
-
-                                            <td>
-
-                                                <span className="evaluation-period-name">
-
-                                                    {
-                                                        evaluation
-                                                            .evaluation_period
-                                                            ?.name ||
-                                                        evaluation
-                                                            .evaluationPeriod
-                                                            ?.name ||
-                                                        "-"
-                                                    }
-
-                                                </span>
-
-                                            </td>
-
-                                            {/* Status */}
-
-                                            <td>
-
-                                                {renderStatus(
-                                                    evaluation.status
-                                                )}
-
-                                            </td>
-
-                                            {/* Comment */}
-
-                                            <td>
-
-                                                <div className="evaluation-comment">
-
-                                                    {
-                                                        evaluation
-                                                            .employee_comment ||
-                                                        "-"
-                                                    }
-
-                                                </div>
-
-                                            </td>
-
-                                            {/* Action */}
-
-                                            <td className="data-table-actions">
-
-                                                {renderAction(
-                                                    evaluation
-                                                )}
-
-                                            </td>
-
-                                        </tr>
-
-                                    )
-                                )}
-
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                )}
-
-            </div>
+            <DataTable
+                columns={columns}
+                data={evaluations}
+                emptyMessage="You have not created any evaluations yet."
+            />
 
         </div>
     );
 };
+
 
 export default MyEvaluations;

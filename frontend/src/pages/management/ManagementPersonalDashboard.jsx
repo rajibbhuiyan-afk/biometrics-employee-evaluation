@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import api from "../../api/axios";
+import DataTable from "../../components/DataTable";
 
 const ManagementPersonalDashboard = () => {
     const navigate = useNavigate();
@@ -72,7 +73,7 @@ const ManagementPersonalDashboard = () => {
     };
 
     // ==========================================================
-    // Review Evaluation
+    // Review / View Evaluation
     // ==========================================================
 
     const handleReview = (
@@ -331,6 +332,216 @@ const ManagementPersonalDashboard = () => {
         ).length;
 
     // ==========================================================
+    // DataTable Columns
+    // ==========================================================
+
+    const columns = [
+
+        // ======================================================
+        // Evaluation ID
+        // ======================================================
+
+        {
+            key: "id",
+            label: "Evaluation ID",
+
+            render: (
+                evaluation
+            ) => (
+                <strong>
+                    #
+                    {evaluation.id}
+                </strong>
+            ),
+        },
+
+        // ======================================================
+        // Employee
+        // ======================================================
+
+        {
+            key: "employee",
+            label: "Employee",
+
+            render: (
+                evaluation
+            ) =>
+                evaluation
+                    ?.employee
+                    ?.name ||
+                "Unknown",
+        },
+
+        // ======================================================
+        // Employee ID
+        // ======================================================
+
+        {
+            key: "employee_id",
+            label: "Employee ID",
+
+            render: (
+                evaluation
+            ) =>
+                evaluation
+                    ?.employee
+                    ?.employee_id ||
+                "N/A",
+        },
+
+        // ======================================================
+        // Department
+        // ======================================================
+
+        {
+            key: "department",
+            label: "Department",
+
+            render: (
+                evaluation
+            ) =>
+                evaluation
+                    ?.employee
+                    ?.department
+                    ?.name ||
+                "N/A",
+        },
+
+        // ======================================================
+        // Position
+        // ======================================================
+
+        {
+            key: "position",
+            label: "Position",
+
+            render: (
+                evaluation
+            ) =>
+                evaluation
+                    ?.employee
+                    ?.position
+                    ?.title ||
+                "N/A",
+        },
+
+        // ======================================================
+        // Evaluation Period
+        // ======================================================
+
+        {
+            key: "evaluation_period",
+            label: "Evaluation Period",
+
+            render: (
+                evaluation
+            ) =>
+                evaluation
+                    ?.evaluationPeriod
+                    ?.name ||
+                evaluation
+                    ?.evaluation_period
+                    ?.name ||
+                evaluation
+                    ?.evaluationPeriod
+                    ?.title ||
+                evaluation
+                    ?.evaluation_period
+                    ?.title ||
+                "N/A",
+        },
+
+        // ======================================================
+        // Status
+        // ======================================================
+
+        {
+            key: "status",
+            label: "Status",
+
+            render: (
+                evaluation
+            ) =>
+                renderStatus(
+                    evaluation.status
+                ),
+        },
+
+        // ======================================================
+        // Action
+        // ======================================================
+
+        {
+            key: "action",
+            label: "Action",
+
+            headerClassName:
+                "data-table-actions-header",
+
+            className:
+                "data-table-actions",
+
+            render: (
+                evaluation
+            ) => {
+
+                const reviewAllowed =
+                    canReview(
+                        evaluation.status
+                    );
+
+                return (
+                    <div className="table-actions">
+
+                        {reviewAllowed ? (
+
+                            <button
+                                type="button"
+                                className="action-button action-edit"
+                                onClick={(
+                                    event
+                                ) => {
+
+                                    event.stopPropagation();
+
+                                    handleReview(
+                                        evaluation.id
+                                    );
+
+                                }}
+                            >
+                                Review
+                            </button>
+
+                        ) : (
+
+                            <button
+                                type="button"
+                                className="action-button action-view"
+                                onClick={(
+                                    event
+                                ) => {
+
+                                    event.stopPropagation();
+
+                                    handleReview(
+                                        evaluation.id
+                                    );
+
+                                }}
+                            >
+                                View
+                            </button>
+
+                        )}
+
+                    </div>
+                );
+            },
+        },
+    ];
+
+    // ==========================================================
     // Dashboard
     // ==========================================================
 
@@ -358,6 +569,7 @@ const ManagementPersonalDashboard = () => {
 
             </div>
 
+
             {/* ==================================================
                 Error
             ================================================== */}
@@ -367,6 +579,7 @@ const ManagementPersonalDashboard = () => {
                     {error}
                 </div>
             )}
+
 
             {/* ==================================================
                 Dashboard Cards
@@ -388,6 +601,7 @@ const ManagementPersonalDashboard = () => {
 
                 </div>
 
+
                 {/* Pending Management Review */}
 
                 <div className="dashboard-card">
@@ -402,6 +616,7 @@ const ManagementPersonalDashboard = () => {
 
                 </div>
 
+
                 {/* HR Approved */}
 
                 <div className="dashboard-card">
@@ -415,6 +630,7 @@ const ManagementPersonalDashboard = () => {
                     </div>
 
                 </div>
+
 
                 {/* Completed */}
 
@@ -432,6 +648,7 @@ const ManagementPersonalDashboard = () => {
 
             </div>
 
+
             {/* ==================================================
                 Evaluation List
             ================================================== */}
@@ -442,263 +659,23 @@ const ManagementPersonalDashboard = () => {
                     Employee Evaluations
                 </h2>
 
-                <div className="data-table-container">
 
-                    {evaluations.length === 0 ? (
-
-                        <div className="data-table-empty">
-
-                            <div className="data-table-empty-title">
-                                No Evaluations Found
-                            </div>
-
-                            <div className="data-table-empty-message">
-                                There are currently no
-                                employee evaluations
-                                available.
-                            </div>
-
-                        </div>
-
-                    ) : (
-
-                        <div className="data-table-wrapper">
-
-                            <table className="data-table">
-
-                                <thead>
-
-                                    <tr>
-
-                                        <th>
-                                            Evaluation ID
-                                        </th>
-
-                                        <th>
-                                            Employee
-                                        </th>
-
-                                        <th>
-                                            Employee ID
-                                        </th>
-
-                                        <th>
-                                            Department
-                                        </th>
-
-                                        <th>
-                                            Position
-                                        </th>
-
-                                        <th>
-                                            Evaluation Period
-                                        </th>
-
-                                        <th>
-                                            Status
-                                        </th>
-
-                                        <th className="data-table-actions-header">
-                                            Action
-                                        </th>
-
-                                    </tr>
-
-                                </thead>
-
-                                <tbody>
-
-                                    {evaluations.map(
-                                        (
-                                            evaluation
-                                        ) => (
-
-                                            <tr
-                                                key={
-                                                    evaluation.id
-                                                }
-                                                onClick={() =>
-                                                    handleRowClick(
-                                                        evaluation
-                                                    )
-                                                }
-                                                style={{
-                                                    cursor:
-                                                        evaluation
-                                                            ?.employee
-                                                            ?.id
-                                                            ? "pointer"
-                                                            : "default",
-                                                }}
-                                            >
-
-                                                {/* Evaluation ID */}
-
-                                                <td>
-
-                                                    <strong>
-                                                        #
-                                                        {
-                                                            evaluation.id
-                                                        }
-                                                    </strong>
-
-                                                </td>
-
-                                                {/* Employee */}
-
-                                                <td>
-
-                                                    {
-                                                        evaluation
-                                                            ?.employee
-                                                            ?.name ||
-                                                        "Unknown"
-                                                    }
-
-                                                </td>
-
-                                                {/* Employee ID */}
-
-                                                <td>
-
-                                                    {
-                                                        evaluation
-                                                            ?.employee
-                                                            ?.employee_id ||
-                                                        "N/A"
-                                                    }
-
-                                                </td>
-
-                                                {/* Department */}
-
-                                                <td>
-
-                                                    {
-                                                        evaluation
-                                                            ?.employee
-                                                            ?.department
-                                                            ?.name ||
-                                                        "N/A"
-                                                    }
-
-                                                </td>
-
-                                                {/* Position */}
-
-                                                <td>
-
-                                                    {
-                                                        evaluation
-                                                            ?.employee
-                                                            ?.position
-                                                            ?.title ||
-                                                        "N/A"
-                                                    }
-
-                                                </td>
-
-                                                {/* Evaluation Period */}
-
-                                                <td>
-
-                                                    {
-                                                        evaluation
-                                                            ?.evaluation_period
-                                                            ?.name ||
-                                                        evaluation
-                                                            ?.evaluationPeriod
-                                                            ?.name ||
-                                                        evaluation
-                                                            ?.evaluation_period
-                                                            ?.title ||
-                                                        evaluation
-                                                            ?.evaluationPeriod
-                                                            ?.title ||
-                                                        "N/A"
-                                                    }
-
-                                                </td>
-
-                                                {/* Status */}
-
-                                                <td>
-
-                                                    {renderStatus(
-                                                        evaluation.status
-                                                    )}
-
-                                                </td>
-
-                                                {/* Action */}
-
-                                                <td className="data-table-actions">
-
-                                                    <div className="table-actions">
-
-                                                        {canReview(
-                                                            evaluation.status
-                                                        ) ? (
-
-                                                            <button
-                                                                type="button"
-                                                                className="action-button action-edit"
-                                                                onClick={(
-                                                                    e
-                                                                ) => {
-
-                                                                    e.stopPropagation();
-
-                                                                    handleReview(
-                                                                        evaluation.id
-                                                                    );
-
-                                                                }}
-                                                            >
-                                                                Review
-                                                            </button>
-
-                                                        ) : (
-
-                                                            <button
-                                                                type="button"
-                                                                className="action-button action-view"
-                                                                onClick={(
-                                                                    e
-                                                                ) => {
-
-                                                                    e.stopPropagation();
-
-                                                                    handleReview(
-                                                                        evaluation.id
-                                                                    );
-
-                                                                }}
-                                                            >
-                                                                View
-                                                            </button>
-
-                                                        )}
-
-                                                    </div>
-
-                                                </td>
-
-                                            </tr>
-
-                                        )
-                                    )}
-
-                                </tbody>
-
-                            </table>
-
-                        </div>
-
-                    )}
-
-                </div>
+                {/* ==================================================
+                    Reusable DataTable
+                ================================================== */}
+
+                <DataTable
+                    columns={
+                        columns
+                    }
+                    data={
+                        evaluations
+                    }
+                    emptyMessage="There are currently no employee evaluations available."
+                    onRowClick={
+                        handleRowClick
+                    }
+                />
 
             </div>
 

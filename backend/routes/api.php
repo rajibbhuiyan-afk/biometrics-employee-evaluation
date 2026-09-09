@@ -20,9 +20,6 @@ use App\Http\Controllers\EmployeeProfileController;
 use App\Http\Controllers\EmployeeEducationController;
 
 
-
-
-
 // ==========================================================================
 // PUBLIC ROUTES
 // ==========================================================================
@@ -150,7 +147,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:Admin')->group(function () {
 
-        // Admin Dashboard
         Route::get(
             '/admin/dashboard',
             [AdminDashboardController::class, 'index']
@@ -253,7 +249,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ----------------------------------------------------------------------
     // View Questions
-    // All authenticated users
     // ----------------------------------------------------------------------
 
     Route::get(
@@ -298,7 +293,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // ======================================================================
-    // EMPLOYEE EVALUATIONS
+    // EMPLOYEE EVALUATIONS - CREATE / UPDATE / DELETE / SUBMIT
     // ======================================================================
 
     Route::middleware('role:Employee,Manager,HR')->group(function () {
@@ -315,13 +310,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // --------------------------------------------------------------
         // Update Evaluation
-        // Draft / Returned / Rejected
         // --------------------------------------------------------------
 
         Route::put(
             '/evaluations/{evaluation}',
             [EvaluationController::class, 'update']
         );
+
+
+        // --------------------------------------------------------------
+        // Delete Draft Evaluation
+        // --------------------------------------------------------------
 
         Route::delete(
             '/evaluations/{evaluation}',
@@ -362,27 +361,92 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // ======================================================================
-    // EVALUATIONS - VIEW
+    // MY EVALUATIONS
     // ======================================================================
     //
-    // Controller handles:
-    // Employee ownership
-    // Manager assignment
-    // HR access
-    // Management access
-    // Admin access
+    // IMPORTANT:
+    //
+    // This endpoint is ONLY for the logged-in user's own evaluations.
+    //
+    // Employee -> own evaluations
+    // Manager  -> own evaluations
+    // HR       -> own evaluations
+    //
+    // It does NOT show subordinate evaluations.
+    //
+    // Dashboard/subordinate evaluations are handled by /evaluations.
     //
     // ======================================================================
 
-    Route::get(
-        '/evaluations',
-        [EvaluationController::class, 'index']
-    );
+    Route::middleware(
+        'role:Employee,Manager,HR,Management,Admin'
+    )->group(function () {
 
-    Route::get(
-        '/evaluations/{evaluation}',
-        [EvaluationController::class, 'show']
-    );
+        Route::get(
+            '/evaluations/my',
+            [EvaluationController::class, 'myEvaluations']
+        );
+
+    });
+
+
+    // ======================================================================
+    // EVALUATIONS - DASHBOARD / MANAGEMENT VIEW
+    // ======================================================================
+    //
+    // Access is controlled inside EvaluationController@index.
+    //
+    // Employee:
+    //     Own + direct reports
+    //
+    // Manager:
+    //     Own + direct reports
+    //
+    // HR:
+    //     All
+    //
+    // Management:
+    //     All
+    //
+    // Admin:
+    //     All
+    //
+    // ======================================================================
+
+    Route::middleware(
+        'role:Employee,Manager,HR,Management,Admin'
+    )->group(function () {
+
+        // --------------------------------------------------------------
+        // Evaluation List
+        // --------------------------------------------------------------
+
+        Route::get(
+            '/evaluations',
+            [EvaluationController::class, 'index']
+        );
+
+
+        // --------------------------------------------------------------
+        // Single Evaluation
+        // --------------------------------------------------------------
+
+        Route::get(
+            '/evaluations/{evaluation}',
+            [EvaluationController::class, 'show']
+        );
+
+
+        // --------------------------------------------------------------
+        // Download Evaluation PDF
+        // --------------------------------------------------------------
+
+        Route::get(
+            '/evaluations/{evaluation}/pdf',
+            [EvaluationController::class, 'downloadPdf']
+        );
+
+    });
 
 
     // ======================================================================
@@ -422,7 +486,9 @@ Route::middleware('auth:sanctum')->group(function () {
     //
     // ======================================================================
 
-    Route::middleware('role:Manager,HR,Management')->group(function () {
+    Route::middleware(
+        'role:Manager,HR,Management'
+    )->group(function () {
 
         // --------------------------------------------------------------
         // Review History
@@ -455,12 +521,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     });
 
-    Route::get(
-        '/evaluations/{evaluation}/pdf',
-        [EvaluationController::class, 'downloadPdf']
-    );
-
-
-    
 
 });

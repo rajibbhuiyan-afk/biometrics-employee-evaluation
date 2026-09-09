@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import api from "../../api/axios";
+import DataTable from "../../components/DataTable";
 
 const EvaluationPeriods = () => {
+
     const navigate = useNavigate();
 
     const [periods, setPeriods] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        fetchPeriods();
-    }, []);
 
     /*
     |--------------------------------------------------------------------------
@@ -19,8 +19,15 @@ const EvaluationPeriods = () => {
     |--------------------------------------------------------------------------
     */
 
+    useEffect(() => {
+        fetchPeriods();
+    }, []);
+
+
     const fetchPeriods = async () => {
+
         try {
+
             setLoading(true);
             setError("");
 
@@ -38,16 +45,21 @@ const EvaluationPeriods = () => {
             );
 
         } catch (error) {
+
             console.error(error);
 
             setError(
                 error.response?.data?.message ||
                 "Failed to load evaluation periods."
             );
+
         } finally {
+
             setLoading(false);
+
         }
     };
+
 
     /*
     |--------------------------------------------------------------------------
@@ -56,12 +68,14 @@ const EvaluationPeriods = () => {
     */
 
     const formatDate = (date) => {
+
         if (!date) {
             return "N/A";
         }
 
         return String(date).substring(0, 10);
     };
+
 
     /*
     |--------------------------------------------------------------------------
@@ -70,6 +84,7 @@ const EvaluationPeriods = () => {
     */
 
     const formatStatus = (status) => {
+
         if (
             status === null ||
             status === undefined
@@ -85,6 +100,7 @@ const EvaluationPeriods = () => {
         );
     };
 
+
     /*
     |--------------------------------------------------------------------------
     | Status Class
@@ -92,6 +108,7 @@ const EvaluationPeriods = () => {
     */
 
     const getStatusClass = (status) => {
+
         const value = String(
             status || ""
         ).toLowerCase();
@@ -107,6 +124,7 @@ const EvaluationPeriods = () => {
         return "status-badge status-draft";
     };
 
+
     /*
     |--------------------------------------------------------------------------
     | Delete Evaluation Period
@@ -114,6 +132,7 @@ const EvaluationPeriods = () => {
     */
 
     const handleDelete = async (id) => {
+
         const confirmed = window.confirm(
             "Are you sure you want to delete this evaluation period?"
         );
@@ -123,6 +142,7 @@ const EvaluationPeriods = () => {
         }
 
         try {
+
             await api.delete(
                 `/evaluation-periods/${id}`
             );
@@ -134,6 +154,7 @@ const EvaluationPeriods = () => {
             fetchPeriods();
 
         } catch (error) {
+
             console.error(error);
 
             alert(
@@ -143,6 +164,144 @@ const EvaluationPeriods = () => {
         }
     };
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | DataTable Columns
+    |--------------------------------------------------------------------------
+    */
+
+    const columns = [
+
+        {
+            key: "id",
+            label: "ID",
+        },
+
+        {
+            key: "name",
+            label: "Name",
+        },
+
+        {
+            key: "start_date",
+            label: "Period Start",
+
+            render: (period) =>
+                formatDate(
+                    period.start_date
+                ),
+        },
+
+        {
+            key: "end_date",
+            label: "Period End",
+
+            render: (period) =>
+                formatDate(
+                    period.end_date
+                ),
+        },
+
+        {
+            key: "submission_start_date",
+            label: "Submission Start",
+
+            render: (period) =>
+                formatDate(
+                    period.submission_start_date
+                ),
+        },
+
+        {
+            key: "submission_end_date",
+            label: "Submission End",
+
+            render: (period) =>
+                formatDate(
+                    period.submission_end_date
+                ),
+        },
+
+        {
+            key: "status",
+            label: "Status",
+
+            render: (period) => (
+
+                <span
+                    className={getStatusClass(
+                        period.status
+                    )}
+                >
+                    {formatStatus(
+                        period.status
+                    )}
+                </span>
+
+            ),
+        },
+
+        {
+            key: "actions",
+            label: "Actions",
+
+            render: (period) => (
+
+                <div className="table-actions">
+
+                    {/* Edit */}
+
+                    <button
+                        type="button"
+                        className="action-button action-edit"
+                        onClick={(event) => {
+
+                            /*
+                            Prevent any parent row click
+                            */
+
+                            event.stopPropagation();
+
+                            navigate(
+                                `/management/evaluation-periods/${period.id}/edit`
+                            );
+
+                        }}
+                    >
+                        Edit
+                    </button>
+
+
+                    {/* Delete */}
+
+                    <button
+                        type="button"
+                        className="action-button action-delete"
+                        onClick={(event) => {
+
+                            /*
+                            Prevent any parent row click
+                            */
+
+                            event.stopPropagation();
+
+                            handleDelete(
+                                period.id
+                            );
+
+                        }}
+                    >
+                        Delete
+                    </button>
+
+                </div>
+
+            ),
+        },
+    ];
+
+
     /*
     |--------------------------------------------------------------------------
     | Loading
@@ -150,14 +309,22 @@ const EvaluationPeriods = () => {
     */
 
     if (loading) {
+
         return (
             <div className="management-page">
-                <h2>
-                    Loading Evaluation Periods...
-                </h2>
+
+                <div className="data-table-empty">
+
+                    <div className="data-table-empty-title">
+                        Loading Evaluation Periods...
+                    </div>
+
+                </div>
+
             </div>
         );
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -166,9 +333,12 @@ const EvaluationPeriods = () => {
     */
 
     return (
+
         <div className="management-page">
 
-            {/* Page Header */}
+            {/* ==================================================
+                Page Header
+            ================================================== */}
 
             <div className="page-header">
 
@@ -185,6 +355,7 @@ const EvaluationPeriods = () => {
 
                 </div>
 
+
                 <button
                     type="button"
                     className="page-header-button"
@@ -200,7 +371,9 @@ const EvaluationPeriods = () => {
             </div>
 
 
-            {/* Error */}
+            {/* ==================================================
+                Error
+            ================================================== */}
 
             {error && (
                 <div className="management-error">
@@ -209,182 +382,15 @@ const EvaluationPeriods = () => {
             )}
 
 
-            {/* Empty State */}
+            {/* ==================================================
+                Data Table
+            ================================================== */}
 
-            {periods.length === 0 ? (
-
-                <div className="data-table-container">
-
-                    <div className="data-table-empty">
-
-                        <div className="data-table-empty-title">
-                            No evaluation periods found
-                        </div>
-
-                        <div className="data-table-empty-message">
-                            Create an evaluation period
-                            to get started.
-                        </div>
-
-                    </div>
-
-                </div>
-
-            ) : (
-
-                /* Table */
-
-                <div className="data-table-container">
-
-                    <div className="data-table-wrapper">
-
-                        <table className="data-table">
-
-                            <thead>
-
-                                <tr>
-
-                                    <th>
-                                        ID
-                                    </th>
-
-                                    <th>
-                                        Name
-                                    </th>
-
-                                    <th>
-                                        Period Start
-                                    </th>
-
-                                    <th>
-                                        Period End
-                                    </th>
-
-                                    <th>
-                                        Submission Start
-                                    </th>
-
-                                    <th>
-                                        Submission End
-                                    </th>
-
-                                    <th>
-                                        Status
-                                    </th>
-
-                                    <th className="data-table-actions-header">
-                                        Actions
-                                    </th>
-
-                                </tr>
-
-                            </thead>
-
-                            <tbody>
-
-                                {periods.map(
-                                    (period) => (
-
-                                        <tr
-                                            key={period.id}
-                                        >
-
-                                            <td>
-                                                {period.id}
-                                            </td>
-
-                                            <td>
-                                                {period.name}
-                                            </td>
-
-                                            <td>
-                                                {formatDate(
-                                                    period.start_date
-                                                )}
-                                            </td>
-
-                                            <td>
-                                                {formatDate(
-                                                    period.end_date
-                                                )}
-                                            </td>
-
-                                            <td>
-                                                {formatDate(
-                                                    period.submission_start_date
-                                                )}
-                                            </td>
-
-                                            <td>
-                                                {formatDate(
-                                                    period.submission_end_date
-                                                )}
-                                            </td>
-
-                                            {/* Status */}
-
-                                            <td>
-
-                                                <span
-                                                    className={getStatusClass(
-                                                        period.status
-                                                    )}
-                                                >
-                                                    {formatStatus(
-                                                        period.status
-                                                    )}
-                                                </span>
-
-                                            </td>
-
-                                            {/* Actions */}
-
-                                            <td className="data-table-actions">
-
-                                                <div className="table-actions">
-
-                                                    <button
-                                                        type="button"
-                                                        className="action-button action-edit"
-                                                        onClick={() =>
-                                                            navigate(
-                                                                `/management/evaluation-periods/${period.id}/edit`
-                                                            )
-                                                        }
-                                                    >
-                                                        Edit
-                                                    </button>
-
-                                                    <button
-                                                        type="button"
-                                                        className="action-button action-delete"
-                                                        onClick={() =>
-                                                            handleDelete(
-                                                                period.id
-                                                            )
-                                                        }
-                                                    >
-                                                        Delete
-                                                    </button>
-
-                                                </div>
-
-                                            </td>
-
-                                        </tr>
-
-                                    )
-                                )}
-
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                </div>
-
-            )}
+            <DataTable
+                columns={columns}
+                data={periods}
+                emptyMessage="Create an evaluation period to get started."
+            />
 
         </div>
     );
