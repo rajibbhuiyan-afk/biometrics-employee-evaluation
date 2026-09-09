@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EvaluationReview extends Model
 {
@@ -14,42 +15,34 @@ class EvaluationReview extends Model
         'question_id',
         'reviewer_id',
         'reviewer_role',
-
         'review_result',
-
         'rating',
         'comment',
-
         'action',
         'reviewed_at',
     ];
 
     protected $casts = [
-        'rating' => 'decimal:2',
+        'rating' => 'float',
         'reviewed_at' => 'datetime',
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Evaluation
-    |--------------------------------------------------------------------------
-    */
 
-    public function evaluation()
+    /**
+     * Evaluation
+     */
+    public function evaluation(): BelongsTo
     {
         return $this->belongsTo(
-            Evaluation::class,
-            'evaluation_id'
+            Evaluation::class
         );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Question
-    |--------------------------------------------------------------------------
-    */
 
-    public function question()
+    /**
+     * Question
+     */
+    public function question(): BelongsTo
     {
         return $this->belongsTo(
             EvaluationQuestion::class,
@@ -57,13 +50,11 @@ class EvaluationReview extends Model
         );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Reviewer
-    |--------------------------------------------------------------------------
-    */
 
-    public function reviewer()
+    /**
+     * Reviewer User
+     */
+    public function reviewer(): BelongsTo
     {
         return $this->belongsTo(
             User::class,

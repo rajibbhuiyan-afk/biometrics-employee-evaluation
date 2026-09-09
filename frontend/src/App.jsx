@@ -60,6 +60,8 @@ import AdminEvaluationList from "./pages/management/AdminEvaluationList";
 import MyProfile from "./pages/employee/MyProfile";
 import EmployeeProfile from "./pages/employee/EmployeeProfile";
 
+import EditEvaluationComment from "./pages/management/EditEvaluationComment";
+
 function App() {
     return (
         <BrowserRouter>
@@ -221,7 +223,7 @@ function App() {
                     />
 
                     <Route
-                        path="users/:id/change-password"
+                        path="change-password"
                         element={<ChangePassword />}
                     />
 
@@ -333,8 +335,12 @@ function App() {
                         element={<EditProbationPeriod />}
                     />
                     <Route
-                        path="/management/employee/evaluations/:id/review"
+                        path="employee/evaluations/:id/review"
                         element={<ReviewEvaluation />}
+                    />
+                   <Route
+                        path="employee/evaluations/:id/edit-comment"
+                        element={<EditEvaluationComment />}
                     />
 
                 </Route>

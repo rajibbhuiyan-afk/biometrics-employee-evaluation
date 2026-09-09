@@ -1318,80 +1318,125 @@ const EvaluationDetails = () => {
                 Evaluation Summary
             ================================================= */}
 
-            <div className="evaluation-summary">
+           <div className="evaluation-summary">
 
-                <div className="evaluation-summary-header">
+    <div className="evaluation-summary-header">
 
-                    <div>
+        <div>
 
-                        <span className="evaluation-summary-label">
-                            Evaluation Period
-                        </span>
+            <span className="evaluation-summary-label">
+                Evaluation Period
+            </span>
 
-                        <h2>
-                            {evaluation
-                                .evaluation_period
-                                ?.name ||
-                                evaluation
-                                    .evaluationPeriod
-                                    ?.name ||
-                                "Evaluation"}
-                        </h2>
+            <h2>
+                {evaluation
+                    .evaluation_period
+                    ?.name ||
+                    evaluation
+                        .evaluationPeriod
+                        ?.name ||
+                    "Evaluation"}
+            </h2>
 
-                    </div>
+        </div>
 
-                    <span
-                        className={getStatusClass(
-                            evaluation.status
-                        )}
+        <span
+            className={getStatusClass(
+                evaluation.status
+            )}
+        >
+            {evaluation.status}
+        </span>
+
+    </div>
+
+
+    <div className="evaluation-summary-grid">
+
+        {/* ==========================================
+            Evaluation ID
+        ========================================== */}
+
+        <div className="evaluation-summary-item">
+
+            <span>
+                Evaluation ID
+            </span>
+
+            <strong>
+                #{evaluation.id}
+            </strong>
+
+        </div>
+
+
+        {/* ==========================================
+            Status
+        ========================================== */}
+
+        <div className="evaluation-summary-item">
+
+            <span>
+                Status
+            </span>
+
+            <strong>
+                {evaluation.status}
+            </strong>
+
+        </div>
+
+
+        {/* ==========================================
+            Employee Comment
+        ========================================== */}
+
+        <div className="evaluation-summary-item">
+
+            <span>
+                Employee Comment
+            </span>
+
+            <div className="evaluation-comment-wrapper">
+
+                <strong className="evaluation-comment-text">
+
+                    {evaluation.employee_comment ||
+                        "No comment provided"}
+
+                </strong>
+
+
+                {/* ======================================
+                    Edit Comment
+                    Draft Only
+                ====================================== */}
+
+                {evaluation.status === "draft" && (
+
+                    <button
+                        type="button"
+                        className="evaluation-comment-edit-button"
+                        onClick={() =>
+                            navigate(
+                                `/management/employee/evaluations/${evaluation.id}/edit-comment`
+                            )
+                        }
+                        title="Edit Comment"
+                        aria-label="Edit Employee Comment"
                     >
-                        {evaluation.status}
-                    </span>
+                        ✎
+                    </button>
 
-                </div>
-
-                <div className="evaluation-summary-grid">
-
-                    <div className="evaluation-summary-item">
-
-                        <span>
-                            Evaluation ID
-                        </span>
-
-                        <strong>
-                            #{evaluation.id}
-                        </strong>
-
-                    </div>
-
-                    <div className="evaluation-summary-item">
-
-                        <span>
-                            Status
-                        </span>
-
-                        <strong>
-                            {evaluation.status}
-                        </strong>
-
-                    </div>
-
-                    <div className="evaluation-summary-item">
-
-                        <span>
-                            Employee Comment
-                        </span>
-
-                        <strong>
-                            {evaluation.employee_comment ||
-                                "No comment provided"}
-                        </strong>
-
-                    </div>
-
-                </div>
+                )}
 
             </div>
+
+        </div>
+
+    </div>
+
+</div>
 
             {/* =================================================
                 Questions

@@ -159,7 +159,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ADMIN + HR
     // ======================================================================
 
-    Route::middleware('role:Admin,HR')->group(function () {
+    Route::middleware('role:Admin,HR,Management')->group(function () {
 
         // --------------------------------------------------------------
         // Roles

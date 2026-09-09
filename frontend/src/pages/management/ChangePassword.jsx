@@ -36,25 +36,44 @@ const ChangePassword = () => {
         try {
             setSaving(true);
 
-            await api.post("/change-password", {
-                password,
-                password_confirmation: passwordConfirmation,
-            });
+            const response = await api.post(
+                "/change-password",
+                {
+                    password,
+                    password_confirmation:
+                        passwordConfirmation,
+                }
+            );
 
-            setSuccess(
-                "Password changed successfully."
+            console.log(
+                "Change password response:",
+                response.data
             );
 
             setPassword("");
             setPasswordConfirmation("");
 
+            setSuccess(
+                response.data?.message ||
+                "Password changed successfully."
+            );
+
         } catch (error) {
             console.error(
                 "Change password error:",
-                error
+                error.response || error
             );
 
-            if (error.response?.data?.errors) {
+            /*
+            |--------------------------------------------------------------------------
+            | Validation Errors
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                error.response?.status === 422 &&
+                error.response?.data?.errors
+            ) {
                 const validationErrors =
                     Object.values(
                         error.response.data.errors
@@ -64,12 +83,52 @@ const ChangePassword = () => {
 
                 setError(validationErrors);
 
-            } else {
+                return;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Unauthorized
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                error.response?.status === 401
+            ) {
+                setError(
+                    "Your session has expired. Please login again."
+                );
+
+                return;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Forbidden
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                error.response?.status === 403
+            ) {
                 setError(
                     error.response?.data?.message ||
-                    "Failed to change password."
+                    "You do not have permission to change the password."
                 );
+
+                return;
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Other Errors
+            |--------------------------------------------------------------------------
+            */
+
+            setError(
+                error.response?.data?.message ||
+                "Failed to change password."
+            );
 
         } finally {
             setSaving(false);
@@ -78,6 +137,10 @@ const ChangePassword = () => {
 
     return (
         <div className="management-form-page">
+
+            {/* ==================================================
+                Page Header
+            ================================================== */}
 
             <div className="page-header">
 
@@ -95,11 +158,21 @@ const ChangePassword = () => {
 
             </div>
 
+
+            {/* ==================================================
+                Error
+            ================================================== */}
+
             {error && (
                 <div className="management-form-error">
                     {error}
                 </div>
             )}
+
+
+            {/* ==================================================
+                Success
+            ================================================== */}
 
             {success && (
                 <div className="management-form-success">
@@ -107,12 +180,19 @@ const ChangePassword = () => {
                 </div>
             )}
 
+
+            {/* ==================================================
+                Form
+            ================================================== */}
+
             <form
                 className="management-form"
                 onSubmit={handleSubmit}
             >
 
-                {/* New Password */}
+                {/* ==================================================
+                    New Password
+                ================================================== */}
 
                 <div className="management-form-field">
 
@@ -125,18 +205,23 @@ const ChangePassword = () => {
                         type="password"
                         value={password}
                         onChange={(e) =>
-                            setPassword(e.target.value)
+                            setPassword(
+                                e.target.value
+                            )
                         }
                         placeholder="Enter new password"
                         minLength={8}
                         disabled={saving}
+                        autoComplete="new-password"
                         required
                     />
 
                 </div>
 
 
-                {/* Confirm Password */}
+                {/* ==================================================
+                    Confirm Password
+                ================================================== */}
 
                 <div className="management-form-field">
 
@@ -156,13 +241,16 @@ const ChangePassword = () => {
                         placeholder="Confirm new password"
                         minLength={8}
                         disabled={saving}
+                        autoComplete="new-password"
                         required
                     />
 
                 </div>
 
 
-                {/* Actions */}
+                {/* ==================================================
+                    Actions
+                ================================================== */}
 
                 <div className="management-form-actions">
 
@@ -175,6 +263,7 @@ const ChangePassword = () => {
                             ? "Updating..."
                             : "Update Password"}
                     </button>
+
 
                     <button
                         type="button"
